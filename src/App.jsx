@@ -15,7 +15,7 @@ import { observarTabelas } from './tabelasResponsivas.js'
 import { definirIdioma, t } from './i18n.js'
 import { corTextoSobre, definirFuso, FUSO_PADRAO, hexValido, hoje } from './utils.js'
 import pacote from '../package.json'
-import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO } from './marca.js'
+import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from './marca.js'
 import {
   IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCalculadora, IconeCaminhao, IconeCarrinho, IconeConfig,
   IconeGrafico, IconeMenu, IconeRecolher, IconeSair, IconeSeta,
@@ -152,7 +152,7 @@ export default function App() {
   // logo: no tema escuro usa o logo próprio dele; se não tiver, usa o do tema claro
   const logo = temaAtivo === 'light' ? db?.config?.logo : db?.config?.logoEscuro || db?.config?.logo
   const nomeProprio = db?.config?.nomeLoja?.trim()
-  const nomeLoja = nomeProprio || t('Gerente de Preços')
+  const nomeLoja = nomeProprio || NOME_APP
   useEffect(() => {
     const raiz = document.documentElement.style
     if (cor) { raiz.setProperty('--pri', cor); raiz.setProperty('--pri-txt', corTextoSobre(cor)) }
@@ -226,7 +226,7 @@ export default function App() {
             ) : (
               <>
                 {/* logo padrão do sistema: versão completa (com o nome) e o ícone para a barra recolhida */}
-                <img className="logo-padrao rotulo" src={temaAtivo === 'light' ? LOGO_PADRAO_CLARO : LOGO_PADRAO_ESCURO} alt={t('Gerente de Preços')} />
+                <img className="logo-padrao rotulo" src={temaAtivo === 'light' ? LOGO_PADRAO_CLARO : LOGO_PADRAO_ESCURO} alt={NOME_APP} />
                 <img className="logo-img logo-icone" src={LOGO_PADRAO_APP} alt="" />
                 {nomeProprio && <span className="rotulo">{nomeProprio}</span>}
               </>

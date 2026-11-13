@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { IconeBackup, IconeCelular, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
 import { avisar, avisosSuportados, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
 import { IDIOMAS, t } from '../i18n.js'
-import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO } from '../marca.js'
+import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP as NOME_PADRAO } from '../marca.js'
 import { corTextoSobre, FUSO_PADRAO, hexValido } from '../utils.js'
 
 const COR_PADRAO = '#5b8def' // cor padrão no tema escuro
 const COR_PADRAO_CLARO = '#3867d6' // cor padrão no tema claro
-const NOME_PADRAO = 'Gerente de Preços'
 
 // Seções da tela de Configurações. Cada cartão abre uma página própria.
 const SECOES = [
@@ -251,7 +250,7 @@ function Marca({ db, executar }) {
         {logo ? (
           <>
             <img className="logo-img" src={logo} alt="" />
-            <span>{form.nomeLoja.trim() || t(NOME_PADRAO)}</span>
+            <span>{form.nomeLoja.trim() || NOME_PADRAO}</span>
           </>
         ) : (
           <>
@@ -276,8 +275,8 @@ function Marca({ db, executar }) {
       <h3 className="largo">{t('Como sua empresa aparece')}</h3>
 
       <label className="largo">{t('Nome da sua empresa')}
-        <input placeholder={t(NOME_PADRAO)} maxLength={40} value={form.nomeLoja} onChange={(e) => setForm({ ...form, nomeLoja: e.target.value })} />
-        <small>{t('Aparece no menu lateral e no título da aba do navegador. Deixe em branco para usar "{nome}".', { nome: t(NOME_PADRAO) })}</small>
+        <input placeholder={NOME_PADRAO} maxLength={40} value={form.nomeLoja} onChange={(e) => setForm({ ...form, nomeLoja: e.target.value })} />
+        <small>{t('Aparece no menu lateral e no título da aba do navegador. Deixe em branco para usar "{nome}".', { nome: NOME_PADRAO })}</small>
       </label>
 
       <label className="largo">{t('Cor da sua marca')}

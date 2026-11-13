@@ -4,3 +4,6 @@
 export const LOGO_PADRAO_CLARO = '/logos/logo-claro-menu.png'
 export const LOGO_PADRAO_ESCURO = '/logos/logo-escuro-menu.png'
 export const LOGO_PADRAO_APP = '/logos/logo-app-menu.png'
+
+// Nome do sistema (aba do navegador, app instalado e menu, quando a empresa não define outro)
+export const NOME_APP = 'PJ GERENT'

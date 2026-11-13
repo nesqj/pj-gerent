@@ -1,6 +1,6 @@
 {
-  "name": "Gerenciador de Preços",
-  "short_name": "Preços",
+  "name": "PJ GERENT",
+  "short_name": "PJ GERENT",
   "description": "Preços de fornecedores, vendas e estoque da loja.",
   "lang": "pt-BR",
   "start_url": "/",

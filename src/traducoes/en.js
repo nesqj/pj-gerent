@@ -18,7 +18,6 @@ export default {
   'Abrir menu': 'Open menu',
   'Carregando...': 'Loading...',
   'Erro ao salvar.': 'Could not save.',
-  'Gerente de Preços': 'Price Manager',
   '(removido)': '(removed)',
   'Não foi possível salvar no navegador. Baixe uma cópia em Configurações → Cópia de segurança.': 'Could not save in this browser. Download a copy in Settings → Backup.',
 
