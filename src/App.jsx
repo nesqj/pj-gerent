@@ -11,6 +11,7 @@ import Ajuda from './componentes/Ajuda.jsx'
 import Login from './componentes/Login.jsx'
 import * as Auth from './auth.js'
 import { supabaseConfigurado } from './supabase.js'
+import { observarTabelas } from './tabelasResponsivas.js'
 import { definirIdioma, t } from './i18n.js'
 import { corTextoSobre, definirFuso, FUSO_PADRAO, hexValido, hoje } from './utils.js'
 import pacote from '../package.json'
@@ -113,6 +114,9 @@ export default function App() {
     setSessao(null)
     setMenuAberto(false)
   }
+
+  // tabelas viram cartões no celular (ver tabelasResponsivas.js)
+  useEffect(() => observarTabelas(), [])
 
   // guarda tema e idioma no navegador, para a tela de login já abrir do jeito certo
   useEffect(() => {

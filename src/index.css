@@ -381,3 +381,87 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
 .desconto-linha { display: block; color: var(--bad); font-size: 12px }
 .total-grande { align-items: flex-end }
 .login-rodape { margin-top: 18px; text-align: center; color: var(--mut); font-size: 13px }
+
+/* =====================================================================
+   CELULAR (até 767px)
+   ===================================================================== */
+@media (max-width: 767px) {
+  /* campos com 16px: abaixo disso o iPhone dá zoom ao tocar */
+  input, select, textarea { font-size: 16px }
+  input.cel, .seletor-preco select, .aplicar-lote select { font-size: 16px }
+
+  /* botões mais fáceis de tocar */
+  button { min-height: 40px }
+  button.edit, button.del { padding: 8px 14px; font-size: 14px }
+  .segmentado button { padding: 8px 12px }
+  button.link, .chip button, .ver-senha, button.voltar { min-height: 0 }
+  .item { min-height: 44px }
+
+  /* barra do topo sempre visível, com espaço para o entalhe do iPhone */
+  .barra-topo {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  .barra-topo h1 { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  main { padding: 14px 12px calc(24px + env(safe-area-inset-bottom)) }
+  .lateral { padding-top: env(safe-area-inset-top) }
+
+  /* formulários: um campo por linha, botões ocupando a largura */
+  form { padding: 14px; gap: 12px }
+  form > label { flex: 1 1 100% !important }
+  form > button, .finalizar > button { flex: 1 1 auto }
+  .finalizar { flex-direction: column; align-items: stretch }
+  .finalizar > label { flex: 1 1 auto !important }
+  .total-grande { align-items: flex-start; margin: 4px 0 }
+  .busca { max-width: none }
+  .linha-titulo { align-items: stretch }
+  .linha-titulo > input, .linha-titulo > .aplicar-lote { width: 100% }
+  .resultado > div { min-width: 0; flex: 1 1 45% }
+  .resultado .seletor-preco select { max-width: 100% }
+
+  /* cartões de números: 2 por linha */
+  .cards { grid-template-columns: 1fr 1fr; gap: 8px }
+  .card { padding: 10px 12px }
+  .card b { font-size: 16px }
+  .indicadores .card .var { font-size: 11px }
+
+  /* Configurações e Fornecedores */
+  .config-grade, .lista-forn, .ajuda, .duas-colunas { grid-template-columns: 1fr }
+  .config-card { padding: 14px }
+  .info-forn-topo > div { display: flex; flex-wrap: wrap; gap: 8px }
+  .part-linha { grid-template-columns: 64px 1fr auto }
+
+  /* ---------- tabelas viram cartões ---------- */
+  .tw { background: none; border: none; overflow: visible }
+  .tw table, .tw tbody, .tw tr, .tw td { display: block; width: 100% }
+  .tw thead { display: none }
+  .tw tr {
+    background: var(--card); border: 1px solid var(--bd); border-radius: 12px;
+    margin-bottom: 10px; padding: 4px 14px;
+  }
+  .tw tbody tr:hover { background: var(--card) }
+  .tw tr.best { background: var(--verde-fundo) }
+  .tw tr.em-edicao { background: var(--warn-suave); border-color: var(--warn-borda) }
+  .tw td {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--bd); white-space: normal; text-align: right; min-width: 0;
+  }
+  .tw tbody tr:last-child td { border-bottom: 1px solid var(--bd) }
+  .tw td:last-child { border-bottom: none !important }
+  .tw td::before {
+    content: attr(data-label); color: var(--mut); font-size: 13px; text-align: left;
+    flex-shrink: 0; max-width: 45%; margin-right: auto;
+  }
+  .tw td { justify-content: flex-end; flex-wrap: wrap; column-gap: 8px }
+  .tw td[data-label=""]::before { content: none }
+  .tw td[data-label=""] { justify-content: flex-end; flex-wrap: wrap }
+  .tw td.vazio { display: block; text-align: center; border: none }
+  .tw td.quebra { min-width: 0 }
+  .tw td > b, .tw td > span, .tw td > small { text-align: right }
+  .desconto-linha { display: inline; margin-left: 6px }
+  .tw td input.cel { width: 120px }
+  .seletor-preco { flex-wrap: wrap; justify-content: flex-end }
+  /* linha só com a caixinha de seleção: compacta, no canto */
+  .tw td:has(> input[type=checkbox]:only-child) { border-bottom: none !important; padding: 8px 0 0 }
+  .tw td > input[type=checkbox] { width: 20px; height: 20px }
+}
