@@ -58,15 +58,29 @@ create table if not exists public.admins_plataforma (
   criado_em timestamptz not null default now()
 );
 
--- Configuração da plataforma (uma linha só)
---   cadastro = 'convite'  só entra quem foi colocado numa loja
---   cadastro = 'aberto'   quem cria conta ganha uma loja própria, vazia
+-- Configuração da plataforma (uma linha só) — quem pode criar conta:
+--   somente_convite = true   só entra quem foi colocado numa loja; sem convite, vê um aviso
+--   somente_convite = false e aprovacao = true    quem chega sem convite pede a loja e espera sua aprovação
+--   somente_convite = false e aprovacao = false   quem chega sem convite ganha uma loja própria na hora
+-- ("cadastro" é a coluna da primeira versão; fica acompanhando somente_convite)
 create table if not exists public.config_plataforma (
   id boolean primary key default true check (id),
   cadastro text not null default 'convite' check (cadastro in ('convite', 'aberto')),
   atualizado_em timestamptz not null default now()
 );
 insert into public.config_plataforma (id) values (true) on conflict do nothing;
+alter table public.config_plataforma add column if not exists somente_convite boolean not null default true;
+alter table public.config_plataforma add column if not exists aprovacao boolean not null default false;
+update public.config_plataforma set somente_convite = false where cadastro = 'aberto' and somente_convite;
+
+-- Pedidos de quem criou conta sem convite (com o cadastro com aprovação ligado)
+create table if not exists public.pedidos_cadastro (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  criado_em timestamptz not null default now(),
+  situacao text not null default 'pendente' check (situacao in ('pendente', 'recusado')),
+  decidido_em timestamptz,
+  decidido_por uuid references auth.users (id) on delete set null
+);
 
 -- Auditoria: quem fez o quê e quando. Não dá para alterar nem apagar pelo app.
 create table if not exists public.auditoria (
@@ -140,6 +154,7 @@ alter table public.convites enable row level security;
 alter table public.dados_org enable row level security;
 alter table public.admins_plataforma enable row level security;
 alter table public.config_plataforma enable row level security;
+alter table public.pedidos_cadastro enable row level security; -- sem regras de leitura: só pelas funções
 alter table public.auditoria enable row level security;
 
 -- Leitura direta. Gravações nas tabelas de lojas/equipe acontecem só pelas funções abaixo.
@@ -177,7 +192,8 @@ create policy "auditoria: registrar" on public.auditoria for insert to authentic
 -- ============================================================ funções usadas pelo app
 
 -- Chamada ao entrar: aceita convites do e-mail, cria o 1º administrador da plataforma
--- (se ainda não houver nenhum) e, com cadastro aberto, cria a loja de quem não tem nenhuma.
+-- (se ainda não houver nenhum) e, para quem não tem loja, segue o modo de cadastro:
+-- só convite → nada; com aprovação → registra o pedido; aberto → cria a loja.
 create or replace function public.entrar_na_plataforma() returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -187,6 +203,7 @@ declare
   virou_admin boolean := false;
   nova uuid;
   c record;
+  cfg record;
 begin
   if eu is null then raise exception 'sem-sessao'; end if;
   select lower(email), coalesce(nullif(btrim(raw_user_meta_data->>'nome'), ''), split_part(email, '@', 1))
@@ -204,17 +221,23 @@ begin
     perform public.auditar(c.org_id, 'convite.aceito', meu_email);
   end loop;
 
-  if not exists (select 1 from public.membros where user_id = eu)
-     and (virou_admin or (select cadastro from public.config_plataforma) = 'aberto') then
+  select * into cfg from public.config_plataforma;
+
+  if exists (select 1 from public.membros where user_id = eu) then
+    delete from public.pedidos_cadastro where user_id = eu; -- já tem loja: pedido antigo não vale mais
+  elsif virou_admin or (not cfg.somente_convite and not cfg.aprovacao) then
     insert into public.organizacoes (nome, criada_por) values (left('Loja de ' || meu_nome, 60), eu) returning id into nova;
     insert into public.membros (org_id, user_id, papel) values (nova, eu, 'admin');
     insert into public.dados_org (org_id, atualizado_por) values (nova, eu);
     perform public.auditar(nova, 'org.criada', 'primeiro acesso');
+  elsif not cfg.somente_convite and cfg.aprovacao then
+    insert into public.pedidos_cadastro (user_id) values (eu) on conflict do nothing;
+    if found then perform public.auditar(null, 'pedido.criado', meu_email); end if;
   end if;
 
   return jsonb_build_object(
     'admin', public.e_admin_plataforma(),
-    'cadastro', (select cadastro from public.config_plataforma));
+    'pedido', (select situacao from public.pedidos_cadastro where user_id = eu));
 end $$;
 
 -- Lojas de quem chama (o seletor do topo)
@@ -447,13 +470,53 @@ begin
   perform public.auditar(null, 'admin.removido', (select email from auth.users where id = pessoa));
 end $$;
 
-create or replace function public.definir_cadastro(modo text) returns void
+drop function if exists public.definir_cadastro(text); -- versão antiga (um modo só)
+create or replace function public.definir_cadastro(so_convite boolean, com_aprovacao boolean) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   perform public.exigir_admin_plataforma();
-  if modo not in ('convite', 'aberto') then raise exception 'modo-invalido'; end if;
-  update public.config_plataforma set cadastro = modo, atualizado_em = now();
-  perform public.auditar(null, 'cadastro.modo', modo);
+  if so_convite is null or com_aprovacao is null then raise exception 'modo-invalido'; end if;
+  update public.config_plataforma
+     set somente_convite = so_convite, aprovacao = com_aprovacao,
+         cadastro = case when so_convite then 'convite' else 'aberto' end, atualizado_em = now();
+  perform public.auditar(null, 'cadastro.modo',
+    case when so_convite then 'só convite' when com_aprovacao then 'com aprovação' else 'aberto' end);
+end $$;
+
+-- Pedidos de cadastro (pendentes e recusados)
+create or replace function public.listar_pedidos()
+returns table (user_id uuid, email text, nome text, criado_em timestamptz, situacao text, decidido_em timestamptz)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  return query
+    select p.user_id, u.email::text, coalesce(u.raw_user_meta_data->'perfil'->>'nome', u.raw_user_meta_data->>'nome', '')::text,
+           p.criado_em, p.situacao, p.decidido_em
+    from public.pedidos_cadastro p join auth.users u on u.id = p.user_id
+    order by p.situacao, p.criado_em;
+end $$;
+
+-- Aprovar cria a loja e torna quem pediu administrador dela
+create or replace function public.aprovar_pedido(pessoa uuid, nome_loja text) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare nova uuid;
+begin
+  perform public.exigir_admin_plataforma();
+  if not exists (select 1 from public.pedidos_cadastro where user_id = pessoa) then raise exception 'sem-pedido'; end if;
+  insert into public.organizacoes (nome, criada_por) values (btrim(nome_loja), pessoa) returning id into nova;
+  insert into public.membros (org_id, user_id, papel) values (nova, pessoa, 'admin');
+  insert into public.dados_org (org_id, atualizado_por) values (nova, pessoa);
+  delete from public.pedidos_cadastro where user_id = pessoa;
+  perform public.auditar(nova, 'pedido.aprovado', (select email from auth.users where id = pessoa));
+  return nova;
+end $$;
+
+create or replace function public.recusar_pedido(pessoa uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  update public.pedidos_cadastro set situacao = 'recusado', decidido_em = now(), decidido_por = auth.uid() where user_id = pessoa;
+  perform public.auditar(null, 'pedido.recusado', (select email from auth.users where id = pessoa));
 end $$;
 
 -- ============================================================ permissões das funções
@@ -469,7 +532,8 @@ begin
     'adicionar_membro(uuid, text, text)', 'mudar_papel(uuid, uuid, text)', 'remover_membro(uuid, uuid)',
     'cancelar_convite(uuid, text)', 'criar_org(text, text)', 'renomear_org(uuid, text)', 'suspender_org(uuid, boolean)',
     'excluir_org(uuid, text)', 'uso_das_orgs()', 'listar_usuarios()', 'listar_admins()', 'adicionar_admin(text)',
-    'remover_admin(uuid)', 'definir_cadastro(text)'
+    'remover_admin(uuid)', 'definir_cadastro(boolean, boolean)', 'listar_pedidos()', 'aprovar_pedido(uuid, text)',
+    'recusar_pedido(uuid)'
   ] loop
     execute format('revoke all on function public.%s from public, anon', f);
   end loop;
@@ -480,7 +544,8 @@ begin
     'adicionar_membro(uuid, text, text)', 'mudar_papel(uuid, uuid, text)', 'remover_membro(uuid, uuid)',
     'cancelar_convite(uuid, text)', 'criar_org(text, text)', 'renomear_org(uuid, text)', 'suspender_org(uuid, boolean)',
     'excluir_org(uuid, text)', 'uso_das_orgs()', 'listar_usuarios()', 'listar_admins()', 'adicionar_admin(text)',
-    'remover_admin(uuid)', 'definir_cadastro(text)'
+    'remover_admin(uuid)', 'definir_cadastro(boolean, boolean)', 'listar_pedidos()', 'aprovar_pedido(uuid, text)',
+    'recusar_pedido(uuid)'
   ] loop
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;

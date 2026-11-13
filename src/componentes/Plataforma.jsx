@@ -33,11 +33,12 @@ const Situacao = ({ suspensa }) => <span className={suspensa ? 'bad' : 'ok'}>{su
 // ---------- Dashboard
 function Dashboard({ irPara }) {
   const [dados, erro, recarregar] = useCarga(async () => {
-    const [orgs, usuarios, eventos] = await Promise.all([Org.usoDasOrgs(), Org.listarUsuarios(), Org.auditoria({ limite: 8 })])
-    return { orgs, usuarios, eventos }
+    const [orgs, usuarios, eventos, pedidos] = await Promise.all([Org.usoDasOrgs(), Org.listarUsuarios(), Org.auditoria({ limite: 8 }), Org.listarPedidos()])
+    return { orgs, usuarios, eventos, pedidos }
   })
   if (!dados) return <Estado erro={erro} recarregar={recarregar} />
-  const { orgs, usuarios, eventos } = dados
+  const { orgs, usuarios, eventos, pedidos } = dados
+  const pedidosPendentes = pedidos.filter((p) => p.situacao === 'pendente').length
   const soma = (k) => orgs.reduce((s, o) => s + Number(o[k] || 0), 0)
   const semLoja = usuarios.filter((u) => !u.lojas.length).length
 
@@ -49,6 +50,7 @@ function Dashboard({ irPara }) {
         <div className="card"><small>{t('Usuários')}</small><b>{usuarios.length}</b></div>
         <div className="card"><small>{t('Usuários sem loja')}</small><b className={semLoja ? 'bad' : ''}>{semLoja}</b></div>
         <div className="card"><small>{t('Convites pendentes')}</small><b>{soma('convites')}</b></div>
+        <button className="card card-botao" onClick={() => irPara('cadastro')}><small>{t('Pedidos de cadastro')}</small><b className={pedidosPendentes ? 'bad' : ''}>{pedidosPendentes}</b></button>
         <div className="card"><small>{t('Vendas (30 dias)')}</small><b>{soma('vendas_30d')}</b></div>
         <div className="card"><small>{t('Faturamento (30 dias)')}</small><b>{brl(soma('faturamento_30d'))}</b></div>
       </div>
@@ -347,31 +349,113 @@ export function ListaAuditoria({ eventos, mostrarLoja }) {
 // ---------- Cadastro
 function Cadastro() {
   const [config, erro, recarregar] = useCarga(() => Org.configPlataforma())
+  const [pedidos, erroPedidos, recarregarPedidos] = useCarga(() => Org.listarPedidos())
+  const [nomes, setNomes] = useState({}) // nome da loja de cada pedido, antes de aprovar
+  const [ocupado, setOcupado] = useState(false)
   if (!config) return <Estado erro={erro} recarregar={recarregar} />
 
-  async function mudar(modo) {
-    try { await Org.definirCadastro(modo); await recarregar() } catch (e) { alert(e.message) }
+  const soConvite = config.somente_convite
+  const comAprovacao = config.aprovacao
+  async function mudar(novoConvite, novaAprovacao) {
+    setOcupado(true)
+    try { await Org.definirCadastro(novoConvite, novaAprovacao); await recarregar() } catch (e) { alert(e.message) } finally { setOcupado(false) }
   }
+  async function decidir(fn) {
+    try { await fn(); await recarregarPedidos() } catch (e) { alert(e.message) }
+  }
+  const nomeDe = (p) => nomes[p.user_id] ?? t('Loja de {nome}', { nome: p.nome || p.email.split('@')[0] })
+  const pendentes = (pedidos || []).filter((p) => p.situacao === 'pendente')
+  const recusados = (pedidos || []).filter((p) => p.situacao === 'recusado')
 
-  const OPCOES = [
-    { id: 'convite', nome: 'Só com convite', desc: 'Quem cria conta só entra se já foi colocado numa loja (por você ou pelo administrador da loja). Sem loja, vê um aviso para pedir acesso.' },
-    { id: 'aberto', nome: 'Aberto', desc: 'Quem cria conta e não tem convite ganha uma loja própria, vazia, como administrador dela.' },
-  ]
   return (
     <section>
-      <div className="painel">
-        <p><b>{t('Quem pode usar o sistema')}</b></p>
-        {OPCOES.map((o) => (
-          <label key={o.id} className="check opcao-radio">
-            <input type="radio" name="cadastro" checked={config.cadastro === o.id} onChange={() => mudar(o.id)} />
-            <span><b>{t(o.nome)}</b><br /><small>{t(o.desc)}</small></span>
-          </label>
-        ))}
+      <p className="subtitulo-tela">{t('Quem pode criar uma conta no sistema.')}</p>
+      <div className="painel cadastro-bloco">
+        <p><b>{t('Quem pode criar conta')}</b></p>
+        <p><small>{t('Vale para o sistema inteiro, não para uma loja só. Quem já tem conta continua entrando normalmente.')}</small></p>
+
+        <div className="opcao-chave">
+          <div>
+            <b>{t('Cadastro apenas por convite')}</b>
+            <small>{soConvite
+              ? t('Ligado: só entra quem foi convidado para uma loja (por você ou pelo administrador da loja). Quem chega sem convite vê um aviso para pedir acesso.')
+              : comAprovacao
+                ? t('Desligado: quem chega sem convite pode criar conta, e a loja espera a sua aprovação.')
+                : t('Desligado: quem chega sem convite pode criar conta e ganha uma loja própria na hora.')}</small>
+          </div>
+          <Chave ligada={soConvite} desativada={ocupado} rotulo={t('Cadastro apenas por convite')} onMudar={(v) => mudar(v, comAprovacao)} />
+        </div>
+
+        <div className={'opcao-chave' + (soConvite ? ' sem-efeito' : '')}>
+          <div>
+            <b>{t('Cadastro com aprovação')}</b>
+            <small>{soConvite
+              ? t('Só vale com o cadastro apenas por convite desligado.')
+              : comAprovacao
+                ? t('Ligado: quem cria conta sem convite pede a loja, e ela só é criada quando você aprova o pedido nesta tela.')
+                : t('Desligado: quem cria conta sem convite ganha a loja na hora, sem passar por você.')}</small>
+          </div>
+          <Chave ligada={comAprovacao} desativada={ocupado || soConvite} rotulo={t('Cadastro com aprovação')} onMudar={(v) => mudar(soConvite, v)} />
+        </div>
       </div>
-      <div className="painel">
-        <p><b>{t('Fechar a criação de contas de vez')}</b></p>
-        <p><small>{t('Para ninguém conseguir nem criar conta, desligue no Supabase: Authentication → Sign In / Providers → "Allow new users to sign up". Quem já tem conta continua entrando. Com isso desligado, convites para quem ainda não tem conta não funcionam: crie a conta da pessoa em Authentication → Users → "Add user".')}</small></p>
+
+      <div className="painel cadastro-bloco">
+        <p><b>{t('Pedidos aguardando aprovação')}</b></p>
+        <p><small>{t('Aprovar cria a loja e torna quem pediu administrador dela.')}</small></p>
+        {!pedidos ? <Estado erro={erroPedidos} recarregar={recarregarPedidos} />
+          : pendentes.length === 0 ? <p><small>{t('Nenhum pedido aguardando.')}</small></p>
+            : (
+              <div className="tw">
+                <table>
+                  <thead><tr><th>{t('Nome')}</th><th>{t('E-mail')}</th><th>{t('Pedido em')}</th><th>{t('Nome da loja')}</th><th></th></tr></thead>
+                  <tbody>
+                    {pendentes.map((p) => (
+                      <tr key={p.user_id}>
+                        <td>{p.nome || '-'}</td>
+                        <td>{p.email}</td>
+                        <td>{momento(p.criado_em)}</td>
+                        <td><input className="sel-pequeno" maxLength={60} value={nomeDe(p)} onChange={(e) => setNomes({ ...nomes, [p.user_id]: e.target.value })} /></td>
+                        <td className="n">
+                          <button className="edit" disabled={!nomeDe(p).trim()} onClick={() => decidir(() => Org.aprovarPedido(p.user_id, nomeDe(p).trim()))}>{t('Aprovar')}</button>{' '}
+                          <button className="del" onClick={() => confirm(t('Recusar o pedido de {email}? A pessoa continua sem acesso.', { email: p.email })) && decidir(() => Org.recusarPedido(p.user_id))}>{t('Recusar')}</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+        {recusados.length > 0 && (
+          <>
+            <p style={{ marginTop: 14 }}><b>{t('Recusados')}</b></p>
+            <div className="tw">
+              <table>
+                <thead><tr><th>{t('Nome')}</th><th>{t('E-mail')}</th><th>{t('Recusado em')}</th><th></th></tr></thead>
+                <tbody>
+                  {recusados.map((p) => (
+                    <tr key={p.user_id}>
+                      <td>{p.nome || '-'}</td>
+                      <td>{p.email}</td>
+                      <td>{momento(p.decidido_em)}</td>
+                      <td className="n"><button className="sec" onClick={() => decidir(() => Org.aprovarPedido(p.user_id, nomeDe(p).trim()))}>{t('Aprovar mesmo assim')}</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </section>
+  )
+}
+
+// Interruptor liga/desliga
+function Chave({ ligada, desativada, rotulo, onMudar }) {
+  return (
+    <button type="button" role="switch" aria-checked={ligada} aria-label={rotulo} disabled={desativada}
+      className={'chave' + (ligada ? ' ligada' : '')} onClick={() => onMudar(!ligada)}>
+      <span />
+    </button>
   )
 }

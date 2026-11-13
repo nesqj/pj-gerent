@@ -109,6 +109,7 @@ export default function App() {
   // 'carregando' | 'loja' | 'admin' (painel da plataforma) | 'semLoja' | 'suspensa'
   const [modo, setModo] = useState('carregando')
   const [telaAdmin, setTelaAdmin] = useState('dashboard')
+  const [pedido, setPedido] = useState(null) // pedido de cadastro de quem não tem loja: null | 'pendente' | 'recusado'
 
   // Abre uma loja: carrega os dados dela e, se estiver vazia, oferece trazer os dados deste navegador
   async function abrirLoja(o, s = sessao) {
@@ -152,6 +153,7 @@ export default function App() {
     try {
       const info = await Org.entrar()
       admin.current = !!info?.admin
+      setPedido(info?.pedido || null)
       setAdminPlataforma(admin.current)
       const lista = await Org.minhasOrgs()
       setLojas(lista)
@@ -333,6 +335,16 @@ export default function App() {
     return (
       <Aviso titulo={t('Não foi possível carregar')} texto={erroCarga}>
         <button className="login-botao" onClick={() => carregarConta(sessao)}>{t('Tentar de novo')}</button>
+      </Aviso>
+    )
+  }
+  if (modo === 'semLoja' && pedido) {
+    return (
+      <Aviso titulo={pedido === 'pendente' ? t('Pedido enviado') : t('Pedido recusado')}
+        texto={pedido === 'pendente'
+          ? t('Sua conta ({email}) foi criada e o pedido da sua loja está aguardando a aprovação do administrador. Quando for aprovado, é só tocar em "Verificar de novo".', { email: sessao.usuario.email })
+          : t('O pedido de loja da conta {email} não foi aprovado. Se achar que é engano, fale com o administrador.', { email: sessao.usuario.email })}>
+        <button className="login-botao" onClick={() => carregarConta(sessao)}>{t('Verificar de novo')}</button>
       </Aviso>
     )
   }

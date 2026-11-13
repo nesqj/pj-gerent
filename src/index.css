@@ -482,8 +482,22 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
 select.sel-pequeno { padding: 5px 8px; font-size: 13px }
 .zona-perigo { border-color: var(--bad-borda) }
 .zona-perigo p { margin: 0 0 10px }
-label.opcao-radio { align-items: flex-start; margin: 10px 0; color: var(--txt) }
-label.opcao-radio input { margin-top: 3px }
+.subtitulo-tela { color: var(--mut); font-size: 13px; margin: -4px 0 16px }
+.cadastro-bloco { padding: 18px 20px }
+.cadastro-bloco > p { margin: 0 0 6px }
+.cadastro-bloco > p small { color: var(--mut) }
+.opcao-chave { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid var(--bd); border-radius: 10px; padding: 14px 16px; margin-top: 14px }
+.opcao-chave > div { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.opcao-chave b { font-weight: 500 }
+.opcao-chave small { color: var(--mut) }
+.opcao-chave.sem-efeito b { color: var(--mut) }
+button.chave { flex: 0 0 auto; width: 36px; height: 20px; padding: 0; border-radius: 12px; border: 1px solid var(--bd-forte); background: var(--campo); position: relative; min-height: 0 }
+button.chave span { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--mut); transition: transform .15s, background .15s }
+button.chave.ligada { background: var(--pri); border-color: var(--pri) }
+button.chave.ligada span { transform: translateX(16px); background: var(--pri-txt) }
+button.chave:disabled { opacity: .45; cursor: not-allowed }
+button.card-botao { text-align: left; color: var(--txt); cursor: pointer; font: inherit }
+button.card-botao:hover { border-color: var(--pri); filter: none }
 td .tag { margin-left: 6px }
 @media (max-width: 767px) {
   .seletor-loja-nome, .seletor-loja-botao svg:last-child { display: none }

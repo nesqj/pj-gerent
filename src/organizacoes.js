@@ -17,6 +17,7 @@ const MENSAGENS = {
   'ultimo-admin': 'A loja precisa de pelo menos um administrador.',
   'email-invalido': 'E-mail inválido.',
   'sem-conta': 'Não existe conta com este e-mail. A pessoa precisa criar a conta primeiro.',
+  'sem-pedido': 'Este pedido já foi resolvido.',
   'suspenda-antes': 'Suspenda a loja antes de excluir.',
   'nome-diferente': 'O nome digitado não confere com o nome da loja.',
   'loja-suspensa': 'Esta loja está suspensa.',
@@ -36,7 +37,7 @@ async function chamar(funcao, args) {
 }
 
 // ---------- quem está logado
-export const entrar = () => chamar('entrar_na_plataforma')          // { admin, cadastro }
+export const entrar = () => chamar('entrar_na_plataforma')          // { admin, pedido: null | 'pendente' | 'recusado' }
 export const minhasOrgs = () => chamar('minhas_orgs')               // [{ id, nome, suspensa, papel, criada_por_mim }]
 
 // Uma loja qualquer (o administrador da plataforma pode abrir lojas das quais não é membro)
@@ -68,12 +69,15 @@ export const listarUsuarios = () => chamar('listar_usuarios')
 export const listarAdmins = () => chamar('listar_admins')
 export const adicionarAdmin = (email) => chamar('adicionar_admin', { email_pessoa: email })
 export const removerAdmin = (pessoa) => chamar('remover_admin', { pessoa })
-export const definirCadastro = (modo) => chamar('definir_cadastro', { modo })
+export const definirCadastro = (soConvite, comAprovacao) => chamar('definir_cadastro', { so_convite: soConvite, com_aprovacao: comAprovacao })
+export const listarPedidos = () => chamar('listar_pedidos')        // [{ user_id, email, nome, criado_em, situacao, decidido_em }]
+export const aprovarPedido = (pessoa, nomeLoja) => chamar('aprovar_pedido', { pessoa, nome_loja: nomeLoja })
+export const recusarPedido = (pessoa) => chamar('recusar_pedido', { pessoa })
 
 export async function configPlataforma() {
-  const { data, error } = await supabase.from('config_plataforma').select('cadastro, atualizado_em').maybeSingle()
+  const { data, error } = await supabase.from('config_plataforma').select('somente_convite, aprovacao, atualizado_em').maybeSingle()
   if (error) throw new Error(t('Não foi possível concluir. Verifique a internet e tente de novo.'))
-  return data || { cadastro: 'convite' }
+  return data || { somente_convite: true, aprovacao: false }
 }
 
 // Auditoria (o banco só devolve o que a pessoa pode ver)
@@ -99,5 +103,6 @@ const ACOES = {
   'convite.criado': 'Convite criado', 'convite.aceito': 'Convite aceito', 'convite.cancelado': 'Convite cancelado',
   'admin.primeiro': 'Primeiro administrador da plataforma', 'admin.adicionado': 'Administrador da plataforma adicionado',
   'admin.removido': 'Administrador da plataforma removido', 'cadastro.modo': 'Modo de cadastro alterado',
+  'pedido.criado': 'Pedido de cadastro recebido', 'pedido.aprovado': 'Pedido de cadastro aprovado', 'pedido.recusado': 'Pedido de cadastro recusado',
 }
 export const nomeAcao = (a) => (ACOES[a] ? t(ACOES[a]) : a)
