@@ -12,6 +12,7 @@ import Ajuda from './componentes/Ajuda.jsx'
 import Login from './componentes/Login.jsx'
 import Plataforma from './componentes/Plataforma.jsx'
 import SeletorLoja from './componentes/SeletorLoja.jsx'
+import CobrancaLoja from './componentes/CobrancaLoja.jsx'
 import * as Auth from './auth.js'
 import { supabaseConfigurado } from './supabase.js'
 import { observarTabelas } from './tabelasResponsivas.js'
@@ -22,7 +23,7 @@ import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from
 import {
   IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCalculadora, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
   IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
-  IconeUsuarios, IconeVoltar,
+  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca,
 } from './icones.jsx'
 
 // Grupos e itens da barra lateral (dentro de uma loja)
@@ -71,7 +72,9 @@ const GRUPOS_ADMIN = [
   {
     nome: 'Plataforma',
     itens: [
+      { id: 'marca', nome: 'Marca', icone: IconePaleta },
       { id: 'cadastro', nome: 'Cadastro', icone: IconeChave },
+      { id: 'cobranca', nome: 'Cobrança', icone: IconeCobranca },
     ],
   },
 ]
@@ -110,12 +113,33 @@ export default function App() {
   const [modo, setModo] = useState('carregando')
   const [telaAdmin, setTelaAdmin] = useState('dashboard')
   const [pedido, setPedido] = useState(null) // pedido de cadastro de quem não tem loja: null | 'pendente' | 'recusado'
+  const [marcaPlat, setMarcaPlat] = useState({}) // marca da plataforma (painel → Marca)
+  const [faixa, setFaixa] = useState(null)       // aviso de cobrança no topo: { tipo, dias }
+
+  // marca da plataforma: vale já na tela de login
+  useEffect(() => { if (supabaseConfigurado) Org.marcaPlataforma().then(setMarcaPlat) }, [])
+
+  // Faixa de cobrança: pagamento em atraso, ou fim do teste grátis chegando (3 dias)
+  async function verFaixa(o) {
+    setFaixa(null)
+    if (o.cobranca === 'atrasada') return setFaixa({ tipo: 'atrasada' })
+    if (o.cobranca !== 'teste' || o.papel !== 'admin') return
+    try {
+      const c = await Org.cobrancaDaOrg(o.id)
+      const dias = Math.ceil((new Date(c.teste_ate) - Date.now()) / 86400000)
+      if (dias <= 3 && !c.tem_assinatura) setFaixa({ tipo: 'teste', dias: Math.max(dias, 0) })
+    } catch { /* sem faixa */ }
+  }
 
   // Abre uma loja: carrega os dados dela e, se estiver vazia, oferece trazer os dados deste navegador
   async function abrirLoja(o, s = sessao) {
     setErroCarga('')
     setMenuAberto(false)
     if (o.suspensa && !admin.current) { setLoja(o); setDb(null); setModo('suspensa'); return }
+    // bloqueada por falta de pagamento: o administrador da loja vê a cobrança para pagar
+    if (['suspensa', 'aguardando'].includes(o.cobranca) && !admin.current) {
+      setLoja({ ...o, papel: o.papel || lojas.find((l) => l.id === o.id)?.papel }); setDb(null); setModo('cobranca'); return
+    }
     // papel na loja; o administrador da plataforma abrindo loja de outros entra como admin
     const ativa = { ...o, papel: o.papel || lojas.find((l) => l.id === o.id)?.papel || 'admin' }
     try {
@@ -141,6 +165,7 @@ export default function App() {
       setDb(d)
       setAba((a) => (podeVer(ativa.papel, a) ? a : 'vendas'))
       setModo('loja')
+      verFaixa(ativa)
     } catch (e) {
       setErroCarga(e.message || t('Não foi possível carregar os dados.'))
     }
@@ -163,6 +188,10 @@ export default function App() {
       if (!lista.some((o) => o.id === salva) && salva && admin.current) {
         const g = await Org.buscarOrg(salva).catch(() => null)
         if (g) alvo = { ...g, papel: 'admin' }
+      }
+      if (new URLSearchParams(window.location.search).get('cobranca') === 'ok') {
+        window.history.replaceState(null, '', window.location.pathname)
+        alert(t('Pagamento enviado! A confirmação do provedor chega em instantes; se a loja ainda aparecer bloqueada, toque em "Já paguei, verificar de novo" daqui a pouco.'))
       }
       if (!alvo) { setDb(null); setLoja(null); setModo(admin.current ? 'admin' : 'semLoja'); if (admin.current) setTelaAdmin('orgs'); return }
       await abrirLoja(alvo, s)
@@ -237,7 +266,7 @@ export default function App() {
   definirIdioma(db?.perfil?.idioma || pref.idioma || 'pt-BR')
 
   // tema: escuro (padrão), claro ou automático (segue o aparelho)
-  const tema = db?.perfil?.tema || pref.tema || 'escuro'
+  const tema = db?.perfil?.tema || pref.tema || marcaPlat.tema || 'escuro'
   useEffect(() => {
     const mq = window.matchMedia?.('(prefers-color-scheme: light)')
     const aplicar = () => {
@@ -252,21 +281,27 @@ export default function App() {
     return () => mq.removeEventListener('change', aplicar)
   }, [tema])
 
-  // marca da loja: cor (pode ser diferente no tema escuro) e título da aba. No painel da plataforma vale a marca padrão.
-  const config = modo === 'loja' ? db?.config : null
-  const corClaro = hexValido(config?.cor) ? config.cor : null
-  const corEscuro = hexValido(config?.corEscuro) ? config.corEscuro : corClaro
+  // marca: a da loja (Configurações → Marca); o que ela não define vem da marca da plataforma (painel → Marca).
+  // No painel da plataforma vale só a da plataforma.
+  const daLoja = modo === 'loja' ? db?.config || {} : {}
+  const escolher = (k) => daLoja[k] || marcaPlat[k] || ''
+  const corClaro = hexValido(escolher('cor')) ? escolher('cor') : null
+  const corEscuro = hexValido(daLoja.corEscuro) ? daLoja.corEscuro
+    : hexValido(daLoja.cor) ? daLoja.cor
+      : hexValido(marcaPlat.corEscuro) ? marcaPlat.corEscuro : corClaro
   const cor = temaAtivo === 'light' ? corClaro : corEscuro
   // logo: no tema escuro usa o logo próprio dele; se não tiver, usa o do tema claro
-  const logo = temaAtivo === 'light' ? config?.logo : config?.logoEscuro || config?.logo
-  const nomeProprio = config?.nomeLoja?.trim()
-  const nomeLoja = nomeProprio || NOME_APP
+  const logoDe = (m) => (temaAtivo === 'light' ? m.logo : m.logoEscuro || m.logo)
+  const logo = logoDe(daLoja) || logoDe(marcaPlat)
+  const nomeSistema = marcaPlat.nome?.trim() || NOME_APP
+  const nomeProprio = daLoja.nomeLoja?.trim() || (logo ? '' : marcaPlat.nome?.trim())
+  const nomeLoja = daLoja.nomeLoja?.trim() || nomeSistema
   useEffect(() => {
     const raiz = document.documentElement.style
     if (cor) { raiz.setProperty('--pri', cor); raiz.setProperty('--pri-txt', corTextoSobre(cor)) }
     else { raiz.removeProperty('--pri'); raiz.removeProperty('--pri-txt') }
   }, [cor])
-  useEffect(() => { document.title = modo === 'admin' ? `${NOME_APP} · ${t('Admin Plataforma')}` : nomeLoja }, [nomeLoja, modo])
+  useEffect(() => { document.title = modo === 'admin' ? `${nomeSistema} · ${t('Admin Plataforma')}` : nomeLoja }, [nomeLoja, nomeSistema, modo])
 
   // Executa uma operação de armazenamento e recarrega os dados.
   async function executar(fn) {
@@ -363,6 +398,23 @@ export default function App() {
       </Aviso>
     )
   }
+  if (modo === 'cobranca') {
+    const outras = lojas.filter((o) => o.id !== loja?.id && !o.suspensa && !['suspensa', 'aguardando'].includes(o.cobranca))
+    const adminDaLoja = loja?.papel === 'admin'
+    return (
+      <div className="login-fundo"><div className="login-caixa caixa-larga">
+        <img className="login-logo" src={logo || (temaAtivo === 'light' ? LOGO_PADRAO_CLARO : LOGO_PADRAO_ESCURO)} alt="" />
+        <h1>{loja?.cobranca === 'aguardando' ? t('Falta o primeiro pagamento') : t('Loja suspensa por falta de pagamento')}</h1>
+        <p className="login-sub">{adminDaLoja
+          ? t('A loja "{loja}" volta a funcionar assim que o pagamento for confirmado. Os dados continuam guardados.', { loja: loja?.nome })
+          : t('A loja "{loja}" está com o pagamento pendente. Avise o administrador da loja.', { loja: loja?.nome })}</p>
+        {adminDaLoja && <CobrancaLoja orgId={loja.id} />}
+        <button className="login-botao" onClick={() => carregarConta(sessao)}>{t('Já paguei, verificar de novo')}</button>
+        {outras.map((o) => <button key={o.id} className="login-botao sec" onClick={() => abrirLoja(o)}>{t('Abrir {loja}', { loja: o.nome })}</button>)}
+        <div className="login-rodape"><button className="link pequeno" onClick={() => Auth.sair()}>{t('Sair')}</button></div>
+      </div></div>
+    )
+  }
   if (modo === 'carregando' || (modo === 'loja' && !db)) return <p className="vazio">{t('Carregando...')}</p>
 
   return (
@@ -373,7 +425,7 @@ export default function App() {
             {noAdmin ? (
               <>
                 <img className="logo-img" src={LOGO_PADRAO_APP} alt="" />
-                <span className="rotulo logo-admin"><small>{NOME_APP}</small><b>{t('Admin Plataforma')}</b></span>
+                <span className="rotulo logo-admin"><small>{nomeSistema}</small><b>{t('Admin Plataforma')}</b></span>
               </>
             ) : logo ? (
               <>
@@ -443,8 +495,16 @@ export default function App() {
           )}
         </header>
 
+        {!noAdmin && faixa && (
+          <div className={'faixa-cobranca' + (faixa.tipo === 'atrasada' ? ' atraso' : '')}>
+            <span>{faixa.tipo === 'atrasada'
+              ? (loja?.papel === 'admin' ? t('O pagamento desta loja está em atraso. Pague para não ser suspensa.') : t('O pagamento desta loja está em atraso. Avise o administrador da loja.'))
+              : faixa.dias === 0 ? t('O teste grátis termina hoje. Assine para continuar usando.') : t('O teste grátis termina em {n} dia(s). Assine para continuar usando.', { n: faixa.dias })}</span>
+            {loja?.papel === 'admin' && <button className="sec" onClick={() => { sessionStorage.setItem('abrir-config', 'cobranca'); irPara('config') }}>{t('Ver plano e cobrança')}</button>}
+          </div>
+        )}
         <main>
-          {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} />}
+          {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} />}
           {!noAdmin && aba === 'analise' && <Analise db={db} />}
           {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} />}

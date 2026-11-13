@@ -1,4 +1,4 @@
--- PJ GERENT — lojas (organizações), equipe, convites e painel da plataforma
+-- PJ GERENT — lojas (organizações), equipe, convites, painel da plataforma e cobrança
 -- Como usar: depois do esquema.sql, abra "SQL Editor" no Supabase, cole este arquivo inteiro e clique em "Run".
 -- Pode rodar mais de uma vez sem problema.
 --
@@ -241,7 +241,8 @@ begin
 end $$;
 
 -- Lojas de quem chama (o seletor do topo)
-create or replace function public.minhas_orgs() returns table (id uuid, nome text, suspensa boolean, papel text, criada_por_mim boolean)
+drop function if exists public.minhas_orgs(); -- a parte 2 recria com a situação da cobrança
+create function public.minhas_orgs() returns table (id uuid, nome text, suspensa boolean, papel text, criada_por_mim boolean)
 language sql stable security definer set search_path = '' as $$
   select g.id, g.nome, g.suspensa, m.papel, g.criada_por = auth.uid()
   from public.membros m join public.organizacoes g on g.id = m.org_id
@@ -301,10 +302,12 @@ begin
   select id into alvo from auth.users where lower(email) = e;
   if alvo is not null then
     if exists (select 1 from public.membros where org_id = o and user_id = alvo) then return 'ja-membro'; end if;
+    perform public.conferir_limite_pessoas(o); -- limite de pessoas do plano (parte 2)
     insert into public.membros (org_id, user_id, papel) values (o, alvo, novo_papel);
     perform public.auditar(o, 'membro.adicionado', e || ' (' || novo_papel || ')');
     return 'adicionado';
   end if;
+  if not exists (select 1 from public.convites where org_id = o and email = e) then perform public.conferir_limite_pessoas(o); end if;
   insert into public.convites (org_id, email, papel, criado_por) values (o, e, novo_papel, auth.uid())
     on conflict (org_id, email) do update set papel = excluded.papel, criado_em = now(), criado_por = excluded.criado_por;
   perform public.auditar(o, 'convite.criado', e || ' (' || novo_papel || ')');
@@ -575,4 +578,570 @@ begin
     insert into public.admins_plataforma (user_id)
     select id from auth.users order by created_at limit 1;
   end if;
+end $$;
+
+-- ################################################################################################
+-- PARTE 2 — cadastro das lojas, marca da plataforma e cobrança (Stripe ou Asaas)
+-- (fica no fim do arquivo: o que é redefinido aqui vale sobre a versão de cima)
+-- ################################################################################################
+
+-- ============================================================ cadastro das lojas e marca da plataforma
+
+-- Cadastro da loja: { razao_social, cnpj, contato_nome, contato_email, contato_telefone, cidade, uf, observacoes }
+alter table public.organizacoes add column if not exists cadastro jsonb not null default '{}'::jsonb;
+
+-- Marca da plataforma (vale para o login e para as lojas sem marca própria):
+-- { nome, cor, corEscuro, logo, logoEscuro, tema }
+alter table public.config_plataforma add column if not exists marca jsonb not null default '{}'::jsonb;
+
+-- ============================================================ cobrança: tabelas
+
+-- Configuração (uma linha só). Tem segredos: ninguém lê direto, só pelas funções abaixo.
+create table if not exists public.cobranca_config (
+  id boolean primary key default true check (id),
+  ligada boolean not null default false,
+  provedor text check (provedor in ('stripe', 'asaas')),
+  tolerancia_dias integer not null default 7 check (tolerancia_dias between 5 and 30),
+  -- senha que as funções de servidor (Vercel) usam para falar com o banco; copie para COBRANCA_SEGREDO
+  segredo_servidor text not null default replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
+  modo_teste boolean,
+  webhook_id text,
+  webhook_segredo text,  -- Stripe: segredo de assinatura do aviso; Asaas: token do aviso
+  webhook_url text,
+  conectado_em timestamptz,
+  atualizado_em timestamptz not null default now()
+);
+insert into public.cobranca_config (id) values (true) on conflict do nothing;
+
+create table if not exists public.planos (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null check (char_length(btrim(nome)) between 1 and 60),
+  preco_centavos integer not null check (preco_centavos >= 500),
+  intervalo text not null default 'mensal' check (intervalo in ('mensal', 'anual')),
+  dias_teste integer not null default 14 check (dias_teste between 0 and 90),
+  max_pessoas integer check (max_pessoas is null or max_pessoas >= 1),
+  visivel boolean not null default true,   -- false: "só você atribui" (plano negociado)
+  padrao boolean not null default false,   -- plano de quem entra sozinho
+  arquivado_em timestamptz,
+  criado_em timestamptz not null default now()
+);
+create unique index if not exists planos_um_padrao on public.planos (padrao) where padrao;
+
+-- Assinatura de cada loja. Loja sem linha aqui = isenta (usa de graça, sem limite).
+create table if not exists public.assinaturas (
+  org_id uuid primary key references public.organizacoes (id) on delete cascade,
+  plano_id uuid references public.planos (id),
+  isenta boolean not null default false,
+  teste_ate timestamptz,          -- fim do teste grátis (null = sem teste: entrada paga)
+  pago_ate timestamptz,           -- até quando está pago
+  provedor text check (provedor in ('stripe', 'asaas', 'manual')),
+  cliente_ref text,               -- id do cliente no provedor
+  assinatura_ref text,            -- id da assinatura no provedor
+  link_pagamento text,
+  cancelada_em timestamptz,
+  criada_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+create index if not exists assinaturas_ref on public.assinaturas (assinatura_ref);
+create index if not exists assinaturas_cliente on public.assinaturas (cliente_ref);
+
+create table if not exists public.pagamentos (
+  id bigint generated always as identity primary key,
+  org_id uuid references public.organizacoes (id) on delete set null,
+  org_nome text,
+  valor_centavos integer not null,
+  pago_em timestamptz not null default now(),
+  cobre_ate timestamptz,
+  provedor text not null,
+  referencia text,
+  observacao text check (char_length(observacao) <= 200),
+  registrado_por uuid references auth.users (id) on delete set null
+);
+create unique index if not exists pagamentos_referencia on public.pagamentos (provedor, referencia) where referencia is not null;
+create index if not exists pagamentos_org on public.pagamentos (org_id, pago_em desc);
+
+-- Avisos de pagamento já processados (o provedor pode mandar o mesmo aviso mais de uma vez)
+create table if not exists public.eventos_cobranca (
+  provedor text not null,
+  evento_id text not null,
+  recebido_em timestamptz not null default now(),
+  primary key (provedor, evento_id)
+);
+
+alter table public.cobranca_config enable row level security;   -- sem regras: só pelas funções
+alter table public.eventos_cobranca enable row level security;  -- sem regras: só pelas funções
+alter table public.planos enable row level security;
+alter table public.assinaturas enable row level security;
+alter table public.pagamentos enable row level security;
+
+drop policy if exists "planos: ver" on public.planos;
+create policy "planos: ver" on public.planos for select to authenticated
+  using (public.e_admin_plataforma() or (visivel and arquivado_em is null));
+
+drop policy if exists "assinaturas: ver" on public.assinaturas;
+create policy "assinaturas: ver" on public.assinaturas for select to authenticated
+  using (public.e_admin_plataforma() or public.e_membro(org_id));
+
+drop policy if exists "pagamentos: ver" on public.pagamentos;
+create policy "pagamentos: ver" on public.pagamentos for select to authenticated
+  using (public.e_admin_plataforma()
+         or exists (select 1 from public.membros m where m.org_id = pagamentos.org_id and m.user_id = (select auth.uid()) and m.papel = 'admin'));
+
+-- ============================================================ cobrança: situação de cada loja
+--   isenta      cobrança desligada, loja sem plano ou isenta
+--   teste       no teste grátis
+--   em_dia      pago
+--   aguardando  plano sem teste grátis e ainda sem o primeiro pagamento (bloqueada até pagar)
+--   atrasada    venceu, mas está dentro da tolerância (funciona, com aviso)
+--   suspensa    passou da tolerância (bloqueada até pagar)
+
+create or replace function public.situacao_cobranca(o uuid) returns text
+language sql stable security definer set search_path = '' as $$
+  select case
+    when not c.ligada or a.org_id is null or a.isenta or a.plano_id is null then 'isenta'
+    when a.pago_ate is not null and a.pago_ate > now() then 'em_dia'
+    when a.teste_ate is not null and a.teste_ate > now() then 'teste'
+    when a.pago_ate is null and a.teste_ate is null then 'aguardando'
+    when greatest(coalesce(a.teste_ate, '-infinity'::timestamptz), coalesce(a.pago_ate, '-infinity'::timestamptz))
+         + make_interval(days => c.tolerancia_dias) >= now() then 'atrasada'
+    else 'suspensa'
+  end
+  from public.cobranca_config c left join public.assinaturas a on a.org_id = o
+$$;
+
+create or replace function public.bloqueada_por_cobranca(o uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select coalesce(public.situacao_cobranca(o) in ('suspensa', 'aguardando'), false)
+$$;
+
+-- Papel na loja agora também considera a cobrança: loja bloqueada por falta de pagamento fica sem acesso
+-- (o administrador da plataforma continua entrando, e o administrador da loja continua podendo pagar).
+create or replace function public.papel_na_org(o uuid) returns text
+language sql stable security definer set search_path = '' as $$
+  select m.papel from public.membros m join public.organizacoes g on g.id = m.org_id
+  where m.org_id = o and m.user_id = (select auth.uid()) and not g.suspensa and not public.bloqueada_por_cobranca(o)
+$$;
+
+-- Pode ver e pagar a cobrança da loja (mesmo com ela bloqueada)?
+create or replace function public.pode_pagar(o uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select public.e_admin_plataforma()
+      or exists (select 1 from public.membros where org_id = o and user_id = (select auth.uid()) and papel = 'admin')
+$$;
+
+-- Lojas de quem chama (seletor do topo), agora com a situação da cobrança
+drop function if exists public.minhas_orgs();
+create function public.minhas_orgs()
+returns table (id uuid, nome text, suspensa boolean, papel text, criada_por_mim boolean, cobranca text)
+language sql stable security definer set search_path = '' as $$
+  select g.id, g.nome, g.suspensa, m.papel, g.criada_por = auth.uid(), public.situacao_cobranca(g.id)
+  from public.membros m join public.organizacoes g on g.id = m.org_id
+  where m.user_id = auth.uid()
+  order by g.nome
+$$;
+
+-- Limite de pessoas do plano (membros + convites)
+create or replace function public.conferir_limite_pessoas(o uuid) returns void
+language plpgsql stable security definer set search_path = '' as $$
+declare limite integer;
+begin
+  if public.situacao_cobranca(o) = 'isenta' then return; end if;
+  select p.max_pessoas into limite from public.assinaturas a join public.planos p on p.id = a.plano_id where a.org_id = o;
+  if limite is not null and
+     (select count(*) from public.membros where org_id = o) + (select count(*) from public.convites where org_id = o) >= limite then
+    raise exception 'limite-plano';
+  end if;
+end $$;
+
+-- Toda loja nova nasce com o plano padrão (com a cobrança ligada e um plano padrão escolhido)
+create or replace function public.org_nova_assinatura() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare pl record;
+begin
+  if not coalesce((select ligada from public.cobranca_config), false) then return new; end if;
+  select * into pl from public.planos where padrao and arquivado_em is null;
+  if not found then return new; end if;
+  insert into public.assinaturas (org_id, plano_id, teste_ate)
+  values (new.id, pl.id, case when pl.dias_teste > 0 then now() + make_interval(days => pl.dias_teste) end)
+  on conflict (org_id) do nothing;
+  return new;
+end $$;
+drop trigger if exists org_nova_assinatura on public.organizacoes;
+create trigger org_nova_assinatura after insert on public.organizacoes
+  for each row when (new.migrada_de is null) execute function public.org_nova_assinatura();
+
+-- ============================================================ cobrança: funções para as telas
+
+-- Tudo da cobrança de uma loja (Configurações → Plano e cobrança, e a ficha da loja no painel)
+create or replace function public.cobranca_da_org(o uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare a record; p record; c record;
+begin
+  if not public.pode_pagar(o) then raise exception 'sem-permissao'; end if;
+  select * into c from public.cobranca_config;
+  select * into a from public.assinaturas where org_id = o;
+  select * into p from public.planos where id = a.plano_id;
+  return jsonb_build_object(
+    'ligada', c.ligada,
+    'provedor_config', c.provedor,
+    'tolerancia_dias', c.tolerancia_dias,
+    'situacao', public.situacao_cobranca(o),
+    'isenta', coalesce(a.isenta, a.org_id is null),
+    'plano', case when p.id is null then null else jsonb_build_object('id', p.id, 'nome', p.nome, 'preco_centavos', p.preco_centavos,
+              'intervalo', p.intervalo, 'dias_teste', p.dias_teste, 'max_pessoas', p.max_pessoas) end,
+    'teste_ate', a.teste_ate, 'pago_ate', a.pago_ate, 'provedor', a.provedor,
+    'tem_assinatura', a.assinatura_ref is not null, 'link_pagamento', a.link_pagamento, 'cancelada_em', a.cancelada_em,
+    'pessoas', (select count(*) from public.membros where org_id = o) + (select count(*) from public.convites where org_id = o),
+    'pagamentos', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'valor_centavos', x.valor_centavos, 'pago_em', x.pago_em,
+              'cobre_ate', x.cobre_ate, 'provedor', x.provedor, 'observacao', x.observacao) order by x.pago_em desc)
+              from (select * from public.pagamentos where org_id = o order by pago_em desc limit 24) x), '[]'::jsonb));
+end $$;
+
+-- Troca de plano. Loja: só no teste grátis (ou sem assinatura no provedor). Administrador da plataforma: sempre.
+-- Devolve se é preciso atualizar o valor no provedor.
+create or replace function public.trocar_plano(o uuid, novo uuid) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare a record; p record; antigo record; admin boolean := public.e_admin_plataforma(); s text := public.situacao_cobranca(o);
+begin
+  if not public.pode_pagar(o) then raise exception 'sem-permissao'; end if;
+  select * into p from public.planos where id = novo and arquivado_em is null;
+  if not found then raise exception 'plano-invalido'; end if;
+  if not admin and not p.visivel then raise exception 'plano-invalido'; end if;
+  select * into a from public.assinaturas where org_id = o;
+  select * into antigo from public.planos where id = a.plano_id;
+  if not admin and a.assinatura_ref is not null and s not in ('teste', 'aguardando') then raise exception 'troca-fale-com-admin'; end if;
+  if not admin and s in ('atrasada', 'suspensa') then raise exception 'regularize-antes'; end if;
+  if a.assinatura_ref is not null and antigo.intervalo is distinct from p.intervalo then raise exception 'intervalo-diferente'; end if;
+  if p.max_pessoas is not null and
+     (select count(*) from public.membros where org_id = o) + (select count(*) from public.convites where org_id = o) > p.max_pessoas then
+    raise exception 'acima-do-plano';
+  end if;
+  if a.org_id is null then
+    insert into public.assinaturas (org_id, plano_id, teste_ate)
+    values (o, p.id, case when p.dias_teste > 0 then now() + make_interval(days => p.dias_teste) end);
+  else
+    update public.assinaturas set plano_id = p.id, isenta = false, atualizado_em = now() where org_id = o;
+  end if;
+  perform public.auditar(o, 'cobranca.plano', p.nome);
+  return jsonb_build_object('sincronizar', a.assinatura_ref is not null, 'provedor', a.provedor);
+end $$;
+
+-- ---------- só o administrador da plataforma
+
+create or replace function public.cobranca_config_admin() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare c record;
+begin
+  perform public.exigir_admin_plataforma();
+  select * into c from public.cobranca_config;
+  return jsonb_build_object('ligada', c.ligada, 'provedor', c.provedor, 'tolerancia_dias', c.tolerancia_dias,
+    'modo_teste', c.modo_teste, 'conectado_em', c.conectado_em, 'webhook_url', c.webhook_url,
+    'webhook_ok', c.webhook_segredo is not null, 'segredo_servidor', c.segredo_servidor,
+    'assinaturas_no_provedor', (select count(*) from public.assinaturas where assinatura_ref is not null and cancelada_em is null));
+end $$;
+
+create or replace function public.definir_cobranca(ligar boolean, tolerancia integer) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  if ligar is null or tolerancia is null or tolerancia not between 5 and 30 then raise exception 'valor-invalido'; end if;
+  update public.cobranca_config set ligada = ligar, tolerancia_dias = tolerancia, atualizado_em = now();
+  perform public.auditar(null, 'cobranca.config', case when ligar then 'ligada' else 'desligada' end || ', tolerância ' || tolerancia || ' dias');
+end $$;
+
+-- Escolher o provedor. Não deixa trocar com lojas pagando pelo provedor atual.
+create or replace function public.definir_provedor(novo text) returns void
+language plpgsql security definer set search_path = '' as $$
+declare atual text := (select provedor from public.cobranca_config);
+begin
+  perform public.exigir_admin_plataforma();
+  if novo not in ('stripe', 'asaas') then raise exception 'valor-invalido'; end if;
+  if atual is not null and atual <> novo and exists (
+       select 1 from public.assinaturas where provedor = atual and assinatura_ref is not null and cancelada_em is null) then
+    raise exception 'provedor-em-uso';
+  end if;
+  if atual is distinct from novo then
+    update public.cobranca_config set provedor = novo, modo_teste = null, webhook_id = null, webhook_segredo = null,
+      webhook_url = null, conectado_em = null, atualizado_em = now();
+    perform public.auditar(null, 'cobranca.provedor', novo);
+  end if;
+end $$;
+
+-- Gera uma senha nova para as funções de servidor (depois, atualize COBRANCA_SEGREDO na Vercel)
+create or replace function public.trocar_segredo_servidor() returns text
+language plpgsql security definer set search_path = '' as $$
+declare novo text := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
+begin
+  perform public.exigir_admin_plataforma();
+  update public.cobranca_config set segredo_servidor = novo;
+  perform public.auditar(null, 'cobranca.segredo', null);
+  return novo;
+end $$;
+
+create or replace function public.salvar_plano(pid uuid, nome_plano text, preco integer, intervalo_plano text, dias integer,
+                                               max_p integer, visivel_plano boolean) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare atual record; novo_id uuid;
+begin
+  perform public.exigir_admin_plataforma();
+  if pid is null then
+    insert into public.planos (nome, preco_centavos, intervalo, dias_teste, max_pessoas, visivel)
+    values (btrim(nome_plano), preco, intervalo_plano, dias, max_p, visivel_plano) returning id into novo_id;
+    perform public.auditar(null, 'plano.criado', btrim(nome_plano));
+    return novo_id;
+  end if;
+  select * into atual from public.planos where id = pid;
+  if not found then raise exception 'plano-invalido'; end if;
+  -- preço e intervalo travam quando alguém assina pelo provedor
+  if (atual.preco_centavos <> preco or atual.intervalo <> intervalo_plano)
+     and exists (select 1 from public.assinaturas where plano_id = pid and assinatura_ref is not null) then
+    raise exception 'plano-travado';
+  end if;
+  update public.planos set nome = btrim(nome_plano), preco_centavos = preco, intervalo = intervalo_plano, dias_teste = dias,
+    max_pessoas = max_p, visivel = visivel_plano where id = pid;
+  perform public.auditar(null, 'plano.alterado', btrim(nome_plano));
+  return pid;
+end $$;
+
+create or replace function public.plano_padrao(pid uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  update public.planos set padrao = false where padrao;
+  if pid is not null then
+    update public.planos set padrao = true where id = pid and arquivado_em is null;
+    if not found then raise exception 'plano-invalido'; end if;
+  end if;
+  perform public.auditar(null, 'plano.padrao', (select nome from public.planos where id = pid));
+end $$;
+
+create or replace function public.arquivar_plano(pid uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  update public.planos set arquivado_em = now(), padrao = false where id = pid;
+  perform public.auditar(null, 'plano.arquivado', (select nome from public.planos where id = pid));
+end $$;
+
+-- Lista de lojas com plano e situação (Cobrança → Visão geral / Assinaturas)
+create or replace function public.cobranca_resumo()
+returns table (org_id uuid, nome text, suspensa boolean, plano_id uuid, plano text, preco_centavos integer, intervalo text,
+               situacao text, isenta boolean, teste_ate timestamptz, pago_ate timestamptz, provedor text, tem_assinatura boolean)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  return query
+    select g.id, g.nome, g.suspensa, p.id, p.nome, p.preco_centavos, p.intervalo, public.situacao_cobranca(g.id),
+           coalesce(a.isenta, a.org_id is null), a.teste_ate, a.pago_ate, a.provedor, a.assinatura_ref is not null
+    from public.organizacoes g
+    left join public.assinaturas a on a.org_id = g.id
+    left join public.planos p on p.id = a.plano_id
+    order by g.nome;
+end $$;
+
+create or replace function public.isentar_loja(o uuid, isentar boolean) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  if isentar then
+    update public.assinaturas set isenta = true, atualizado_em = now() where org_id = o;
+  else
+    update public.assinaturas set isenta = false, atualizado_em = now() where org_id = o;
+    if not found then raise exception 'escolha-um-plano'; end if;
+  end if;
+  perform public.auditar(o, case when isentar then 'cobranca.isenta' else 'cobranca.cobrar' end, null);
+end $$;
+
+-- Pagamento recebido fora do sistema (Pix direto, dinheiro...): estende o pago até mais um período do plano
+create or replace function public.marcar_pago(o uuid, valor integer, obs text) returns timestamptz
+language plpgsql security definer set search_path = '' as $$
+declare a record; p record; base timestamptz; ate timestamptz;
+begin
+  perform public.exigir_admin_plataforma();
+  select * into a from public.assinaturas where org_id = o;
+  if not found or a.plano_id is null then raise exception 'escolha-um-plano'; end if;
+  select * into p from public.planos where id = a.plano_id;
+  base := greatest(now(), coalesce(a.pago_ate, now()), coalesce(a.teste_ate, now()));
+  ate := base + case when p.intervalo = 'anual' then interval '1 year' else interval '1 month' end;
+  update public.assinaturas set pago_ate = ate, provedor = coalesce(provedor, 'manual'), atualizado_em = now() where org_id = o;
+  insert into public.pagamentos (org_id, org_nome, valor_centavos, cobre_ate, provedor, observacao, registrado_por)
+  values (o, (select nome from public.organizacoes where id = o), coalesce(valor, p.preco_centavos), ate, 'manual', left(obs, 200), auth.uid());
+  perform public.auditar(o, 'cobranca.pago-manual', to_char(ate, 'DD/MM/YYYY'));
+  return ate;
+end $$;
+
+create or replace function public.estender_teste(o uuid, dias integer) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  if dias is null or dias not between 1 and 90 then raise exception 'valor-invalido'; end if;
+  update public.assinaturas set teste_ate = greatest(coalesce(teste_ate, now()), now()) + make_interval(days => dias), atualizado_em = now()
+  where org_id = o;
+  if not found then raise exception 'escolha-um-plano'; end if;
+  perform public.auditar(o, 'cobranca.teste', '+' || dias || ' dias');
+end $$;
+
+-- ---------- cadastro da loja e marca da plataforma
+
+create or replace function public.salvar_cadastro_org(o uuid, dados jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  if jsonb_typeof(dados) <> 'object' or length(dados::text) > 4000 then raise exception 'valor-invalido'; end if;
+  update public.organizacoes set cadastro = dados where id = o;
+  perform public.auditar(o, 'org.cadastro', dados->>'razao_social');
+end $$;
+
+-- Marca da plataforma: qualquer um pode ler (a tela de login usa)
+create or replace function public.marca_plataforma() returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select marca from public.config_plataforma
+$$;
+
+create or replace function public.salvar_marca(m jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.exigir_admin_plataforma();
+  if jsonb_typeof(m) <> 'object' or length(m::text) > 1600000 then raise exception 'valor-invalido'; end if;
+  update public.config_plataforma set marca = m, atualizado_em = now();
+  perform public.auditar(null, 'plataforma.marca', m->>'nome');
+end $$;
+
+-- ============================================================ cobrança: funções do servidor (Vercel)
+-- Só funcionam com a senha do servidor (COBRANCA_SEGREDO). Ninguém do app consegue usar.
+
+create or replace function public.srv_conferir(segredo text) returns void
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if segredo is null or segredo <> (select segredo_servidor from public.cobranca_config) then raise exception 'segredo-invalido'; end if;
+end $$;
+
+create or replace function public.srv_config(segredo text) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare c record;
+begin
+  perform public.srv_conferir(segredo);
+  select * into c from public.cobranca_config;
+  return jsonb_build_object('ligada', c.ligada, 'provedor', c.provedor, 'webhook_id', c.webhook_id, 'webhook_segredo', c.webhook_segredo);
+end $$;
+
+create or replace function public.srv_salvar_conexao(segredo text, prov text, teste boolean, wid text, wsegredo text, wurl text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.srv_conferir(segredo);
+  update public.cobranca_config set provedor = prov, modo_teste = teste, webhook_id = wid, webhook_segredo = wsegredo,
+    webhook_url = wurl, conectado_em = now(), atualizado_em = now();
+  insert into public.auditoria (acao, detalhe) values ('cobranca.conectada', prov || case when teste then ' (teste)' else '' end);
+end $$;
+
+-- O que o servidor precisa para criar a cobrança no provedor
+create or replace function public.srv_dados_loja(segredo text, o uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare g record; a record; p record;
+begin
+  perform public.srv_conferir(segredo);
+  select * into g from public.organizacoes where id = o;
+  if not found then raise exception 'sem-loja'; end if;
+  select * into a from public.assinaturas where org_id = o;
+  select * into p from public.planos where id = a.plano_id;
+  return jsonb_build_object(
+    'org_id', g.id, 'nome', g.nome, 'cadastro', g.cadastro,
+    -- o cliente no provedor nasce com o e-mail do administrador mais antigo da loja
+    'email', (select u.email from public.membros m join auth.users u on u.id = m.user_id
+              where m.org_id = o and m.papel = 'admin' order by m.criado_em limit 1),
+    'situacao', public.situacao_cobranca(o),
+    'plano', case when p.id is null then null else jsonb_build_object('id', p.id, 'nome', p.nome, 'preco_centavos', p.preco_centavos, 'intervalo', p.intervalo) end,
+    'teste_ate', a.teste_ate, 'pago_ate', a.pago_ate, 'provedor', a.provedor,
+    'cliente_ref', a.cliente_ref, 'assinatura_ref', a.assinatura_ref, 'link_pagamento', a.link_pagamento, 'cancelada_em', a.cancelada_em);
+end $$;
+
+create or replace function public.srv_registrar_assinatura(segredo text, o uuid, prov text, cliente text, assinatura text, link text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.srv_conferir(segredo);
+  update public.assinaturas set provedor = prov, cliente_ref = coalesce(cliente, cliente_ref),
+    assinatura_ref = coalesce(assinatura, assinatura_ref), link_pagamento = coalesce(link, link_pagamento),
+    cancelada_em = case when assinatura is not null then null else cancelada_em end, atualizado_em = now()
+  where org_id = o;
+end $$;
+
+-- Aviso do provedor. tipo: 'pago' | 'cancelado' | 'checkout'.
+-- 'pago' usa pago_ate_exato (Stripe: fim do período pago) ou vencimento (Asaas: + um período do plano).
+create or replace function public.srv_evento(segredo text, prov text, evento text, tipo text, assinatura text, cliente text,
+                                             o uuid, pago_ate_exato timestamptz, vencimento date, valor integer, referencia text)
+returns text
+language plpgsql security definer set search_path = '' as $$
+declare a record; p record; ate timestamptz;
+begin
+  perform public.srv_conferir(segredo);
+  if evento is not null then
+    insert into public.eventos_cobranca (provedor, evento_id) values (prov, evento) on conflict do nothing;
+    if not found then return 'repetido'; end if;
+  end if;
+  select * into a from public.assinaturas
+   where (o is not null and org_id = o) or (assinatura is not null and assinatura_ref = assinatura) or (cliente is not null and cliente_ref = cliente)
+   order by (org_id = o) desc nulls last limit 1;
+  if not found then return 'sem-loja'; end if;
+
+  if tipo = 'checkout' then
+    update public.assinaturas set provedor = prov, cliente_ref = coalesce(cliente, cliente_ref),
+      assinatura_ref = coalesce(assinatura, assinatura_ref), cancelada_em = null, atualizado_em = now() where org_id = a.org_id;
+  elsif tipo = 'pago' then
+    select * into p from public.planos where id = a.plano_id;
+    ate := coalesce(pago_ate_exato,
+                    vencimento::timestamptz + case when p.intervalo = 'anual' then interval '1 year' else interval '1 month' end);
+    if ate is null then return 'sem-data'; end if;
+    update public.assinaturas set pago_ate = greatest(coalesce(pago_ate, ate), ate), provedor = prov,
+      assinatura_ref = coalesce(assinatura_ref, assinatura), cliente_ref = coalesce(cliente_ref, cliente), atualizado_em = now()
+    where org_id = a.org_id;
+    insert into public.pagamentos (org_id, org_nome, valor_centavos, cobre_ate, provedor, referencia)
+    values (a.org_id, (select nome from public.organizacoes where id = a.org_id), coalesce(valor, p.preco_centavos, 0), ate, prov, referencia)
+    on conflict do nothing;
+    insert into public.auditoria (org_id, org_nome, acao, detalhe)
+    values (a.org_id, (select nome from public.organizacoes where id = a.org_id), 'cobranca.pago', prov || ' até ' || to_char(ate, 'DD/MM/YYYY'));
+  elsif tipo = 'cancelado' then
+    update public.assinaturas set cancelada_em = now(), atualizado_em = now() where org_id = a.org_id;
+    insert into public.auditoria (org_id, org_nome, acao, detalhe)
+    values (a.org_id, (select nome from public.organizacoes where id = a.org_id), 'cobranca.cancelada', prov);
+  end if;
+  return 'ok';
+end $$;
+
+-- ============================================================ permissões (parte 2)
+do $$
+declare f text;
+begin
+  foreach f in array array[
+    'situacao_cobranca(uuid)', 'bloqueada_por_cobranca(uuid)', 'pode_pagar(uuid)', 'minhas_orgs()', 'conferir_limite_pessoas(uuid)',
+    'org_nova_assinatura()', 'cobranca_da_org(uuid)', 'trocar_plano(uuid, uuid)', 'cobranca_config_admin()',
+    'definir_cobranca(boolean, integer)', 'definir_provedor(text)', 'trocar_segredo_servidor()',
+    'salvar_plano(uuid, text, integer, text, integer, integer, boolean)', 'plano_padrao(uuid)', 'arquivar_plano(uuid)',
+    'cobranca_resumo()', 'isentar_loja(uuid, boolean)', 'marcar_pago(uuid, integer, text)', 'estender_teste(uuid, integer)',
+    'salvar_cadastro_org(uuid, jsonb)', 'marca_plataforma()', 'salvar_marca(jsonb)',
+    'srv_conferir(text)', 'srv_config(text)', 'srv_salvar_conexao(text, text, boolean, text, text, text)', 'srv_dados_loja(text, uuid)',
+    'srv_registrar_assinatura(text, uuid, text, text, text, text)',
+    'srv_evento(text, text, text, text, text, text, uuid, timestamptz, date, integer, text)'
+  ] loop
+    execute format('revoke all on function public.%s from public, anon', f);
+  end loop;
+  foreach f in array array[
+    'situacao_cobranca(uuid)', 'bloqueada_por_cobranca(uuid)', 'pode_pagar(uuid)', 'minhas_orgs()',
+    'cobranca_da_org(uuid)', 'trocar_plano(uuid, uuid)', 'cobranca_config_admin()',
+    'definir_cobranca(boolean, integer)', 'definir_provedor(text)', 'trocar_segredo_servidor()',
+    'salvar_plano(uuid, text, integer, text, integer, integer, boolean)', 'plano_padrao(uuid)', 'arquivar_plano(uuid)',
+    'cobranca_resumo()', 'isentar_loja(uuid, boolean)', 'marcar_pago(uuid, integer, text)', 'estender_teste(uuid, integer)',
+    'salvar_cadastro_org(uuid, jsonb)', 'marca_plataforma()', 'salvar_marca(jsonb)'
+  ] loop
+    execute format('grant execute on function public.%s to authenticated', f);
+  end loop;
+  -- a tela de login lê a marca antes de alguém entrar
+  execute 'grant execute on function public.marca_plataforma() to anon';
+  -- as funções do servidor são chamadas sem login, com a chave pública + a senha do servidor
+  foreach f in array array[
+    'srv_config(text)', 'srv_salvar_conexao(text, text, boolean, text, text, text)', 'srv_dados_loja(text, uuid)',
+    'srv_registrar_assinatura(text, uuid, text, text, text, text)',
+    'srv_evento(text, text, text, text, text, text, uuid, timestamptz, date, integer, text)'
+  ] loop
+    execute format('grant execute on function public.%s to anon, authenticated', f);
+  end loop;
 end $$;

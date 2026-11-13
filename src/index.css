@@ -505,3 +505,52 @@ td .tag { margin-left: 6px }
   .seletor-loja-menu { position: fixed; top: 60px; left: 12px; right: 12px; min-width: 0 }
   select.sel-pequeno { font-size: 16px }
 }
+
+/* ---------- Painel: abas, filtros, fichas e cobrança ---------- */
+.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--bd); margin: 4px 0 16px; overflow-x: auto }
+button.aba { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; color: var(--mut); padding: 9px 14px; white-space: nowrap }
+button.aba:hover { color: var(--txt); filter: none }
+button.aba.ativa { color: var(--txt); border-bottom-color: var(--pri); font-weight: 600 }
+button.filtro { background: transparent; color: var(--mut); border-color: var(--bd-forte); border-radius: 16px; padding: 5px 12px; font-size: 13px }
+button.filtro.ativo { background: var(--pri-suave); color: var(--link); border-color: var(--pri-borda) }
+.filtros-linha { display: flex; gap: 8px; flex-wrap: wrap }
+.filtros-auditoria { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px }
+.filtros-auditoria .busca { margin-bottom: 0; flex: 1 1 220px }
+label.data-filtro { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto }
+label.data-filtro input { padding: 5px 8px; font-size: 13px }
+tr.clicavel { cursor: pointer }
+tr.clicavel:hover td { background: var(--pri-suave) }
+tr.apagado td { opacity: .55 }
+dl.ficha { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 10px 0 0 }
+dl.ficha dt { color: var(--mut); font-size: 13px }
+dl.ficha dd { margin: 0 }
+.detalhe-evento { border-color: var(--pri-borda) }
+form.form-config textarea, form textarea { padding: 9px 10px; border: 1px solid var(--bd-forte); border-radius: 8px; font: inherit; font-size: 14px; color: var(--txt); background: var(--campo); resize: vertical }
+.faixa-teste { background: color-mix(in srgb, #f59e0b 18%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent); color: var(--txt); border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; margin: 0 0 12px }
+.faixa-teste.neutra { background: var(--pri-suave); border-color: var(--pri-borda); font-weight: 500 }
+.faixa-cobranca { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 24px; font-size: 14px; background: color-mix(in srgb, #f59e0b 16%, var(--fundo, transparent)); border-bottom: 1px solid color-mix(in srgb, #f59e0b 40%, transparent) }
+.faixa-cobranca.atraso { background: color-mix(in srgb, #dc2626 14%, var(--fundo, transparent)); border-bottom-color: var(--bad-borda) }
+.link-pagamento { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap }
+.link-pagamento input { flex: 1 1 260px; font-family: ui-monospace, Consolas, monospace; font-size: 13px }
+label.campo-doc, label.campo-plano { max-width: 460px; margin: 4px 0 14px; color: var(--txt); font-weight: 500 }
+.opcoes-provedor { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+label.opcao-chave.escolha { cursor: pointer; flex-direction: row; color: var(--txt); margin-top: 0 }
+label.opcao-chave.escolha.marcada { border-color: var(--pri); background: var(--pri-suave) }
+label.opcao-chave.escolha input { width: 18px; height: 18px; accent-color: var(--pri) }
+ol.passos { padding-left: 20px }
+ol.passos li { margin-bottom: 6px; color: var(--txt) }
+ul.lista-status { list-style: none; padding: 0; margin: 8px 0 14px; line-height: 1.9; font-size: 14px }
+ul.lista-status li.ok, ul.lista-status li.bad { font-weight: 500 }
+.aviso-manual { border-color: #f59e0b; margin-top: 14px }
+.linha-tolerancia { display: flex; gap: 10px; align-items: center }
+.linha-tolerancia input { width: 90px }
+.login-caixa.caixa-larga { max-width: 720px; text-align: left }
+.login-caixa.caixa-larga .cards { margin-top: 12px }
+button.login-botao.sec { margin-top: 8px }
+@media (max-width: 767px) {
+  .opcoes-provedor { grid-template-columns: 1fr }
+  .faixa-cobranca { padding: 10px 16px }
+  dl.ficha { grid-template-columns: 1fr; gap: 2px }
+  dl.ficha dd { margin-bottom: 8px }
+  label.data-filtro input { font-size: 16px }
+}

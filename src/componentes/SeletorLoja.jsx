@@ -33,7 +33,7 @@ export default function SeletorLoja({ lojas, ativa, admin, onTrocar, onGerenciar
         <div className="seletor-loja-menu" role="menu">
           {lista.map((l) => (
             <button key={l.id} role="menuitem" className="seletor-loja-item" onClick={() => { setAberto(false); if (l.id !== ativa?.id) onTrocar(l) }}>
-              <span>{l.nome}{l.suspensa && <small className="bad"> · {t('Suspensa')}</small>}</span>
+              <span>{l.nome}{l.suspensa && <small className="bad"> · {t('Suspensa')}</small>}{['suspensa', 'aguardando'].includes(l.cobranca) && !l.suspensa && <small className="bad"> · {t('Pagamento pendente')}</small>}</span>
               {l.id === ativa?.id && <span className="seletor-loja-marca">✓</span>}
             </button>
           ))}

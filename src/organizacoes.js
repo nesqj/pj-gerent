@@ -18,6 +18,18 @@ const MENSAGENS = {
   'email-invalido': 'E-mail inválido.',
   'sem-conta': 'Não existe conta com este e-mail. A pessoa precisa criar a conta primeiro.',
   'sem-pedido': 'Este pedido já foi resolvido.',
+  'limite-plano': 'O plano desta loja chegou ao máximo de pessoas. Troque de plano para adicionar mais.',
+  'plano-invalido': 'Plano inválido.',
+  'troca-fale-com-admin': 'Depois do teste grátis, a troca de plano é feita pelo administrador da plataforma.',
+  'regularize-antes': 'Regularize o pagamento antes de trocar de plano.',
+  'intervalo-diferente': 'Só dá para trocar entre planos com o mesmo intervalo (mensal ou anual).',
+  'acima-do-plano': 'A loja tem mais pessoas do que o plano escolhido permite.',
+  'provedor-em-uso': 'Há lojas pagando pelo provedor atual. Não dá para trocar agora.',
+  'plano-travado': 'Preço e intervalo travam depois que alguém assina. Arquive e crie outro plano.',
+  'escolha-um-plano': 'Escolha um plano para a loja primeiro.',
+  'valor-invalido': 'Valor inválido.',
+  planos_preco_centavos_check: 'O preço mínimo é R$ 5,00.',
+  planos_nome_check: 'O nome precisa ter de 1 a 60 caracteres.',
   'suspenda-antes': 'Suspenda a loja antes de excluir.',
   'nome-diferente': 'O nome digitado não confere com o nome da loja.',
   'loja-suspensa': 'Esta loja está suspensa.',
@@ -81,9 +93,10 @@ export async function configPlataforma() {
 }
 
 // Auditoria (o banco só devolve o que a pessoa pode ver)
-export async function auditoria({ org, limite = 200 } = {}) {
-  let q = supabase.from('auditoria').select('id, criado_em, org_id, org_nome, email, acao, detalhe').order('criado_em', { ascending: false }).limit(limite)
+export async function auditoria({ org, usuario, limite = 200 } = {}) {
+  let q = supabase.from('auditoria').select('id, criado_em, org_id, org_nome, user_id, email, acao, detalhe').order('criado_em', { ascending: false }).limit(limite)
   if (org) q = q.eq('org_id', org)
+  if (usuario) q = q.eq('user_id', usuario)
   const { data, error } = await q
   if (error) throw new Error(t('Não foi possível concluir. Verifique a internet e tente de novo.'))
   return data
@@ -103,6 +116,96 @@ const ACOES = {
   'convite.criado': 'Convite criado', 'convite.aceito': 'Convite aceito', 'convite.cancelado': 'Convite cancelado',
   'admin.primeiro': 'Primeiro administrador da plataforma', 'admin.adicionado': 'Administrador da plataforma adicionado',
   'admin.removido': 'Administrador da plataforma removido', 'cadastro.modo': 'Modo de cadastro alterado',
-  'pedido.criado': 'Pedido de cadastro recebido', 'pedido.aprovado': 'Pedido de cadastro aprovado', 'pedido.recusado': 'Pedido de cadastro recusado',
+  'pedido.criado': 'Pedido de cadastro recebido', 'org.cadastro': 'Cadastro da loja alterado',
+  'plataforma.marca': 'Marca da plataforma alterada', 'cobranca.plano': 'Plano da loja alterado', 'cobranca.config': 'Cobrança configurada',
+  'cobranca.provedor': 'Provedor de cobrança escolhido', 'cobranca.segredo': 'Senha do servidor trocada',
+  'cobranca.conectada': 'Provedor de cobrança conectado', 'cobranca.isenta': 'Loja isenta de cobrança', 'cobranca.cobrar': 'Loja volta a ser cobrada',
+  'cobranca.pago-manual': 'Pagamento registrado à mão', 'cobranca.teste': 'Teste grátis estendido', 'cobranca.pago': 'Pagamento recebido',
+  'cobranca.cancelada': 'Assinatura cancelada no provedor', 'plano.criado': 'Plano criado', 'plano.alterado': 'Plano alterado',
+  'plano.padrao': 'Plano padrão escolhido', 'plano.arquivado': 'Plano arquivado', 'pedido.aprovado': 'Pedido de cadastro aprovado', 'pedido.recusado': 'Pedido de cadastro recusado',
 }
 export const nomeAcao = (a) => (ACOES[a] ? t(ACOES[a]) : a)
+
+// ---------- cadastro da loja e marca da plataforma
+export const salvarCadastroOrg = (o, dados) => chamar('salvar_cadastro_org', { o, dados })
+export async function buscarCadastroOrg(id) {
+  const { data, error } = await supabase.from('organizacoes').select('cadastro').eq('id', id).maybeSingle()
+  if (error) throw new Error(t('Não foi possível concluir. Verifique a internet e tente de novo.'))
+  return data?.cadastro || {}
+}
+export async function marcaPlataforma() {
+  const { data, error } = await supabase.rpc('marca_plataforma')
+  return error ? {} : data || {}
+}
+export const salvarMarca = (m) => chamar('salvar_marca', { m })
+
+// ---------- cobrança
+export const SITUACOES = {
+  isenta: { nome: 'Isenta', classe: '' },
+  teste: { nome: 'Teste grátis', classe: 'ok' },
+  em_dia: { nome: 'Em dia', classe: 'ok' },
+  aguardando: { nome: 'Aguardando o 1º pagamento', classe: 'bad' },
+  atrasada: { nome: 'Em atraso', classe: 'bad' },
+  suspensa: { nome: 'Suspensa por falta de pagamento', classe: 'bad' },
+}
+export const nomeSituacao = (s) => t(SITUACOES[s]?.nome || s || '-')
+
+export const cobrancaDaOrg = (o) => chamar('cobranca_da_org', { o })
+export const trocarPlano = (o, plano) => chamar('trocar_plano', { o, novo: plano })
+export const cobrancaConfig = () => chamar('cobranca_config_admin')
+export const definirCobranca = (ligar, tolerancia) => chamar('definir_cobranca', { ligar, tolerancia })
+export const definirProvedor = (p) => chamar('definir_provedor', { novo: p })
+export const trocarSegredoServidor = () => chamar('trocar_segredo_servidor')
+export const salvarPlano = (p) => chamar('salvar_plano', {
+  pid: p.id || null, nome_plano: p.nome, preco: p.preco_centavos, intervalo_plano: p.intervalo, dias: p.dias_teste,
+  max_p: p.max_pessoas || null, visivel_plano: p.visivel,
+})
+export const planoPadrao = (id) => chamar('plano_padrao', { pid: id })
+export const arquivarPlano = (id) => chamar('arquivar_plano', { pid: id })
+export const cobrancaResumo = () => chamar('cobranca_resumo')
+export const isentarLoja = (o, isentar) => chamar('isentar_loja', { o, isentar })
+export const marcarPago = (o, valor, obs) => chamar('marcar_pago', { o, valor, obs })
+export const estenderTeste = (o, dias) => chamar('estender_teste', { o, dias })
+export async function planos({ todos } = {}) {
+  let q = supabase.from('planos').select('*').order('preco_centavos')
+  if (!todos) q = q.is('arquivado_em', null)
+  const { data, error } = await q
+  if (error) throw new Error(t('Não foi possível concluir. Verifique a internet e tente de novo.'))
+  return data
+}
+
+// Funções de servidor da cobrança (pasta api/, na Vercel)
+const ERROS_SERVIDOR = {
+  'sem-permissao': 'Você não tem permissão para fazer isso.',
+  'segredo-invalido': 'A senha do servidor (COBRANCA_SEGREDO) na Vercel não confere com a do banco. Copie de novo em Cobrança → Conexão.',
+  'sem-segredo': 'Falta cadastrar COBRANCA_SEGREDO nas variáveis de ambiente da Vercel.',
+  'sem-provedor': 'Escolha o provedor em Cobrança → Conexão.',
+  'sem-chave-stripe': 'Falta cadastrar STRIPE_SECRET_KEY nas variáveis de ambiente da Vercel.',
+  'sem-chave-asaas': 'Falta cadastrar ASAAS_API_KEY nas variáveis de ambiente da Vercel.',
+  'cobranca-desligada': 'A cobrança está desligada.',
+  'loja-isenta': 'Esta loja não tem plano para pagar.',
+  'cpf-cnpj': 'Informe um CPF ou CNPJ válido de quem paga.',
+  'sem-fatura': 'Não há fatura em aberto agora.',
+  'erro-stripe': 'A Stripe recusou o pedido.',
+  'erro-asaas': 'O Asaas recusou o pedido.',
+}
+export async function servidor(caminho, corpo, metodo = 'POST') {
+  const { data } = await supabase.auth.getSession()
+  let r
+  try {
+    r = await fetch('/api/cobranca/' + caminho, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token || ''}` },
+      body: metodo === 'GET' ? undefined : JSON.stringify(corpo || {}),
+    })
+  } catch {
+    throw new Error(t('Não foi possível concluir. Verifique a internet e tente de novo.'))
+  }
+  const j = await r.json().catch(() => null)
+  if (!j) throw new Error(t('As funções de servidor não responderam. Elas só funcionam no site publicado na Vercel.'))
+  if (!r.ok) {
+    const base = t(ERROS_SERVIDOR[j.erro] || 'Não foi possível concluir. Verifique a internet e tente de novo.')
+    throw new Error(j.detalhe ? `${base} (${j.detalhe})` : base)
+  }
+  return j
+}

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Equipe from './Equipe.jsx'
+import CobrancaLoja from './CobrancaLoja.jsx'
 import { ListaAuditoria } from './Plataforma.jsx'
 import * as Org from '../organizacoes.js'
-import { IconeBackup, IconeCelular, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
+import { IconeBackup, IconeCelular, IconeCobranca, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
 import { avisar, avisosSuportados, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
 import { IDIOMAS, t } from '../i18n.js'
 import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP as NOME_PADRAO } from '../marca.js'
@@ -26,6 +27,7 @@ const SECOES = [
     itens: [
       { id: 'organizacao', nome: 'Organização', desc: 'A loja, a equipe, os papéis de cada pessoa e a atividade.', icone: IconePredio },
       { id: 'marca', nome: 'Marca', desc: 'O nome e a cor que sua empresa mostra dentro do sistema.', icone: IconePaleta },
+      { id: 'cobranca', nome: 'Plano e cobrança', desc: 'Seu plano, a situação do pagamento, faturas e troca de plano.', icone: IconeCobranca },
     ],
   },
   {
@@ -39,11 +41,14 @@ const SECOES = [
 const TODOS = SECOES.flatMap((s) => s.itens)
 
 export default function Configuracoes({ db, executar, usuario, loja, adminPlataforma }) {
-  const [aberta, setAberta] = useState(null)
+  // a faixa de cobrança do topo pode pedir para abrir direto em "Plano e cobrança"
+  const [aberta, setAberta] = useState(() => {
+    try { const a = sessionStorage.getItem('abrir-config'); sessionStorage.removeItem('abrir-config'); return a } catch { return null }
+  })
   const item = TODOS.find((i) => i.id === aberta)
 
   if (item) {
-    const Pagina = { perfil: Perfil, celular: AppCelular, organizacao: Organizacao, marca: Marca, backup: Backup }[item.id]
+    const Pagina = { perfil: Perfil, celular: AppCelular, organizacao: Organizacao, marca: Marca, cobranca: PlanoCobranca, backup: Backup }[item.id]
     return (
       <section>
         <h2>{t(item.nome)}</h2>
@@ -66,7 +71,8 @@ export default function Configuracoes({ db, executar, usuario, loja, adminPlataf
         <div key={s.titulo} className="config-secao">
           <div className="config-secao-titulo">{t(s.titulo)}</div>
           <div className="config-grade">
-            {s.itens.filter((i) => i.id !== 'marca' || adminPlataforma || ['admin', 'gerente'].includes(loja?.papel)).map((i) => (
+            {s.itens.filter((i) => (i.id !== 'marca' || adminPlataforma || ['admin', 'gerente'].includes(loja?.papel)) &&
+              (i.id !== 'cobranca' || (loja?.papel === 'admin' && loja?.cobranca && loja.cobranca !== 'isenta'))).map((i) => (
               <button key={i.id} className="config-card" onClick={() => setAberta(i.id)}>
                 <span className="config-icone"><i.icone /></span>
                 <span>
@@ -234,6 +240,12 @@ function Organizacao({ usuario, loja, adminPlataforma }) {
       )}
     </>
   )
+}
+
+// ---------- Plano e cobrança ----------
+function PlanoCobranca({ loja }) {
+  if (!loja) return null
+  return <CobrancaLoja orgId={loja.id} />
 }
 
 // ---------- Marca ----------
