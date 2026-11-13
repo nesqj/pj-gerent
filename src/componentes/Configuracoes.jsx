@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import Equipe from './Equipe.jsx'
+import { ListaAuditoria } from './Plataforma.jsx'
+import * as Org from '../organizacoes.js'
 import { IconeBackup, IconeCelular, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
 import { avisar, avisosSuportados, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
 import { IDIOMAS, t } from '../i18n.js'
@@ -21,7 +24,7 @@ const SECOES = [
   {
     titulo: 'Empresa',
     itens: [
-      { id: 'organizacao', nome: 'Organização', desc: 'Dados da empresa, retenção de dados e encarregado de LGPD.', icone: IconePredio },
+      { id: 'organizacao', nome: 'Organização', desc: 'A loja, a equipe, os papéis de cada pessoa e a atividade.', icone: IconePredio },
       { id: 'marca', nome: 'Marca', desc: 'O nome e a cor que sua empresa mostra dentro do sistema.', icone: IconePaleta },
     ],
   },
@@ -35,12 +38,12 @@ const SECOES = [
 
 const TODOS = SECOES.flatMap((s) => s.itens)
 
-export default function Configuracoes({ db, executar, usuario }) {
+export default function Configuracoes({ db, executar, usuario, loja, adminPlataforma }) {
   const [aberta, setAberta] = useState(null)
   const item = TODOS.find((i) => i.id === aberta)
 
   if (item) {
-    const Pagina = { perfil: Perfil, celular: AppCelular, marca: Marca, backup: Backup }[item.id]
+    const Pagina = { perfil: Perfil, celular: AppCelular, organizacao: Organizacao, marca: Marca, backup: Backup }[item.id]
     return (
       <section>
         <h2>{t(item.nome)}</h2>
@@ -50,7 +53,7 @@ export default function Configuracoes({ db, executar, usuario }) {
           <small>{t({ perfil: 'Informações pessoais. O e-mail de acesso ainda não pode ser trocado.', marca: 'O nome e a cor que a sua empresa mostra para quem trabalha aqui dentro.' }[item.id] || item.desc)}</small>
         </div>
         {Pagina
-          ? <Pagina db={db} executar={executar} usuario={usuario} />
+          ? <Pagina db={db} executar={executar} usuario={usuario} loja={loja} adminPlataforma={adminPlataforma} />
           : <div className="painel"><p className="vazio">{t('Em construção — o conteúdo desta seção ainda vai ser definido.')}</p></div>}
       </section>
     )
@@ -63,7 +66,7 @@ export default function Configuracoes({ db, executar, usuario }) {
         <div key={s.titulo} className="config-secao">
           <div className="config-secao-titulo">{t(s.titulo)}</div>
           <div className="config-grade">
-            {s.itens.map((i) => (
+            {s.itens.filter((i) => i.id !== 'marca' || adminPlataforma || ['admin', 'gerente'].includes(loja?.papel)).map((i) => (
               <button key={i.id} className="config-card" onClick={() => setAberta(i.id)}>
                 <span className="config-icone"><i.icone /></span>
                 <span>
@@ -203,6 +206,36 @@ function AppCelular({ db, executar }) {
   )
 }
 
+// ---------- Organização (a loja e a equipe) ----------
+function Organizacao({ usuario, loja, adminPlataforma }) {
+  const podeGerir = loja?.papel === 'admin' || adminPlataforma
+  const [atividade, setAtividade] = useState(null)
+  useEffect(() => {
+    if (!podeGerir || !loja) return
+    Org.auditoria({ org: loja.id, limite: 30 }).then(setAtividade, () => setAtividade([]))
+  }, [loja?.id, podeGerir]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!loja) return null
+
+  return (
+    <>
+      <div className="cards">
+        <div className="card"><small>{t('Loja')}</small><b>{loja.nome}</b></div>
+        <div className="card"><small>{t('Seu papel')}</small><b>{Org.nomePapel(loja.papel)}</b></div>
+      </div>
+      <p><small>{podeGerir
+        ? t('Coloque aqui as pessoas que trabalham nesta loja. Cada uma entra com o próprio e-mail e senha e só vê esta loja (e as outras em que estiver).')
+        : t('Só o administrador da loja pode mudar a equipe.')}</small></p>
+      <Equipe orgId={loja.id} podeGerir={podeGerir} meuId={usuario?.id} />
+      {podeGerir && (
+        <>
+          <div className="linha-titulo"><h3>{t('Atividade recente')}</h3></div>
+          {atividade ? <ListaAuditoria eventos={atividade} /> : <p className="vazio">{t('Carregando...')}</p>}
+        </>
+      )}
+    </>
+  )
+}
+
 // ---------- Marca ----------
 const LIMITE_LOGO = 512 * 1024
 
@@ -314,7 +347,7 @@ function Marca({ db, executar }) {
         <h3 style={{ marginBottom: 8 }}>{t('O que isto ainda não muda')}</h3>
         <ul className="dicas">
           <li>{t('O ícone do app instalado no celular continua o padrão do sistema.')}</li>
-          <li>{t('Enquanto os dados ficam só neste navegador, nome, cor e logo valem só aqui. Em outro aparelho, use a Cópia de segurança para levar tudo.')}</li>
+          <li>{t('Nome, cor e logo valem para todas as pessoas desta loja, em qualquer aparelho.')}</li>
         </ul>
       </div>
 
@@ -324,8 +357,9 @@ function Marca({ db, executar }) {
 }
 
 // ---------- Cópia de segurança ----------
-function Backup({ db, executar }) {
+function Backup({ db, executar, loja }) {
   const inputImport = useRef(null)
+  const podeRestaurar = loja?.papel === 'admin'
 
   function exportar() {
     const a = document.createElement('a')
@@ -342,7 +376,7 @@ function Backup({ db, executar }) {
       try {
         const d = JSON.parse(r.result)
         if (!d.fornecedores || !d.precosForn) throw new Error()
-        if (!confirm(t('Isso vai substituir todos os dados atuais pelos do arquivo. Continuar?'))) return
+        if (!confirm(t('Isso vai substituir todos os dados da loja "{loja}" pelos do arquivo, para todas as pessoas da loja. Continuar?', { loja: loja?.nome }))) return
         if (await executar((A) => A.substituirTudo(d))) alert(t('Backup restaurado!'))
       } catch {
         alert(t('Arquivo de backup inválido.'))
@@ -356,11 +390,11 @@ function Backup({ db, executar }) {
   return (
     <div className="painel">
       <p><small>
-        {t('Os dados do app ficam guardados só neste navegador. Baixe uma cópia de vez em quando para não perder nada se os dados do navegador forem apagados, ou para levar tudo para outro computador.')}
+        {t('Os dados desta loja ficam guardados no banco de dados. Baixe uma cópia de vez em quando para ter uma reserva sua, principalmente antes de mudanças grandes.')}
       </small></p>
       <div className="botoes">
         <button onClick={exportar}>{t('Baixar cópia dos dados')}</button>
-        <button className="sec" onClick={() => inputImport.current.click()}>{t('Restaurar de um arquivo')}</button>
+        {podeRestaurar && <button className="sec" onClick={() => inputImport.current.click()}>{t('Restaurar de um arquivo')}</button>}
         <input ref={inputImport} type="file" accept=".json" hidden onChange={importar} />
       </div>
     </div>

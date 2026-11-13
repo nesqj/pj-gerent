@@ -68,3 +68,21 @@ export const IconeRecolher = ({ recolhido }) => (
 export const IconeMenu = () => (
   <Svg size={22}><path d="M4 7h16M4 12h16M4 17h16" /></Svg>
 )
+export const IconeLoja = () => (
+  <Svg><path d="M4 9.5V20h16V9.5" /><path d="M3 9.5l1.6-5.5h14.8L21 9.5a2.6 2.6 0 0 1-4.5 1.6 2.6 2.6 0 0 1-4.5 0 2.6 2.6 0 0 1-4.5 0A2.6 2.6 0 0 1 3 9.5z" /><path d="M10 20v-5h4v5" /></Svg>
+)
+export const IconePainel = () => (
+  <Svg><path d="M4 16a8 8 0 1 1 16 0" /><path d="M12 16l4-5" /><circle cx="12" cy="16" r="1.2" /><path d="M3 20h18" /></Svg>
+)
+export const IconeUsuarios = () => (
+  <Svg><circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5a6 6 0 0 1 12 0" /><circle cx="17" cy="9.5" r="2.4" /><path d="M16 14.2a4.6 4.6 0 0 1 5 5.3" /></Svg>
+)
+export const IconeLista = () => (
+  <Svg><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 3h6v3H9z" /><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" /></Svg>
+)
+export const IconeChave = () => (
+  <Svg><circle cx="8" cy="14" r="4" /><path d="M11 11l8-8" /><path d="M16 6l2.5 2.5M14 8l2 2" /></Svg>
+)
+export const IconeVoltar = () => (
+  <Svg><path d="M10 6l-6 6 6 6" /><path d="M4 12h16" /></Svg>
+)

@@ -465,3 +465,29 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
   .tw td:has(> input[type=checkbox]:only-child) { border-bottom: none !important; padding: 8px 0 0 }
   .tw td > input[type=checkbox] { width: 20px; height: 20px }
 }
+
+/* ---------- Lojas: seletor no topo e painel da plataforma ---------- */
+.seletor-loja { position: relative }
+.seletor-loja-botao { display: flex; align-items: center; gap: 8px; background: transparent; color: var(--txt); border-color: transparent; padding: 6px 10px; font-weight: 600 }
+.seletor-loja-botao:hover { border-color: var(--bd); filter: none }
+.seletor-loja-nome { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.seletor-loja-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; min-width: 240px; max-height: 70vh; overflow-y: auto; background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, .25) }
+.seletor-loja-item { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 12px; background: transparent; border: none; color: var(--txt); text-align: left; padding: 9px 10px; border-radius: 7px; font-weight: 500 }
+.seletor-loja-item:hover { background: var(--pri-suave); filter: none }
+.seletor-loja-marca { color: var(--mut) }
+.seletor-loja-gerenciar { border-top: 1px solid var(--bd); border-radius: 0 0 7px 7px; margin-top: 4px; padding-top: 11px; color: var(--mut) }
+.logo-admin { display: flex; flex-direction: column; line-height: 1.2 }
+.logo-admin small { color: var(--mut); font-size: 11px; letter-spacing: .04em }
+.logo-admin b { font-size: 14px }
+select.sel-pequeno { padding: 5px 8px; font-size: 13px }
+.zona-perigo { border-color: var(--bad-borda) }
+.zona-perigo p { margin: 0 0 10px }
+label.opcao-radio { align-items: flex-start; margin: 10px 0; color: var(--txt) }
+label.opcao-radio input { margin-top: 3px }
+td .tag { margin-left: 6px }
+@media (max-width: 767px) {
+  .seletor-loja-nome, .seletor-loja-botao svg:last-child { display: none }
+  .seletor-loja-botao { padding: 8px }
+  .seletor-loja-menu { position: fixed; top: 60px; left: 12px; right: 12px; min-width: 0 }
+  select.sel-pequeno { font-size: 16px }
+}

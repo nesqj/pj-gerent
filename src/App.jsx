@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as Armazenamento from './armazenamento.js'
+import * as Org from './organizacoes.js'
 import Fornecedores from './componentes/Fornecedores.jsx'
 import PrecosVenda from './componentes/PrecosVenda.jsx'
 import Vendas from './componentes/Vendas.jsx'
@@ -9,6 +10,8 @@ import Estoque from './componentes/Estoque.jsx'
 import Configuracoes from './componentes/Configuracoes.jsx'
 import Ajuda from './componentes/Ajuda.jsx'
 import Login from './componentes/Login.jsx'
+import Plataforma from './componentes/Plataforma.jsx'
+import SeletorLoja from './componentes/SeletorLoja.jsx'
 import * as Auth from './auth.js'
 import { supabaseConfigurado } from './supabase.js'
 import { observarTabelas } from './tabelasResponsivas.js'
@@ -17,11 +20,12 @@ import { corTextoSobre, definirFuso, FUSO_PADRAO, hexValido, hoje } from './util
 import pacote from '../package.json'
 import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from './marca.js'
 import {
-  IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCalculadora, IconeCaminhao, IconeCarrinho, IconeConfig,
-  IconeGrafico, IconeMenu, IconeRecolher, IconeSair, IconeSeta,
+  IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCalculadora, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
+  IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
+  IconeUsuarios, IconeVoltar,
 } from './icones.jsx'
 
-// Grupos e itens da barra lateral
+// Grupos e itens da barra lateral (dentro de uma loja)
 const GRUPOS = [
   {
     nome: 'Vendas',
@@ -46,11 +50,43 @@ const GRUPOS = [
   },
 ]
 
+// Painel "Admin Plataforma" (só administradores da plataforma)
+const GRUPOS_ADMIN = [
+  {
+    nome: 'Operação',
+    itens: [
+      { id: 'dashboard', nome: 'Dashboard', icone: IconePainel },
+      { id: 'auditoria', nome: 'Auditoria', icone: IconeLista },
+    ],
+  },
+  {
+    nome: 'Clientes',
+    itens: [
+      { id: 'orgs', nome: 'Organizações', icone: IconeLoja },
+      { id: 'usuarios', nome: 'Usuários', icone: IconeUsuarios },
+      { id: 'admins', nome: 'Administradores', icone: IconeEscudo },
+      { id: 'uso', nome: 'Uso', icone: IconeGrafico },
+    ],
+  },
+  {
+    nome: 'Plataforma',
+    itens: [
+      { id: 'cadastro', nome: 'Cadastro', icone: IconeChave },
+    ],
+  },
+]
+
 // Itens do rodapé da barra lateral
 const RODAPE = [
   { id: 'config', nome: 'Configurações', icone: IconeConfig },
   { id: 'ajuda', nome: 'Ajuda', icone: IconeAjuda },
 ]
+
+// Abas que o vendedor vê (o banco também confere o que cada papel pode gravar)
+const ABAS_DO_VENDEDOR = ['vendas', 'estoque', 'venda', 'config', 'ajuda']
+const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.includes(aba)
+
+const chaveLoja = (uid) => 'pjgerent-loja-' + uid
 
 export default function App() {
   const [db, setDb] = useState(null)
@@ -65,18 +101,35 @@ export default function App() {
   const [recuperando, setRecuperando] = useState(false) // abriu o link de "esqueci minha senha"
   const [erroCarga, setErroCarga] = useState('')
 
-  // Carrega os dados da conta e, se a conta estiver vazia, oferece trazer os dados deste navegador
-  async function carregarConta(s) {
+  // lojas
+  const [lojas, setLojas] = useState([])          // lojas de quem está logado
+  const [loja, setLoja] = useState(null)          // loja aberta
+  const [adminPlataforma, setAdminPlataforma] = useState(false)
+  const admin = useRef(false)
+  // 'carregando' | 'loja' | 'admin' (painel da plataforma) | 'semLoja' | 'suspensa'
+  const [modo, setModo] = useState('carregando')
+  const [telaAdmin, setTelaAdmin] = useState('dashboard')
+
+  // Abre uma loja: carrega os dados dela e, se estiver vazia, oferece trazer os dados deste navegador
+  async function abrirLoja(o, s = sessao) {
     setErroCarga('')
+    setMenuAberto(false)
+    if (o.suspensa && !admin.current) { setLoja(o); setDb(null); setModo('suspensa'); return }
+    // papel na loja; o administrador da plataforma abrindo loja de outros entra como admin
+    const ativa = { ...o, papel: o.papel || lojas.find((l) => l.id === o.id)?.papel || 'admin' }
     try {
+      Armazenamento.definirOrg(ativa)
+      setLoja(ativa)
+      setModo('carregando')
+      try { localStorage.setItem(chaveLoja(s.usuario.id), ativa.id) } catch { /* sem acesso */ }
       let d = await Armazenamento.carregar()
-      const locais = Armazenamento.contaVazia(d) && Armazenamento.dadosDoNavegador()
+      const locais = Armazenamento.contaVazia(d) && Armazenamento.podeFazer('tudo.substituido') && Armazenamento.dadosDoNavegador()
       if (locais && !sessionStorage.getItem('migracao-recusada')) {
-        if (confirm(t('Encontramos dados salvos neste navegador (da versão sem banco de dados). Enviar esses dados para a sua conta?'))) {
+        if (confirm(t('Encontramos dados salvos neste navegador (da versão sem banco de dados). Enviar esses dados para a loja "{loja}"?', { loja: ativa.nome }))) {
           await Armazenamento.substituirTudo(locais)
           Armazenamento.esquecerDadosDoNavegador()
           d = await Armazenamento.carregar()
-          alert(t('Dados enviados para a sua conta!'))
+          alert(t('Dados enviados para a loja!'))
         } else sessionStorage.setItem('migracao-recusada', '1')
       }
       // primeiro acesso: usa o nome do cadastro no Perfil, se ainda não tiver
@@ -85,9 +138,47 @@ export default function App() {
         d = await Armazenamento.carregar()
       }
       setDb(d)
+      setAba((a) => (podeVer(ativa.papel, a) ? a : 'vendas'))
+      setModo('loja')
     } catch (e) {
       setErroCarga(e.message || t('Não foi possível carregar os dados.'))
     }
+  }
+
+  // Depois do login: entra na plataforma (aceita convites), busca as lojas e abre a última usada
+  async function carregarConta(s) {
+    setErroCarga('')
+    setModo('carregando')
+    try {
+      const info = await Org.entrar()
+      admin.current = !!info?.admin
+      setAdminPlataforma(admin.current)
+      const lista = await Org.minhasOrgs()
+      setLojas(lista)
+      let salva = null
+      try { salva = localStorage.getItem(chaveLoja(s.usuario.id)) } catch { /* sem acesso */ }
+      let alvo = lista.find((o) => o.id === salva) || lista.find((o) => !o.suspensa) || lista[0]
+      if (!lista.some((o) => o.id === salva) && salva && admin.current) {
+        const g = await Org.buscarOrg(salva).catch(() => null)
+        if (g) alvo = { ...g, papel: 'admin' }
+      }
+      if (!alvo) { setDb(null); setLoja(null); setModo(admin.current ? 'admin' : 'semLoja'); if (admin.current) setTelaAdmin('orgs'); return }
+      await abrirLoja(alvo, s)
+    } catch (e) {
+      setErroCarga(e.message || t('Não foi possível carregar os dados.'))
+    }
+  }
+
+  // Atualiza a lista do seletor (depois de criar/renomear/suspender lojas no painel)
+  async function atualizarLojas() {
+    try {
+      const lista = await Org.minhasOrgs()
+      setLojas(lista)
+      if (loja) {
+        const nova = lista.find((o) => o.id === loja.id) || (admin.current && await Org.buscarOrg(loja.id).catch(() => null))
+        if (nova) setLoja((l) => ({ ...l, nome: nova.nome, suspensa: nova.suspensa }))
+      }
+    } catch { /* a lista volta a ser buscada na próxima entrada */ }
   }
 
   useEffect(() => {
@@ -95,10 +186,22 @@ export default function App() {
     Auth.obterSessao().then((s) => { setSessao(s); if (s) carregarConta(s) })
     return Auth.aoMudar((evento, s) => {
       if (evento === 'PASSWORD_RECOVERY') setRecuperando(true)
-      if (evento === 'SIGNED_OUT') { Armazenamento.limpar(); setDb(null); setSessao(null) }
+      if (evento === 'SIGNED_OUT') { Armazenamento.limpar(); setDb(null); setSessao(null); setLoja(null); setLojas([]) }
       if (evento === 'TOKEN_REFRESHED' || evento === 'USER_UPDATED') setSessao(s)
     })
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ao voltar para o app (outra aba, celular desbloqueado), busca o que outras pessoas salvaram
+  useEffect(() => {
+    if (modo !== 'loja') return
+    const aoVoltar = async () => {
+      if (document.visibilityState !== 'visible') return
+      try { if (await Armazenamento.atualizarSeMudou()) setDb(await Armazenamento.carregar()) } catch { /* tenta na próxima */ }
+    }
+    document.addEventListener('visibilitychange', aoVoltar)
+    window.addEventListener('focus', aoVoltar)
+    return () => { document.removeEventListener('visibilitychange', aoVoltar); window.removeEventListener('focus', aoVoltar) }
+  }, [modo])
 
   function entrou(s) {
     setSessao(s)
@@ -112,6 +215,8 @@ export default function App() {
     Armazenamento.limpar()
     setDb(null)
     setSessao(null)
+    setLoja(null)
+    setLojas([])
     setMenuAberto(false)
   }
 
@@ -145,20 +250,21 @@ export default function App() {
     return () => mq.removeEventListener('change', aplicar)
   }, [tema])
 
-  // marca: cor (pode ser diferente no tema escuro) e título da aba
-  const corClaro = hexValido(db?.config?.cor) ? db.config.cor : null
-  const corEscuro = hexValido(db?.config?.corEscuro) ? db.config.corEscuro : corClaro
+  // marca da loja: cor (pode ser diferente no tema escuro) e título da aba. No painel da plataforma vale a marca padrão.
+  const config = modo === 'loja' ? db?.config : null
+  const corClaro = hexValido(config?.cor) ? config.cor : null
+  const corEscuro = hexValido(config?.corEscuro) ? config.corEscuro : corClaro
   const cor = temaAtivo === 'light' ? corClaro : corEscuro
   // logo: no tema escuro usa o logo próprio dele; se não tiver, usa o do tema claro
-  const logo = temaAtivo === 'light' ? db?.config?.logo : db?.config?.logoEscuro || db?.config?.logo
-  const nomeProprio = db?.config?.nomeLoja?.trim()
+  const logo = temaAtivo === 'light' ? config?.logo : config?.logoEscuro || config?.logo
+  const nomeProprio = config?.nomeLoja?.trim()
   const nomeLoja = nomeProprio || NOME_APP
   useEffect(() => {
     const raiz = document.documentElement.style
     if (cor) { raiz.setProperty('--pri', cor); raiz.setProperty('--pri-txt', corTextoSobre(cor)) }
     else { raiz.removeProperty('--pri'); raiz.removeProperty('--pri-txt') }
   }, [cor])
-  useEffect(() => { document.title = nomeLoja }, [nomeLoja])
+  useEffect(() => { document.title = modo === 'admin' ? `${NOME_APP} · ${t('Admin Plataforma')}` : nomeLoja }, [nomeLoja, modo])
 
   // Executa uma operação de armazenamento e recarrega os dados.
   async function executar(fn) {
@@ -176,17 +282,28 @@ export default function App() {
     setAba(id)
     setMenuAberto(false)
   }
+  function irParaAdmin(id) {
+    setTelaAdmin(id)
+    setModo('admin')
+    setMenuAberto(false)
+  }
 
+  const papel = loja?.papel
+  const noAdmin = modo === 'admin'
+  const grupos = noAdmin
+    ? GRUPOS_ADMIN
+    : GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => podeVer(papel, i.id)) })).filter((g) => g.itens.length)
   const contagem = db && {
     vendas: db.vendas.filter((v) => v.dia === hoje()).length, // vendas de hoje
     forn: db.fornecedores.length }
-  const titulo = [...GRUPOS.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === aba)?.nome
+  const atual = noAdmin ? telaAdmin : aba
+  const titulo = [...grupos.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === atual)?.nome
   const tituloT = titulo && t(titulo)
   const perfil = db?.perfil || {}
   const nomeUsuario = perfil.nome || sessao?.usuario?.nome || sessao?.usuario?.email || ''
 
   const Item = ({ id, nome, icone: Icone, badge }) => (
-    <button className={'item' + (aba === id ? ' ativo' : '')} onClick={() => irPara(id)} title={t(nome)}>
+    <button className={'item' + (atual === id ? ' ativo' : '')} onClick={() => (noAdmin ? irParaAdmin(id) : irPara(id))} title={t(nome)}>
       <Icone />
       <span className="rotulo">{t(nome)}</span>
       {badge > 0 && <span className="badge">{badge}</span>}
@@ -201,24 +318,52 @@ export default function App() {
   }
   if (sessao === undefined) return <p className="vazio">{t('Carregando...')}</p>
   if (!sessao) return <Login tema={temaAtivo} logo={logo} onEntrou={entrou} />
+
+  // Telas de aviso (sem o menu): erro, sem loja, loja suspensa
+  const Aviso = ({ titulo: tt, texto, children }) => (
+    <div className="login-fundo"><div className="login-caixa">
+      <img className="login-logo" src={temaAtivo === 'light' ? LOGO_PADRAO_CLARO : LOGO_PADRAO_ESCURO} alt="" />
+      <h1>{tt}</h1>
+      <p className="login-sub">{texto}</p>
+      {children}
+      <div className="login-rodape"><button className="link pequeno" onClick={() => Auth.sair()}>{t('Sair')}</button></div>
+    </div></div>
+  )
   if (erroCarga) {
     return (
-      <div className="login-fundo"><div className="login-caixa">
-        <h1>{t('Não foi possível carregar')}</h1>
-        <p className="login-sub">{erroCarga}</p>
+      <Aviso titulo={t('Não foi possível carregar')} texto={erroCarga}>
         <button className="login-botao" onClick={() => carregarConta(sessao)}>{t('Tentar de novo')}</button>
-        <div className="login-rodape"><button className="link pequeno" onClick={() => Auth.sair()}>{t('Sair')}</button></div>
-      </div></div>
+      </Aviso>
     )
   }
-  if (!db) return <p className="vazio">{t('Carregando...')}</p>
+  if (modo === 'semLoja') {
+    return (
+      <Aviso titulo={t('Sua conta ainda não tem acesso')} texto={t('Você entrou como {email}, mas ainda não faz parte de nenhuma loja. Peça ao administrador para colocar este e-mail na loja e depois toque em "Verificar de novo".', { email: sessao.usuario.email })}>
+        <button className="login-botao" onClick={() => carregarConta(sessao)}>{t('Verificar de novo')}</button>
+      </Aviso>
+    )
+  }
+  if (modo === 'suspensa') {
+    const outras = lojas.filter((o) => o.id !== loja?.id && !o.suspensa)
+    return (
+      <Aviso titulo={t('Loja suspensa')} texto={t('A loja "{loja}" está suspensa. Fale com o administrador da plataforma.', { loja: loja?.nome })}>
+        {outras.map((o) => <button key={o.id} className="login-botao" onClick={() => abrirLoja(o)}>{t('Abrir {loja}', { loja: o.nome })}</button>)}
+      </Aviso>
+    )
+  }
+  if (modo === 'carregando' || (modo === 'loja' && !db)) return <p className="vazio">{t('Carregando...')}</p>
 
   return (
     <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '')}>
       <aside className="lateral">
         <div className="topo">
           <div className="logo">
-            {logo ? (
+            {noAdmin ? (
+              <>
+                <img className="logo-img" src={LOGO_PADRAO_APP} alt="" />
+                <span className="rotulo logo-admin"><small>{NOME_APP}</small><b>{t('Admin Plataforma')}</b></span>
+              </>
+            ) : logo ? (
               <>
                 <img className="logo-img" src={logo} alt="" />
                 <span className="rotulo">{nomeLoja}</span>
@@ -238,19 +383,28 @@ export default function App() {
         </div>
 
         <nav>
-          {GRUPOS.map((g) => (
+          {grupos.map((g) => (
             <div key={g.nome} className="grupo">
               <button className="grupo-titulo" onClick={() => setFechados({ ...fechados, [g.nome]: !fechados[g.nome] })}>
                 <span className="rotulo">{t(g.nome)}</span>
                 <IconeSeta aberto={!fechados[g.nome]} />
               </button>
-              {!fechados[g.nome] && g.itens.map((i) => <Item key={i.id} {...i} badge={contagem?.[i.id]} />)}
+              {!fechados[g.nome] && g.itens.map((i) => <Item key={i.id} {...i} badge={noAdmin ? 0 : contagem?.[i.id]} />)}
             </div>
           ))}
         </nav>
 
         <div className="rodape-lateral">
-          {RODAPE.map((i) => <Item key={i.id} {...i} />)}
+          {noAdmin ? (
+            loja && db && (
+              <button className="item" onClick={() => { setModo('loja'); setMenuAberto(false) }} title={t('Voltar para a loja')}>
+                <IconeVoltar />
+                <span className="rotulo">{t('Voltar para {loja}', { loja: loja.nome })}</span>
+              </button>
+            )
+          ) : (
+            RODAPE.map((i) => <Item key={i.id} {...i} />)
+          )}
           <button className="item" onClick={sairDoSistema} title={t('Sair')}>
             <IconeSair />
             <span className="rotulo">{t('Sair')}</span>
@@ -264,9 +418,11 @@ export default function App() {
       <div className="conteudo">
         <header className="barra-topo">
           <button className="icone-btn so-celular" onClick={() => setMenuAberto(true)} title={t('Abrir menu')}><IconeMenu /></button>
+          <SeletorLoja lojas={lojas} ativa={loja} admin={adminPlataforma}
+            onTrocar={(o) => abrirLoja(o)} onGerenciar={() => irParaAdmin('orgs')} />
           <h1>{tituloT}</h1>
           {(nomeUsuario || perfil.avatar) && (
-            <button className="usuario" onClick={() => irPara('config')} title={t('Configurações')}>
+            <button className="usuario" onClick={() => (db ? (setModo('loja'), irPara('config')) : null)} title={t('Configurações')}>
               {perfil.avatar
                 ? <img className="avatar" src={perfil.avatar} alt="" />
                 : <span className="avatar avatar-letra">{nomeUsuario.trim()[0]?.toUpperCase()}</span>}
@@ -276,15 +432,15 @@ export default function App() {
         </header>
 
         <main>
-          {!db && <p className="vazio">{t('Carregando...')}</p>}
-          {db && aba === 'vendas' && <Vendas db={db} executar={executar} />}
-          {db && aba === 'analise' && <Analise db={db} />}
-          {db && aba === 'estoque' && <Estoque db={db} executar={executar} />}
-          {db && aba === 'forn' && <Fornecedores db={db} executar={executar} />}
-          {db && aba === 'venda' && <PrecosVenda db={db} executar={executar} />}
-          {db && aba === 'regra' && <RegraPreco db={db} executar={executar} />}
-          {db && aba === 'config' && <Configuracoes db={db} executar={executar} usuario={sessao.usuario} />}
-          {db && aba === 'ajuda' && <Ajuda irPara={irPara} />}
+          {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} />}
+          {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} />}
+          {!noAdmin && aba === 'analise' && <Analise db={db} />}
+          {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} />}
+          {!noAdmin && aba === 'forn' && <Fornecedores db={db} executar={executar} />}
+          {!noAdmin && aba === 'venda' && <PrecosVenda db={db} executar={executar} />}
+          {!noAdmin && aba === 'regra' && <RegraPreco db={db} executar={executar} />}
+          {!noAdmin && aba === 'config' && <Configuracoes db={db} executar={executar} usuario={sessao.usuario} loja={loja} adminPlataforma={adminPlataforma} />}
+          {!noAdmin && aba === 'ajuda' && <Ajuda irPara={irPara} />}
         </main>
       </div>
     </div>
