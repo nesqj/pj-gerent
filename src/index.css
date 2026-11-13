@@ -1,0 +1,382 @@
+:root {
+  /* ---------- Tema escuro (padrão) ---------- */
+  --bg: #1c1b19;
+  --lateral: #1f1e1b;
+  --card: #252420;
+  --campo: #2b2a26;
+  --bd: #34322d;
+  --bd-forte: #45433d;
+  --txt: #e7e5e0;
+  --mut: #9b9890;
+  --placeholder: #6f6c65;
+  --pri: #5b8def;
+  --pri-txt: #10131a;
+  --hover: #2c2b27;
+  --ok: #4ade80;
+  --bad: #f87171;
+  --warn: #fbbf24;
+  --verde-fundo: #16281d;
+  --dica-bg: #111110;
+  --sombra: #0006;
+  --sobreposicao: #0008;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  /* ---------- Tema claro ---------- */
+  --bg: #f6f5f2;
+  --lateral: #efeee9;
+  --card: #ffffff;
+  --campo: #ffffff;
+  --bd: #e3e1db;
+  --bd-forte: #cdcac2;
+  --txt: #1f1e1b;
+  --mut: #6b6860;
+  --placeholder: #a19e96;
+  --pri: #3867d6;
+  --pri-txt: #ffffff;
+  --hover: #ebe9e4;
+  --ok: #15803d;
+  --bad: #dc2626;
+  --warn: #b45309;
+  --verde-fundo: #e7f5eb;
+  --dica-bg: #ffffff;
+  --sombra: #0002;
+  --sobreposicao: #0005;
+  color-scheme: light;
+}
+:root {
+  /* tons derivados da cor principal (acompanham a cor da marca e o tema) */
+  --pri-suave: color-mix(in srgb, var(--pri) 14%, transparent);
+  --pri-foco: color-mix(in srgb, var(--pri) 22%, transparent);
+  --pri-borda: color-mix(in srgb, var(--pri) 40%, transparent);
+  --pri-forte: color-mix(in srgb, var(--pri) 72%, var(--txt));
+  --link: color-mix(in srgb, var(--pri) 65%, var(--txt));
+  --ok-borda: color-mix(in srgb, var(--ok) 35%, transparent);
+  --bad-borda: color-mix(in srgb, var(--bad) 35%, transparent);
+  --warn-borda: color-mix(in srgb, var(--warn) 40%, transparent);
+  --warn-suave: color-mix(in srgb, var(--warn) 9%, transparent);
+}
+* { box-sizing: border-box }
+body { margin: 0; font-family: 'Segoe UI', Inter, Arial, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px }
+button { font-family: inherit }
+
+/* ---------- Layout ---------- */
+.layout { display: flex; min-height: 100vh }
+.lateral {
+  width: 260px; flex-shrink: 0; background: var(--lateral); border-right: 1px solid var(--bd);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; transition: width .2s;
+}
+.conteudo { flex: 1; min-width: 0 }
+.barra-topo { display: flex; align-items: center; gap: 10px; padding: 18px 24px; border-bottom: 1px solid var(--bd) }
+.barra-topo h1 { margin: 0; font-size: 18px; font-weight: 600 }
+main { padding: 20px 24px }
+section > h2 { display: none } /* o título já aparece na barra do topo */
+
+/* ---------- Barra lateral ---------- */
+.topo { display: flex; align-items: center; justify-content: space-between; padding: 16px 14px 14px 16px; border-bottom: 1px solid var(--bd) }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap; overflow: hidden }
+.logo-marca {
+  display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px;
+  background: linear-gradient(135deg, #fff 0 55%, var(--pri) 55%); color: #111; font-weight: 800; font-size: 13px;
+}
+.icone-btn { background: none; border: none; color: var(--mut); padding: 6px; border-radius: 6px; cursor: pointer; display: grid; place-items: center }
+.icone-btn:hover { background: var(--hover); color: var(--txt) }
+
+.lateral nav { padding: 6px 0 16px }
+.grupo { padding: 4px 0; border-bottom: 1px solid var(--bd) }
+.grupo:last-child { border-bottom: none }
+.grupo-titulo {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  background: none; border: none; color: var(--mut); font-size: 13px; padding: 10px 16px 6px; cursor: pointer; text-align: left;
+}
+div.grupo-titulo { cursor: default }
+.item {
+  display: flex; align-items: center; gap: 12px; width: calc(100% - 12px); margin: 1px 6px;
+  padding: 8px 10px; border: none; border-radius: 8px; background: none; color: var(--txt);
+  font-size: 15px; cursor: pointer; text-align: left; white-space: nowrap;
+}
+.item svg { color: var(--mut); flex-shrink: 0 }
+.item:hover { background: var(--hover) }
+.item.ativo { background: var(--pri); color: var(--pri-txt); font-weight: 500 }
+.item.ativo svg { color: var(--pri-txt) }
+.item .rotulo { flex: 1; overflow: hidden; text-overflow: ellipsis }
+.badge { background: #dc2626; color: #fff; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 1px 7px; border: 2px solid var(--lateral) }
+.item.ativo .badge { border-color: var(--pri) }
+
+/* Barra recolhida (só ícones) */
+.recolhida .lateral { width: 64px }
+.recolhida .lateral .rotulo, .recolhida .grupo-titulo svg, .recolhida .badge { display: none }
+.recolhida .topo { flex-direction: column; gap: 10px; padding: 14px 0 }
+.recolhida .item { justify-content: center; padding: 10px 0 }
+.recolhida .grupo-titulo { padding: 6px 0; justify-content: center; min-height: 10px }
+
+.so-celular { display: none }
+.fundo-menu { display: none }
+
+/* ---------- Formulários ---------- */
+form {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 16px; margin-bottom: 18px;
+}
+label { display: flex; flex-direction: column; font-size: 13px; color: var(--mut); gap: 6px; flex: 1 1 180px }
+input, select {
+  padding: 9px 10px; border: 1px solid var(--bd-forte); border-radius: 8px; font-size: 14px;
+  color: var(--txt); background: var(--campo); outline: none;
+}
+input:focus, select:focus { border-color: var(--pri); box-shadow: 0 0 0 3px var(--pri-foco) }
+input::placeholder { color: var(--placeholder) }
+button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--pri); background: var(--pri); color: var(--pri-txt); font-size: 14px; font-weight: 500; cursor: pointer }
+button:hover { filter: brightness(1.08) }
+button.sec { background: transparent; color: var(--txt); border-color: var(--bd-forte) }
+button.edit { background: transparent; color: var(--pri); border-color: var(--pri-borda); padding: 4px 10px; font-size: 13px }
+button.del { background: transparent; color: var(--bad); border-color: var(--bad-borda); padding: 4px 10px; font-size: 13px }
+.icone-btn, .item, .grupo-titulo { filter: none !important }
+.busca { width: 100%; max-width: 360px; margin-bottom: 12px }
+
+/* ---------- Tabelas ---------- */
+.tw { overflow-x: auto; background: var(--card); border: 1px solid var(--bd); border-radius: 10px; margin-bottom: 10px }
+table { width: 100%; border-collapse: collapse }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--bd); text-align: left; white-space: nowrap }
+tbody tr:last-child td { border-bottom: none }
+th { color: var(--mut); font-weight: 500; font-size: 13px }
+tbody tr:hover { background: var(--hover) }
+td.n, th.n { text-align: right }
+tr.best { background: var(--verde-fundo) }
+.tag { display: inline-block; background: var(--pri-suave); color: var(--link); border-radius: 10px; padding: 2px 9px; margin: 1px; font-size: 12px }
+.ok { color: var(--ok); font-weight: 600 }
+.bad { color: var(--bad); font-weight: 600 }
+.warn { color: var(--warn) }
+.vazio { color: var(--mut); padding: 18px; text-align: center }
+small { color: var(--mut) }
+p { margin: 0 0 12px }
+
+/* ---------- Card de resultado (Preços de Venda) ---------- */
+.resultado { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 16px; margin-bottom: 18px }
+.resultado > div { display: flex; flex-direction: column; gap: 4px; min-width: 140px }
+.resultado b { font-size: 16px }
+.resultado .destaque { background: var(--verde-fundo); border-radius: 8px; padding: 10px 14px }
+.resultado .destaque b { font-size: 24px; color: var(--ok) }
+
+/* ---------- Celular ---------- */
+@media (max-width: 767px) {
+  .so-celular { display: grid }
+  .so-desktop { display: none }
+  .lateral { position: fixed; left: 0; z-index: 20; transform: translateX(-100%); transition: transform .2s; width: 260px !important }
+  .menu-aberto .lateral { transform: none }
+  .menu-aberto .fundo-menu { display: block; position: fixed; inset: 0; background: var(--sobreposicao); z-index: 10 }
+  .recolhida .lateral .rotulo, .recolhida .badge { display: initial }
+  .barra-topo { padding: 12px 16px }
+  main { padding: 16px }
+}
+
+/* ---------- Vendas e Caixa ---------- */
+h3 { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px }
+.linha-titulo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 8px 0 14px }
+.linha-titulo input[type=date] { width: auto }
+.painel { background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 14px; margin-bottom: 18px }
+.painel .tw { margin-bottom: 12px }
+.finalizar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end }
+.total-grande { display: flex; flex-direction: column; gap: 2px; margin-left: auto; margin-right: 8px }
+.total-grande b { font-size: 24px; color: var(--ok) }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px }
+.card { background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px }
+.card b { font-size: 18px }
+.card.destaque { border-color: var(--ok-borda); background: var(--verde-fundo) }
+.card.destaque b { color: var(--ok); font-size: 20px }
+.status { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 10px }
+.fechamento { display: flex; flex-wrap: wrap; gap: 20px; align-items: center }
+.fechamento > div { display: flex; flex-direction: column; gap: 4px }
+.fechamento b { font-size: 18px }
+td.quebra { white-space: normal; min-width: 220px }
+@media (max-width: 767px) { .total-grande { margin-left: 0 } }
+
+/* ---------- Fornecedores ---------- */
+.lista-forn { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px }
+.card-forn {
+  display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 14px 16px;
+  background: var(--card); border: 1px solid var(--bd); border-radius: 10px; color: var(--txt); font-weight: 400;
+}
+.card-forn:hover { border-color: var(--pri); filter: none }
+.card-forn-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px }
+.card-forn-topo b { font-size: 15px }
+.contador { font-size: 12px; color: var(--mut); background: var(--campo); border-radius: 10px; padding: 2px 9px; white-space: nowrap }
+button.voltar { background: none; border: none; color: var(--pri); padding: 0 0 14px; font-weight: 500 }
+.info-forn-topo { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 12px }
+.info-forn dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin: 0 }
+.info-forn dt { color: var(--mut); font-size: 12px; margin-bottom: 3px }
+.info-forn dd { margin: 0 }
+.info-forn .largo { grid-column: 1 / -1 }
+.info-forn a { color: var(--link) }
+.clicavel { cursor: pointer }
+
+/* ---------- Marcas ---------- */
+.bloco-marcas { flex: 1 1 100%; display: flex; flex-direction: column; gap: 6px }
+.rotulo-campo { font-size: 13px; color: var(--mut) }
+.editor-marcas { display: flex; flex-direction: column; gap: 10px }
+.editor-marcas-campo { display: flex; gap: 8px; flex-wrap: wrap }
+.editor-marcas-campo input { flex: 1 1 220px; max-width: 360px }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.chip { display: inline-flex; align-items: center; gap: 4px; background: var(--pri-suave); color: var(--link); border-radius: 14px; padding: 4px 4px 4px 12px; font-size: 13px }
+.chip button { background: none; border: none; color: inherit; padding: 0 6px; font-size: 16px; line-height: 1; border-radius: 10px }
+.chip button:hover { background: var(--pri-foco); filter: none }
+select:disabled { opacity: .6 }
+button:disabled { opacity: .45; cursor: not-allowed; filter: none }
+input.somente-leitura { background: transparent; border-style: dashed; color: var(--ok); font-weight: 600; cursor: default; box-shadow: none }
+
+/* ---------- Análise ---------- */
+.filtros { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-bottom: 16px }
+.segmentado { display: inline-flex; flex-wrap: wrap; background: var(--card); border: 1px solid var(--bd); border-radius: 9px; padding: 3px; gap: 2px }
+.segmentado button { background: none; border: none; color: var(--mut); padding: 6px 12px; border-radius: 7px; font-weight: 500 }
+.segmentado button.on { background: var(--hover); color: var(--txt) }
+.segmentado button:hover { filter: none; color: var(--txt) }
+.segmentado.pequeno button { padding: 4px 10px; font-size: 13px }
+.datas { display: flex; gap: 8px; align-items: center; color: var(--mut) }
+.indicadores .card { gap: 3px }
+.var { font-size: 12px; color: var(--mut) }
+.var.ok, .var.bad { font-weight: 500 }
+.painel-titulo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 10px }
+.duas-colunas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 14px }
+.grafico { position: relative }
+.grafico svg { width: 100%; height: auto; display: block }
+.grafico .grade { stroke: var(--bd); stroke-width: 1 }
+.grafico .eixo { fill: var(--mut); font-size: 11px }
+.grafico .barra { fill: var(--pri) }
+.grafico .barra.ativa { fill: var(--pri-forte) }
+.dica {
+  position: absolute; top: 0; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+  background: var(--dica-bg); border: 1px solid var(--bd-forte); border-radius: 8px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 2px; font-size: 13px; box-shadow: 0 6px 20px var(--sombra);
+}
+.participacao { display: flex; flex-direction: column; gap: 10px }
+.part-linha { display: grid; grid-template-columns: 80px 1fr auto; gap: 10px; align-items: center }
+.part-nome { color: var(--mut); font-size: 13px; text-transform: capitalize }
+.part-trilho { height: 10px; background: var(--campo); border-radius: 5px; overflow: hidden }
+.part-barra { height: 100%; background: var(--pri); border-radius: 0 4px 4px 0 }
+.part-valor { font-size: 13px; text-align: right; white-space: nowrap }
+
+/* ---------- Estoque ---------- */
+label.check { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; cursor: pointer; color: var(--txt) }
+label.check input { width: 16px; height: 16px; accent-color: var(--pri) }
+input.somente-leitura.estoque-bad { color: var(--bad) }
+input.somente-leitura.estoque-warn { color: var(--warn) }
+
+/* ---------- Edição de registros ---------- */
+input.cel { width: 90px; padding: 5px 8px; text-align: right }
+.painel-edicao { border-color: var(--warn-borda) }
+.aviso-edicao { color: var(--warn); font-size: 13px; margin: 0 0 12px }
+tr.em-edicao { background: var(--warn-suave) }
+form.form-edicao { border-color: var(--warn-borda) }
+.chip .chip-nome { background: none; border: none; color: inherit; padding: 0; font-size: 13px; cursor: pointer }
+.chip .chip-nome:hover { text-decoration: underline; filter: none }
+
+/* ---------- Rodapé da barra lateral ---------- */
+.lateral { display: flex; flex-direction: column }
+.lateral nav { flex: 1 }
+.rodape-lateral { border-top: 1px solid var(--bd); padding: 8px 0 14px }
+.versao { display: block; color: var(--mut); font-size: 12px; padding: 8px 16px 0 }
+.recolhida .versao { display: none }
+
+/* ---------- Configurações e Ajuda ---------- */
+.botoes { display: flex; flex-wrap: wrap; gap: 10px }
+.ajuda { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 14px }
+.ajuda p { margin: 8px 0 0; color: var(--mut); line-height: 1.5 }
+button.link { background: none; border: none; padding: 0; color: var(--link); font-size: 15px; font-weight: 600 }
+button.link:hover { text-decoration: underline; filter: none }
+.dicas { margin: 0; padding-left: 18px; color: var(--mut); line-height: 1.8 }
+
+/* ---------- Configurações em cartões ---------- */
+.config-secao { margin-bottom: 22px }
+.config-secao-titulo { color: var(--mut); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 10px 2px }
+.config-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px }
+.config-card {
+  display: flex; align-items: flex-start; gap: 14px; text-align: left; padding: 18px 18px 20px;
+  background: var(--card); border: 1px solid var(--bd); border-radius: 12px; color: var(--txt); font-weight: 400;
+}
+.config-card:hover { border-color: var(--bd-forte); background: var(--hover); filter: none }
+.config-card b { display: block; font-size: 15px; margin-bottom: 6px }
+.config-card small { display: block; line-height: 1.45 }
+.config-icone { color: var(--mut); display: grid; place-items: center; padding-top: 1px }
+.config-cabecalho { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px }
+.config-cabecalho h3 { margin-bottom: 4px }
+
+/* ---------- Perfil, Marca e App no celular ---------- */
+.config-titulo { margin: 0 0 16px }
+.config-titulo h3 { font-size: 22px; margin-bottom: 4px }
+form.form-config { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 16px; max-width: 640px; padding: 22px }
+form.form-config .largo { grid-column: 1 / -1 }
+form.form-config label { flex: none; color: var(--txt); font-weight: 500 }
+form.form-config label small, form.form-config .campo-arquivo small { font-weight: 400; color: var(--mut) }
+form.form-config label small.bad, form.form-config .campo-arquivo small.bad { color: var(--bad) }
+form.form-config input:disabled { opacity: .6 }
+.acoes-form { display: flex; justify-content: flex-end; grid-column: 1 / -1 }
+.avatar-linha, .cor-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+.avatar-linha input { flex: 1 }
+.avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--campo) }
+.avatar-letra { display: grid; place-items: center; font-weight: 700; color: var(--pri-txt); background: var(--pri); font-size: 15px }
+input[type=color] { width: 44px; height: 40px; padding: 3px; cursor: pointer }
+input.hex { width: 130px; font-family: Consolas, monospace }
+.campo-arquivo { display: flex; flex-direction: column; gap: 6px }
+.botao-arquivo { flex-direction: row !important; display: inline-flex !important; padding: 8px 14px; border: 1px solid var(--bd-forte); border-radius: 8px; cursor: pointer; font-weight: 500 }
+.botao-arquivo:hover { background: var(--hover) }
+.previa-marca { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 8px; padding: 16px; background: var(--lateral); border: 1px solid var(--bd); border-radius: 10px }
+.previa-item { width: auto !important; margin: 0 !important; padding: 8px 14px !important }
+.logo-img { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; flex-shrink: 0 }
+.instrucoes { display: flex; flex-direction: column; gap: 10px; align-items: flex-start }
+.barra-topo { justify-content: flex-start }
+.usuario { margin-left: auto; display: flex; align-items: center; gap: 10px; background: none; border: 1px solid transparent; color: var(--txt); padding: 4px 10px 4px 4px; border-radius: 24px; font-weight: 500 }
+.usuario:hover { border-color: var(--bd); filter: none }
+.usuario .avatar { width: 30px; height: 30px; font-size: 13px }
+@media (max-width: 767px) { form.form-config { grid-template-columns: 1fr; padding: 16px } .usuario-nome { display: none } }
+
+/* ---------- Ajustes do tema claro ---------- */
+:root[data-theme="light"] .logo-marca { box-shadow: inset 0 0 0 1px var(--bd-forte) }
+:root[data-theme="light"] .config-card:hover, :root[data-theme="light"] .card-forn:hover { box-shadow: 0 2px 10px var(--sombra) }
+
+/* ---------- Prévia da marca nos dois temas ---------- */
+.previas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px }
+.previas .previa-marca { margin-top: 0; flex-direction: column; align-items: flex-start; gap: 12px }
+.previa-claro { background: #efeee9 !important; border-color: #e3e1db !important; color: #1f1e1b }
+.previa-escuro { background: #1f1e1b !important; border-color: #34322d !important; color: #e7e5e0 }
+.previa-claro small, .previa-escuro small { color: inherit; opacity: .65 }
+.previa-claro .logo-marca { box-shadow: inset 0 0 0 1px #cdcac2 }
+@media (max-width: 767px) { .previas { grid-template-columns: 1fr } }
+
+/* ---------- Logo padrão do sistema ---------- */
+.logo-padrao { height: 46px; width: auto; max-width: 180px; object-fit: contain; display: block }
+.logo-icone { display: none }
+.recolhida .lateral .logo-icone { display: block }
+@media (max-width: 767px) { .recolhida .lateral .logo-icone { display: none } }
+.previa-marca .logo-padrao { height: 44px }
+
+/* ---------- Tela de login ---------- */
+.login-fundo { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg) }
+.login-caixa { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--bd); border-radius: 16px; padding: 32px 28px; box-shadow: 0 10px 40px var(--sombra) }
+.login-logo { display: block; height: 72px; width: auto; max-width: 220px; object-fit: contain; margin: 0 auto 20px }
+.login-caixa h1 { margin: 0 0 6px; font-size: 22px; text-align: center }
+.login-sub { margin: 0 0 22px; color: var(--mut); text-align: center }
+.login-form { display: flex; flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 14px; background: none; border: none; padding: 0; margin: 0 }
+.login-form label { flex: none; width: 100%; color: var(--txt); font-weight: 500 }
+.login-form label.check { font-weight: 400; color: var(--mut) }
+.login-rotulo-linha { display: flex; justify-content: space-between; align-items: baseline }
+.campo-senha { position: relative; display: block }
+.campo-senha input { width: 100%; padding-right: 76px }
+.ver-senha { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--mut); padding: 4px 8px; font-size: 12px; font-weight: 500 }
+.ver-senha:hover { color: var(--txt); filter: none }
+.login-botao { width: 100%; padding: 11px; font-size: 15px; margin-top: 4px }
+.login-erro { margin: 0; color: var(--bad); font-size: 13px }
+.login-aviso { margin: 0; color: var(--ok); font-size: 13px }
+.login-nota { color: var(--mut); font-size: 12px; line-height: 1.5; margin: 18px 0 10px }
+button.link.pequeno { font-size: 13px; font-weight: 500 }
+
+/* ---------- Regra por produto ---------- */
+.seletor-preco { display: inline-flex; gap: 6px; align-items: center }
+.seletor-preco select { padding: 5px 8px; font-size: 13px; max-width: 220px }
+.aplicar-lote { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--pri-suave); border: 1px solid var(--pri-borda); border-radius: 10px; padding: 8px 10px }
+.aplicar-lote select { padding: 6px 8px; font-size: 13px }
+.aplicar-lote button { padding: 6px 12px }
+.resultado .seletor-preco select { max-width: 260px }
+
+/* ---------- Desconto na venda ---------- */
+.riscado { text-decoration: line-through }
+.desconto-linha { display: block; color: var(--bad); font-size: 12px }
+.total-grande { align-items: flex-end }
