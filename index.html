@@ -13,7 +13,8 @@
     <script>
       // aplica o tema salvo antes de desenhar a página (evita piscar o tema errado)
       try {
-        var p = (JSON.parse(localStorage.getItem("gerenciador-precos-v1") || "{}").perfil) || {};
+        var p = JSON.parse(localStorage.getItem("gerenciador-precos-pref") || "null")
+          || (JSON.parse(localStorage.getItem("gerenciador-precos-v1") || "{}").perfil) || {};
         var t = p.tema === "claro" ? "light"
           : p.tema === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
         document.documentElement.dataset.theme = t;

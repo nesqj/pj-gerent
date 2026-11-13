@@ -380,3 +380,4 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
 .riscado { text-decoration: line-through }
 .desconto-linha { display: block; color: var(--bad); font-size: 12px }
 .total-grande { align-items: flex-end }
+.login-rodape { margin-top: 18px; text-align: center; color: var(--mut); font-size: 13px }
