@@ -481,7 +481,7 @@ begin
   if so_convite is null or com_aprovacao is null then raise exception 'modo-invalido'; end if;
   update public.config_plataforma
      set somente_convite = so_convite, aprovacao = com_aprovacao,
-         cadastro = case when so_convite then 'convite' else 'aberto' end, atualizado_em = now();
+         cadastro = case when so_convite then 'convite' else 'aberto' end, atualizado_em = now() where id; -- o Supabase recusa UPDATE sem WHERE
   perform public.auditar(null, 'cadastro.modo',
     case when so_convite then 'só convite' when com_aprovacao then 'com aprovação' else 'aberto' end);
 end $$;
@@ -845,7 +845,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   perform public.exigir_admin_plataforma();
   if ligar is null or tolerancia is null or tolerancia not between 5 and 30 then raise exception 'valor-invalido'; end if;
-  update public.cobranca_config set ligada = ligar, tolerancia_dias = tolerancia, atualizado_em = now();
+  update public.cobranca_config set ligada = ligar, tolerancia_dias = tolerancia, atualizado_em = now() where id; -- o Supabase recusa UPDATE sem WHERE
   perform public.auditar(null, 'cobranca.config', case when ligar then 'ligada' else 'desligada' end || ', tolerância ' || tolerancia || ' dias');
 end $$;
 
@@ -862,7 +862,7 @@ begin
   end if;
   if atual is distinct from novo then
     update public.cobranca_config set provedor = novo, modo_teste = null, webhook_id = null, webhook_segredo = null,
-      webhook_url = null, conectado_em = null, atualizado_em = now();
+      webhook_url = null, conectado_em = null, atualizado_em = now() where id; -- o Supabase recusa UPDATE sem WHERE
     perform public.auditar(null, 'cobranca.provedor', novo);
   end if;
 end $$;
@@ -873,7 +873,7 @@ language plpgsql security definer set search_path = '' as $$
 declare novo text := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
 begin
   perform public.exigir_admin_plataforma();
-  update public.cobranca_config set segredo_servidor = novo;
+  update public.cobranca_config set segredo_servidor = novo where id; -- o Supabase recusa UPDATE sem WHERE
   perform public.auditar(null, 'cobranca.segredo', null);
   return novo;
 end $$;
@@ -1003,7 +1003,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   perform public.exigir_admin_plataforma();
   if jsonb_typeof(m) <> 'object' or length(m::text) > 1600000 then raise exception 'valor-invalido'; end if;
-  update public.config_plataforma set marca = m, atualizado_em = now();
+  update public.config_plataforma set marca = m, atualizado_em = now() where id; -- o Supabase recusa UPDATE sem WHERE
   perform public.auditar(null, 'plataforma.marca', m->>'nome');
 end $$;
 
@@ -1030,7 +1030,7 @@ language plpgsql security definer set search_path = '' as $$
 begin
   perform public.srv_conferir(segredo);
   update public.cobranca_config set provedor = prov, modo_teste = teste, webhook_id = wid, webhook_segredo = wsegredo,
-    webhook_url = wurl, conectado_em = now(), atualizado_em = now();
+    webhook_url = wurl, conectado_em = now(), atualizado_em = now() where id; -- o Supabase recusa UPDATE sem WHERE
   insert into public.auditoria (acao, detalhe) values ('cobranca.conectada', prov || case when teste then ' (teste)' else '' end);
 end $$;
 

@@ -43,7 +43,9 @@ async function chamar(funcao, args) {
     if (!codigo && /function .* does not exist|Could not find the function/i.test(error.message || '')) {
       throw new Error(t('O banco ainda não tem as tabelas de lojas. Rode o arquivo supabase/organizacoes.sql no SQL Editor do Supabase.'))
     }
-    throw new Error(t(codigo ? MENSAGENS[codigo] : 'Não foi possível concluir. Verifique a internet e tente de novo.'))
+    if (codigo) throw new Error(t(MENSAGENS[codigo]))
+    // erro inesperado do banco: mostra o motivo técnico junto, para dar para descobrir o que houve
+    throw new Error(t('Não foi possível concluir. Verifique a internet e tente de novo.') + (error.message ? ` (${error.message})` : ''))
   }
   return data
 }
