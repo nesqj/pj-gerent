@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { aviso, confirmar } from '../avisos-tela.jsx'
 import * as Org from '../organizacoes.js'
 import { t } from '../i18n.js'
 import { brl, dataTs, norm } from '../utils.js'
@@ -48,7 +49,7 @@ function VisaoGeral({ config, abrirOrg, irPara }) {
   const [busca, setBusca] = useState('')
   const [planosLista, setPlanosLista] = useState([])
   useEffect(() => {
-    Org.cobrancaResumo().then(setLojas, (e) => alert(e.message))
+    Org.cobrancaResumo().then(setLojas, (e) => aviso.erro(e.message))
     Org.planos().then(setPlanosLista, () => {})
   }, [])
   if (!lojas) return <p className="vazio">{t('Carregando...')}</p>
@@ -119,26 +120,26 @@ function Planos() {
   const [lista, setLista] = useState(null)
   const [form, setForm] = useState(PLANO_VAZIO)
   const [editando, setEditando] = useState(null)
-  async function carregar() { try { setLista(await Org.planos({ todos: true })) } catch (e) { alert(e.message) } }
+  async function carregar() { try { setLista(await Org.planos({ todos: true })) } catch (e) { aviso.erro(e.message) } }
   useEffect(() => { carregar() }, [])
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
 
   async function salvar(e) {
     e.preventDefault()
     const centavos = Math.round(Number(String(form.preco).replace(/\./g, '').replace(',', '.')) * 100)
-    if (!(centavos >= 500)) return alert(t('O preço mínimo é R$ 5,00.'))
+    if (!(centavos >= 500)) return aviso.alerta(t('O preço mínimo é R$ 5,00.'))
     try {
       await Org.salvarPlano({ id: editando, nome: form.nome.trim(), preco_centavos: centavos, intervalo: form.intervalo,
         dias_teste: Number(form.dias_teste) || 0, max_pessoas: Number(form.max_pessoas) || null, visivel: form.visivel })
       setForm(PLANO_VAZIO); setEditando(null); carregar()
-    } catch (er) { alert(er.message) }
+    } catch (er) { aviso.erro(er.message) }
   }
   function editar(p) {
     setEditando(p.id)
     setForm({ nome: p.nome, preco: (p.preco_centavos / 100).toFixed(2).replace('.', ','), intervalo: p.intervalo,
       dias_teste: String(p.dias_teste), max_pessoas: p.max_pessoas ? String(p.max_pessoas) : '', visivel: p.visivel })
   }
-  const fazer = async (fn) => { try { await fn(); carregar() } catch (e) { alert(e.message) } }
+  const fazer = async (fn) => { try { await fn(); carregar() } catch (e) { aviso.erro(e.message) } }
 
   if (!lista) return <p className="vazio">{t('Carregando...')}</p>
   const ativos = lista.filter((p) => !p.arquivado_em)
@@ -174,7 +175,7 @@ function Planos() {
                   {!p.arquivado_em && <>
                     {!p.padrao && <button className="sec" onClick={() => fazer(() => Org.planoPadrao(p.id))}>{t('Usar no cadastro')}</button>}{' '}
                     <button className="edit" onClick={() => editar(p)}>{t('Editar')}</button>{' '}
-                    <button className="del" onClick={() => confirm(t('Arquivar o plano {nome}? Quem já está nele continua; ninguém novo escolhe.', { nome: p.nome })) && fazer(() => Org.arquivarPlano(p.id))}>{t('Arquivar')}</button>
+                    <button className="del" onClick={async () => await confirmar(t('Arquivar o plano {nome}? Quem já está nele continua; ninguém novo escolhe.', { nome: p.nome })) && fazer(() => Org.arquivarPlano(p.id))}>{t('Arquivar')}</button>
                   </>}
                 </td>
               </tr>
@@ -201,7 +202,7 @@ function Conexao({ config, recarregar }) {
   useEffect(() => { verStatus() }, [])
 
   async function escolher(p) {
-    try { await Org.definirProvedor(p); setManual(null); await recarregar() } catch (e) { alert(e.message) }
+    try { await Org.definirProvedor(p); setManual(null); await recarregar() } catch (e) { aviso.erro(e.message) }
   }
   async function conectar() {
     setOcupado(true)
@@ -210,9 +211,9 @@ function Conexao({ config, recarregar }) {
       const r = await Org.servidor('conectar', { email: data.session?.user?.email })
       setManual(r.manual)
       await recarregar(); await verStatus()
-    } catch (e) { alert(e.message) } finally { setOcupado(false) }
+    } catch (e) { aviso.ok(e.message) } finally { setOcupado(false) }
   }
-  const copiar = (txt) => navigator.clipboard?.writeText(txt).then(() => alert(t('Copiado.')))
+  const copiar = (txt) => navigator.clipboard?.writeText(txt).then(() => aviso.ok(t('Copiado.')))
   const prov = config.provedor
   const chaveOk = prov && status?.[prov]?.chave
 
@@ -281,7 +282,7 @@ function Conexao({ config, recarregar }) {
           </div>
         )}
         <p><small>{t('Para trocar a senha do servidor (se ela vazou), gere outra e atualize COBRANCA_SEGREDO na Vercel.')}{' '}
-          <button className="link pequeno" onClick={async () => { if (confirm(t('Gerar uma senha nova? A cobrança para de funcionar até você atualizar COBRANCA_SEGREDO na Vercel.'))) { try { await Org.trocarSegredoServidor(); recarregar() } catch (e) { alert(e.message) } } }}>{t('Gerar senha nova')}</button></small></p>
+          <button className="link pequeno" onClick={async () => { if (await confirmar(t('Gerar uma senha nova? A cobrança para de funcionar até você atualizar COBRANCA_SEGREDO na Vercel.'))) { try { await Org.trocarSegredoServidor(); recarregar() } catch (e) { aviso.erro(e.message) } } }}>{t('Gerar senha nova')}</button></small></p>
       </div>
     </>
   )
@@ -293,9 +294,9 @@ function Regua({ config, recarregar }) {
   const [ocupado, setOcupado] = useState(false)
   async function salvar(ligar) {
     const n = Number(tolerancia)
-    if (!(n >= 5 && n <= 30)) return alert(t('A tolerância vai de 5 a 30 dias.'))
+    if (!(n >= 5 && n <= 30)) return aviso.alerta(t('A tolerância vai de 5 a 30 dias.'))
     setOcupado(true)
-    try { await Org.definirCobranca(ligar, n); await recarregar() } catch (e) { alert(e.message) } finally { setOcupado(false) }
+    try { await Org.definirCobranca(ligar, n); await recarregar() } catch (e) { aviso.erro(e.message) } finally { setOcupado(false) }
   }
   return (
     <>

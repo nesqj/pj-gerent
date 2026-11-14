@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { aviso, confirmar, perguntar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { norm } from '../utils.js'
 
@@ -14,18 +15,18 @@ export function EditorMarcas({ marcas, onChange, onRenomear, emUso = {} }) {
     setNova('')
   }
 
-  function renomear(m) {
-    const nova = prompt(t('Novo nome para a marca "{marca}":', { marca: m }), m)?.trim()
+  async function renomear(m) {
+    const nova = (await perguntar(t('Novo nome para a marca "{marca}":', { marca: m }), m, { botao: t('Renomear') }))?.trim()
     if (!nova || nova === m) return
-    if (marcas.some((x) => x !== m && norm(x) === norm(nova))) return alert(t('Já existe a marca "{marca}" neste fornecedor.', { marca: nova }))
+    if (marcas.some((x) => x !== m && norm(x) === norm(nova))) return aviso.alerta(t('Já existe a marca "{marca}" neste fornecedor.', { marca: nova }))
     const lista = marcas.map((x) => (x === m ? nova : x)).sort((a, b) => a.localeCompare(b))
     if (onRenomear) onRenomear(m, nova, lista)
     else onChange(lista)
   }
 
-  function remover(m) {
+  async function remover(m) {
     const n = emUso[norm(m)] || 0
-    if (n && !confirm(t('A marca "{marca}" está em {n} produto(s) deste fornecedor. Remover da lista mesmo assim?\n(Os produtos continuam cadastrados.)', { marca: m, n }))) return
+    if (n && !await confirmar(t('A marca "{marca}" está em {n} produto(s) deste fornecedor. Remover da lista mesmo assim?\n(Os produtos continuam cadastrados.)', { marca: m, n }))) return
     onChange(marcas.filter((x) => x !== m))
   }
 

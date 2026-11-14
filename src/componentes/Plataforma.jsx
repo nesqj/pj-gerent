@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { aviso, confirmar, perguntar } from '../avisos-tela.jsx'
 import * as Org from '../organizacoes.js'
 import Equipe from './Equipe.jsx'
 import Cobranca from './Cobranca.jsx'
@@ -111,7 +112,7 @@ function Organizacoes({ abrirLoja, meuId, aoMudarLojas, orgSel, setOrgSel }) {
       aoMudarLojas?.()
       setOrgSel(id)
     } catch (er) {
-      alert(er.message)
+      aviso.erro(er.message)
     } finally {
       setEnviando(false)
     }
@@ -191,12 +192,12 @@ function DetalheOrg({ org, voltar, recarregar, abrirLoja, meuId }) {
   const [atividade] = useCarga(() => Org.auditoria({ org: org.id, limite: 100 }), [org.id])
 
   async function fazer(fn) {
-    try { await fn(); await recarregar(); return true } catch (e) { alert(e.message); return false }
+    try { await fn(); await recarregar(); return true } catch (e) { aviso.erro(e.message); return false }
   }
   async function excluir() {
-    const digitado = prompt(t('Isto apaga a loja "{nome}" e TODOS os dados dela (fornecedores, preços, estoque e vendas). Não dá para desfazer.\n\nPara confirmar, digite o nome da loja:', { nome: org.nome }))
+    const digitado = await perguntar(t('Isto apaga a loja "{nome}" e TODOS os dados dela (fornecedores, preços, estoque e vendas). Não dá para desfazer.\n\nPara confirmar, digite o nome da loja:', { nome: org.nome }))
     if (digitado == null) return
-    if (await fazer(() => Org.excluirOrg(org.id, digitado))) { alert(t('Loja excluída.')); voltar() }
+    if (await fazer(() => Org.excluirOrg(org.id, digitado))) { aviso.ok(t('Loja excluída.')); voltar() }
   }
 
   return (
@@ -236,7 +237,7 @@ function DetalheOrg({ org, voltar, recarregar, abrirLoja, meuId }) {
             <div className="botoes">
               {org.suspensa
                 ? <button className="sec" onClick={() => fazer(() => Org.suspenderOrg(org.id, false))}>{t('Reativar loja')}</button>
-                : <button className="del" onClick={() => confirm(t('Suspender a loja "{nome}"? A equipe perde o acesso até você reativar.', { nome: org.nome })) && fazer(() => Org.suspenderOrg(org.id, true))}>{t('Suspender loja')}</button>}
+                : <button className="del" onClick={async () => await confirmar(t('Suspender a loja "{nome}"? A equipe perde o acesso até você reativar.', { nome: org.nome })) && fazer(() => Org.suspenderOrg(org.id, true))}>{t('Suspender loja')}</button>}
               {org.suspensa && <button className="del" onClick={excluir}>{t('Excluir loja e todos os dados')}</button>}
             </div>
             {!org.suspensa && <p><small>{t('Para excluir a loja, suspenda primeiro.')}</small></p>}
@@ -264,14 +265,14 @@ const CAMPOS_CADASTRO = [
 function CadastroOrg({ orgId }) {
   const [atual, setAtual] = useState(null)
   const [form, setForm] = useState({})
-  useEffect(() => { Org.buscarCadastroOrg(orgId).then((c) => { setAtual(c); setForm(c) }, (e) => alert(e.message)) }, [orgId])
+  useEffect(() => { Org.buscarCadastroOrg(orgId).then((c) => { setAtual(c); setForm(c) }, (e) => aviso.erro(e.message)) }, [orgId])
   if (!atual) return <p className="vazio">{t('Carregando...')}</p>
   const mudou = JSON.stringify(form) !== JSON.stringify(atual)
   async function salvar(e) {
     e.preventDefault()
     const limpo = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, String(v || '').trim()]).filter(([, v]) => v))
     if (limpo.uf) limpo.uf = limpo.uf.toUpperCase()
-    try { await Org.salvarCadastroOrg(orgId, limpo); setAtual(limpo); setForm(limpo); alert(t('Cadastro salvo.')) } catch (er) { alert(er.message) }
+    try { await Org.salvarCadastroOrg(orgId, limpo); setAtual(limpo); setForm(limpo); aviso.ok(t('Cadastro salvo.')) } catch (er) { aviso.erro(er.message) }
   }
   return (
     <form onSubmit={salvar} className="form-config">
@@ -384,7 +385,7 @@ function Administradores({ meuId }) {
   if (!admins) return <Estado erro={erro} recarregar={recarregar} />
 
   async function fazer(fn) {
-    try { await fn(); await recarregar(); return true } catch (e) { alert(e.message); return false }
+    try { await fn(); await recarregar(); return true } catch (e) { aviso.erro(e.message); return false }
   }
 
   return (
@@ -408,7 +409,7 @@ function Administradores({ meuId }) {
                 <td>{dataTs(a.criado_em)}</td>
                 <td className="n">
                   {a.principal ? <small>{t('Não pode ser removido')}</small> : (
-                  <button className="del" onClick={() => confirm(a.user_id === meuId
+                  <button className="del" onClick={async () => await confirmar(a.user_id === meuId
                     ? t('Tirar o SEU acesso de administrador da plataforma? Você deixa de ver este painel.')
                     : t('Tirar o acesso de administrador da plataforma de {email}?', { email: a.email }))
                     && fazer(async () => { await Org.removerAdmin(a.user_id); if (a.user_id === meuId) window.location.reload() })}>{t('Remover')}</button>)}
@@ -552,10 +553,10 @@ function Cadastro() {
   const comAprovacao = config.aprovacao
   async function mudar(novoConvite, novaAprovacao) {
     setOcupado(true)
-    try { await Org.definirCadastro(novoConvite, novaAprovacao); await recarregar() } catch (e) { alert(e.message) } finally { setOcupado(false) }
+    try { await Org.definirCadastro(novoConvite, novaAprovacao); await recarregar() } catch (e) { aviso.erro(e.message) } finally { setOcupado(false) }
   }
   async function decidir(fn) {
-    try { await fn(); await recarregarPedidos() } catch (e) { alert(e.message) }
+    try { await fn(); await recarregarPedidos() } catch (e) { aviso.erro(e.message) }
   }
   const nomeDe = (p) => nomes[p.user_id] ?? t('Loja de {nome}', { nome: p.nome || p.email.split('@')[0] })
   const pendentes = (pedidos || []).filter((p) => p.situacao === 'pendente')
@@ -611,7 +612,7 @@ function Cadastro() {
                         <td><input className="sel-pequeno" maxLength={60} value={nomeDe(p)} onChange={(e) => setNomes({ ...nomes, [p.user_id]: e.target.value })} /></td>
                         <td className="n">
                           <button className="edit" disabled={!nomeDe(p).trim()} onClick={() => decidir(() => Org.aprovarPedido(p.user_id, nomeDe(p).trim()))}>{t('Aprovar')}</button>{' '}
-                          <button className="del" onClick={() => confirm(t('Recusar o pedido de {email}? A pessoa continua sem acesso.', { email: p.email })) && decidir(() => Org.recusarPedido(p.user_id))}>{t('Recusar')}</button>
+                          <button className="del" onClick={async () => await confirmar(t('Recusar o pedido de {email}? A pessoa continua sem acesso.', { email: p.email })) && decidir(() => Org.recusarPedido(p.user_id))}>{t('Recusar')}</button>
                         </td>
                       </tr>
                     ))}

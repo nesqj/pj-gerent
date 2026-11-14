@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, dataTs, gravarPrecoFornecedor, menorPreco, nomeFornecedor, norm } from '../utils.js'
 import { CamposFornecedor, doFormulario, origem, paraFormulario } from './Fornecedores.jsx'
@@ -34,9 +35,9 @@ export default function FornecedorDetalhe({ db, executar, forn, voltar }) {
     if (await executar((A) => A.salvarFornecedor(doFormulario(editInfo)))) setEditInfo(null)
   }
 
-  function excluirFornecedor() {
+  async function excluirFornecedor() {
     const n = db.precosForn.filter((p) => p.fornecedorId === forn.id).length
-    if (!confirm(n ? t('Excluir "{nome}" e seus {n} produto(s)?', { nome: forn.nome, n }) : t('Excluir "{nome}"?', { nome: forn.nome }))) return
+    if (!await confirmar(n ? t('Excluir "{nome}" e seus {n} produto(s)?', { nome: forn.nome, n }) : t('Excluir "{nome}"?', { nome: forn.nome }))) return
     executar((A) => A.excluirFornecedor(forn.id)).then((ok) => ok && voltar())
   }
 
@@ -48,8 +49,8 @@ export default function FornecedorDetalhe({ db, executar, forn, voltar }) {
     }
   }
 
-  function excluirProduto(p) {
-    if (confirm(t('Excluir "{produto}" deste fornecedor?', { produto: p.produto }))) executar((A) => A.excluirPrecoFornecedor(p.id))
+  async function excluirProduto(p) {
+    if (await confirmar(t('Excluir "{produto}" deste fornecedor?', { produto: p.produto }))) executar((A) => A.excluirPrecoFornecedor(p.id))
   }
 
   const b = norm(busca)

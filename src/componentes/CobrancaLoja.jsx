@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { aviso, confirmar, perguntar } from '../avisos-tela.jsx'
 import * as Org from '../organizacoes.js'
 import { t } from '../i18n.js'
 import { brl, dataTs } from '../utils.js'
@@ -28,7 +29,7 @@ export default function CobrancaLoja({ orgId, admin = false, onMudou }) {
 
   async function fazer(nome, fn) {
     setOcupado(nome)
-    try { await fn(); await carregar(); onMudou?.() } catch (e) { alert(e.message) } finally { setOcupado('') }
+    try { await fn(); await carregar(); onMudou?.() } catch (e) { aviso.erro(e.message) } finally { setOcupado('') }
   }
 
   async function pagar(soLink = false) {
@@ -36,13 +37,13 @@ export default function CobrancaLoja({ orgId, admin = false, onMudou }) {
     try {
       const r = await Org.servidor('pagar', { org: orgId, cpfCnpj: doc, voltar: window.location.origin + '/' })
       if (soLink) { setLink(r.url); await carregar() } else window.location.href = r.url
-    } catch (e) { alert(e.message) } finally { setOcupado('') }
+    } catch (e) { aviso.erro(e.message) } finally { setOcupado('') }
   }
 
   async function trocar(planoId) {
     if (!planoId || planoId === c.plano?.id) return
     const p = lista.find((x) => x.id === planoId)
-    if (!confirm(t('Trocar para o plano {plano} ({preco})?', { plano: p?.nome, preco: precoPlano(p) }))) return
+    if (!await confirmar(t('Trocar para o plano {plano} ({preco})?', { plano: p?.nome, preco: precoPlano(p) }))) return
     await fazer('plano', async () => {
       const r = await Org.trocarPlano(orgId, planoId)
       if (r?.sincronizar) await Org.servidor('sincronizar', { org: orgId })
@@ -98,7 +99,7 @@ export default function CobrancaLoja({ orgId, admin = false, onMudou }) {
           {link && (
             <div className="link-pagamento">
               <input readOnly value={link} onFocus={(e) => e.target.select()} />
-              <button className="sec" onClick={() => navigator.clipboard?.writeText(link).then(() => alert(t('Link copiado.')))}>{t('Copiar link de pagamento')}</button>
+              <button className="sec" onClick={() => navigator.clipboard?.writeText(link).then(() => aviso.ok(t('Link copiado.')))}>{t('Copiar link de pagamento')}</button>
             </div>
           )}
           <p><small>{c.provedor_config === 'asaas'
@@ -124,20 +125,20 @@ export default function CobrancaLoja({ orgId, admin = false, onMudou }) {
           <div className="botoes">
             {c.plano && (c.isenta
               ? <button className="sec" disabled={!!ocupado} onClick={() => fazer('isentar', () => Org.isentarLoja(orgId, false))}>{t('Voltar a cobrar')}</button>
-              : <button className="sec" disabled={!!ocupado} onClick={() => confirm(t('Isentar esta loja? Ela passa a usar de graça, sem limite.')) && fazer('isentar', () => Org.isentarLoja(orgId, true))}>{t('Isentar de cobrança')}</button>)}
+              : <button className="sec" disabled={!!ocupado} onClick={async () => await confirmar(t('Isentar esta loja? Ela passa a usar de graça, sem limite.')) && fazer('isentar', () => Org.isentarLoja(orgId, true))}>{t('Isentar de cobrança')}</button>)}
             {c.plano && !c.isenta && (
-              <button className="sec" disabled={!!ocupado} onClick={() => {
-                const v = prompt(t('Valor recebido (R$):'), String((c.plano.preco_centavos / 100).toFixed(2)).replace('.', ','))
+              <button className="sec" disabled={!!ocupado} onClick={async () => {
+                const v = await perguntar(t('Valor recebido (R$):'), String((c.plano.preco_centavos / 100).toFixed(2)).replace('.', ','))
                 if (v == null) return
                 const centavos = Math.round(Number(v.replace(/\./g, '').replace(',', '.')) * 100)
-                if (!(centavos > 0)) return alert(t('Valor inválido.'))
-                const obs = prompt(t('Observação (opcional), por exemplo "Pix de 13/11":'), '') || ''
+                if (!(centavos > 0)) return aviso.alerta(t('Valor inválido.'))
+                const obs = await perguntar(t('Observação (opcional), por exemplo "Pix de 13/11":'), '') || ''
                 fazer('pago', () => Org.marcarPago(orgId, centavos, obs))
               }}>{t('Registrar pagamento à mão')}</button>
             )}
             {c.plano && !c.isenta && (
-              <button className="sec" disabled={!!ocupado} onClick={() => {
-                const d = Number(prompt(t('Estender o teste grátis em quantos dias? (1 a 90)'), '7'))
+              <button className="sec" disabled={!!ocupado} onClick={async () => {
+                const d = Number(await perguntar(t('Estender o teste grátis em quantos dias? (1 a 90)'), '7'))
                 if (d >= 1 && d <= 90) fazer('teste', () => Org.estenderTeste(orgId, d))
               }}>{t('Estender teste grátis')}</button>
             )}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
 import { brl, num, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid } from '../utils.js'
@@ -62,8 +63,8 @@ export default function Vendas({ db, executar }) {
     if (!p) return
     if (p.origem === 'estoque') {
       const disp = disponivel(p.k)
-      if (disp <= 0) return alert(t('"{produto}" está sem estoque. Registre uma entrada no Estoque para vender.', { produto: p.produto }))
-      if (+item.qtd > disp) return alert(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: p.produto, n: disp }))
+      if (disp <= 0) return aviso.alerta(t('"{produto}" está sem estoque. Registre uma entrada no Estoque para vender.', { produto: p.produto }))
+      if (+item.qtd > disp) return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: p.produto, n: disp }))
     }
     const preco = p.origem === 'estoque' ? +item.preco : p.preco
     setCarrinho([...carrinho, { produto: p.produto, marca: p.marca, qtd: +item.qtd, preco, custo: p.custo, origem: p.origem }])
@@ -76,11 +77,11 @@ export default function Vendas({ db, executar }) {
     const passou = [...new Set(carrinho.filter((i) => i.origem === 'estoque').map((i) => norm(i.produto)))].find((k) => disponivel(k) < 0)
     if (passou) {
       const nome = estoque.get(passou)?.produto || passou
-      return alert(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: nome, n: disponivel(passou) + doEstoqueEm(carrinho, passou) }))
+      return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: nome, n: disponivel(passou) + doEstoqueEm(carrinho, passou) }))
     }
-    if (carrinho.some((i) => !(+i.qtd > 0) || i.preco === '' || +i.preco < 0)) return alert(t('Confira a quantidade e o preço de todos os itens.'))
+    if (carrinho.some((i) => !(+i.qtd > 0) || i.preco === '' || +i.preco < 0)) return aviso.alerta(t('Confira a quantidade e o preço de todos os itens.'))
     const itens = carrinho.map((i) => ({ ...i, qtd: +i.qtd, preco: +i.preco }))
-    if (desconto !== '' && (+desconto < 0 || +desconto > 100)) return alert(t('O desconto precisa ser entre 0% e 100%.'))
+    if (desconto !== '' && (+desconto < 0 || +desconto > 100)) return aviso.alerta(t('O desconto precisa ser entre 0% e 100%.'))
     const subtotal = itens.reduce((s, i) => s + i.qtd * i.preco, 0)
     const descontoPct = pctDesconto
     const descontoValor = Math.round(subtotal * descontoPct) / 100
@@ -94,17 +95,22 @@ export default function Vendas({ db, executar }) {
       .map((k) => ({ nome: estoque.get(k)?.produto, resta: disponivel(k) }))
       .filter((p) => p.nome && p.resta <= 2)
     if (await executar((A) => A.salvarVenda(venda))) {
+      aviso.ok(editando ? t('Venda atualizada.') : t('Venda registrada.'), brl(venda.total))
       if (!editando) setDia(hoje())
       cancelar()
       if (db.config?.avisosEstoque !== false) {
-        for (const p of baixos) avisar(t('Estoque baixo'), p.resta <= 0 ? t('{nome}: acabou o estoque.', { nome: p.nome }) : t('{nome}: restam {n} unidade(s).', { nome: p.nome, n: p.resta }))
+        for (const p of baixos) {
+          const msg = p.resta <= 0 ? t('{nome}: acabou o estoque.', { nome: p.nome }) : t('{nome}: restam {n} unidade(s).', { nome: p.nome, n: p.resta })
+          aviso.alerta(t('Estoque baixo'), msg) // na tela
+          avisar(t('Estoque baixo'), msg)       // e no celular/computador, se os avisos estiverem ligados
+        }
       }
     }
   }
 
-  function excluir(v) {
-    if (confirm(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }))) {
-      executar((A) => A.excluirVenda(v.id)).then((ok) => ok && editando?.id === v.id && cancelar())
+  async function excluir(v) {
+    if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }))) {
+      executar((A) => A.excluirVenda(v.id), t('Venda excluída.')).then((ok) => ok && editando?.id === v.id && cancelar())
     }
   }
 

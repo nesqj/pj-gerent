@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, calcularVenda, escolhaProduto, formulaRegra, margemDe, pct, produtosAVenda, regraPadraoDe, regrasDe, textoCalculo, uid } from '../utils.js'
 
@@ -28,7 +29,7 @@ export default function RegraPreco({ db, executar }) {
     const lista = form.id ? regras.map((r) => (r.id === form.id ? regra : r)) : [...regras, regra]
     // a primeira regra criada já vira a padrão, se ainda não houver uma definida
     const padraoId = db.regraPadraoId !== undefined ? db.regraPadraoId : padrao?.id ?? regra.id
-    if (await executar((A) => A.salvarRegras(lista, padraoId))) setForm(vazio)
+    if (await executar((A) => A.salvarRegras(lista, padraoId), t('Regra salva.'))) setForm(vazio)
   }
 
   function editar(r) {
@@ -36,12 +37,12 @@ export default function RegraPreco({ db, executar }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function excluir(r) {
+  async function excluir(r) {
     const diretos = Object.values(db.precoProduto || {}).filter((e) => e.tipo === 'regra' && e.regraId === r.id).length
     const msg = diretos
       ? t('Excluir a regra "{nome}"? {n} produto(s) que usam esta regra passam a usar a regra padrão.', { nome: r.nome, n: diretos })
       : t('Excluir a regra "{nome}"?', { nome: r.nome })
-    if (!confirm(msg)) return
+    if (!await confirmar(msg)) return
     executar((A) => A.salvarRegras(regras.filter((x) => x.id !== r.id), padrao?.id === r.id ? null : padrao?.id ?? null))
     if (form.id === r.id) setForm(vazio)
   }

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
+import { AvisosNaTela } from './avisos-tela.jsx'
 import './index.css'
 
 // Guarda o convite de instalação do navegador para o botão "Instalar app" usar depois
@@ -22,5 +23,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
+    <AvisosNaTela />
   </StrictMode>,
 )

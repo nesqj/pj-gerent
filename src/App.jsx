@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { aviso, confirmar } from './avisos-tela.jsx'
 import * as Armazenamento from './armazenamento.js'
 import * as Org from './organizacoes.js'
 import Fornecedores from './componentes/Fornecedores.jsx'
@@ -152,11 +153,11 @@ export default function App() {
       let d = await Armazenamento.carregar()
       const locais = Armazenamento.contaVazia(d) && Armazenamento.podeFazer('tudo.substituido') && Armazenamento.dadosDoNavegador()
       if (locais && !sessionStorage.getItem('migracao-recusada')) {
-        if (confirm(t('Encontramos dados salvos neste navegador (da versão sem banco de dados). Enviar esses dados para a loja "{loja}"?', { loja: ativa.nome }))) {
+        if (await confirmar(t('Encontramos dados salvos neste navegador (da versão sem banco de dados). Enviar esses dados para a loja "{loja}"?', { loja: ativa.nome }))) {
           await Armazenamento.substituirTudo(locais)
           Armazenamento.esquecerDadosDoNavegador()
           d = await Armazenamento.carregar()
-          alert(t('Dados enviados para a loja!'))
+          aviso.ok(t('Dados enviados para a loja!'))
         } else sessionStorage.setItem('migracao-recusada', '1')
       }
       // primeiro acesso: usa o nome do cadastro no Perfil, se ainda não tiver
@@ -193,7 +194,7 @@ export default function App() {
       }
       if (new URLSearchParams(window.location.search).get('cobranca') === 'ok') {
         window.history.replaceState(null, '', window.location.pathname)
-        alert(t('Pagamento enviado! A confirmação do provedor chega em instantes; se a loja ainda aparecer bloqueada, toque em "Já paguei, verificar de novo" daqui a pouco.'))
+        aviso.ok(t('Pagamento enviado! A confirmação do provedor chega em instantes; se a loja ainda aparecer bloqueada, toque em "Já paguei, verificar de novo" daqui a pouco.'))
       }
       if (!alvo) { setDb(null); setLoja(null); setModo(admin.current ? 'admin' : 'semLoja'); if (admin.current) setTelaAdmin('orgs'); return }
       await abrirLoja(alvo, s)
@@ -243,7 +244,7 @@ export default function App() {
   }
 
   async function sairDoSistema() {
-    if (!confirm(t('Sair do sistema?'))) return
+    if (!await confirmar(t('Sair do sistema?'))) return
     await Auth.sair()
     Armazenamento.limpar()
     setDb(null)
@@ -306,13 +307,15 @@ export default function App() {
   useEffect(() => { document.title = modo === 'admin' ? `${nomeSistema} · ${t('Admin Plataforma')}` : nomeLoja }, [nomeLoja, nomeSistema, modo])
 
   // Executa uma operação de armazenamento e recarrega os dados.
-  async function executar(fn) {
+  // msgOk (opcional): aviso de sucesso no canto da tela
+  async function executar(fn, msgOk) {
     try {
       await fn(Armazenamento)
       setDb(await Armazenamento.carregar())
+      if (msgOk) aviso.ok(msgOk)
       return true
     } catch (e) {
-      alert(e.message || t('Erro ao salvar.'))
+      aviso.erro(e.message || t('Erro ao salvar.'))
       return false
     }
   }
@@ -353,7 +356,7 @@ export default function App() {
     return <div className="login-fundo"><div className="login-caixa"><h1>{t('Banco de dados não configurado')}</h1><p className="login-sub">{t('Faltam a URL e a chave do Supabase (VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY).')}</p></div></div>
   }
   if (recuperando) {
-    return <Login tema={temaAtivo} logo={logo} modoInicial="novaSenha" onSenhaTrocada={() => { setRecuperando(false); alert(t('Senha alterada!')) }} />
+    return <Login tema={temaAtivo} logo={logo} modoInicial="novaSenha" onSenhaTrocada={() => { setRecuperando(false); aviso.ok(t('Senha alterada!')) }} />
   }
   if (sessao === undefined) return <p className="vazio">{t('Carregando...')}</p>
   if (!sessao) return <Login tema={temaAtivo} logo={logo} onEntrou={entrou} />

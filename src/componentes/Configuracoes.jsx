@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { aviso, confirmar } from '../avisos-tela.jsx'
 import Equipe from './Equipe.jsx'
 import CobrancaLoja from './CobrancaLoja.jsx'
 import { ListaAuditoria } from './Plataforma.jsx'
@@ -110,7 +111,7 @@ function Perfil({ db, executar, usuario }) {
   async function salvar(e) {
     e.preventDefault()
     if (!avatarOk) return
-    executar((A) => A.salvarPerfil({ ...form, nome: form.nome.trim(), avatar: form.avatar.trim() }))
+    executar((A) => A.salvarPerfil({ ...form, nome: form.nome.trim(), avatar: form.avatar.trim() }), t('Perfil salvo.'))
   }
 
   return (
@@ -312,7 +313,7 @@ function Marca({ db, executar }) {
   async function salvar(e) {
     e.preventDefault()
     if (!corOk) return
-    executar((A) => A.salvarConfig({ ...db.config, nomeLoja: form.nomeLoja.trim(), cor: form.cor.toLowerCase(), corEscuro: form.corEscuro.toLowerCase(), logo: form.logo, logoEscuro: form.logoEscuro }))
+    executar((A) => A.salvarConfig({ ...db.config, nomeLoja: form.nomeLoja.trim(), cor: form.cor.toLowerCase(), corEscuro: form.corEscuro.toLowerCase(), logo: form.logo, logoEscuro: form.logoEscuro }), t('Marca salva.'))
   }
 
   return (
@@ -388,10 +389,10 @@ function Backup({ db, executar, loja }) {
       try {
         const d = JSON.parse(r.result)
         if (!d.fornecedores || !d.precosForn) throw new Error()
-        if (!confirm(t('Isso vai substituir todos os dados da loja "{loja}" pelos do arquivo, para todas as pessoas da loja. Continuar?', { loja: loja?.nome }))) return
-        if (await executar((A) => A.substituirTudo(d))) alert(t('Backup restaurado!'))
+        if (!await confirmar(t('Isso vai substituir todos os dados da loja "{loja}" pelos do arquivo, para todas as pessoas da loja. Continuar?', { loja: loja?.nome }))) return
+        if (await executar((A) => A.substituirTudo(d))) aviso.ok(t('Backup restaurado!'))
       } catch {
-        alert(t('Arquivo de backup inválido.'))
+        aviso.erro(t('Arquivo de backup inválido.'))
       } finally {
         e.target.value = ''
       }

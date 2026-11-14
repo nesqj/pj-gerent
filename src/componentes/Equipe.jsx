@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { aviso, confirmar } from '../avisos-tela.jsx'
 import * as Org from '../organizacoes.js'
 import { t } from '../i18n.js'
 import { dataTs, hora } from '../utils.js'
@@ -27,10 +28,10 @@ export default function Equipe({ orgId, podeGerir, meuId }) {
     try {
       const r = await fn()
       await carregar()
-      if (sucesso) alert(typeof sucesso === 'function' ? sucesso(r) : sucesso)
+      if (sucesso) aviso.erro(typeof sucesso === 'function' ? sucesso(r) : sucesso)
       return true
     } catch (e) {
-      alert(e.message)
+      aviso.erro(e.message)
       return false
     }
   }
@@ -88,7 +89,7 @@ export default function Equipe({ orgId, podeGerir, meuId }) {
                 <td>{p.ultimo_acesso ? `${dataTs(p.ultimo_acesso)} ${hora(p.ultimo_acesso)}` : t('Nunca entrou')}</td>
                 {podeGerir && (
                   <td className="n">
-                    <button className="del" onClick={() => confirm(t('Tirar {email} desta loja?', { email: p.email })) && fazer(() => Org.removerMembro(orgId, p.user_id))}>{t('Remover')}</button>
+                    <button className="del" onClick={async () => await confirmar(t('Tirar {email} desta loja?', { email: p.email })) && fazer(() => Org.removerMembro(orgId, p.user_id))}>{t('Remover')}</button>
                   </td>
                 )}
               </tr>
@@ -109,7 +110,7 @@ export default function Equipe({ orgId, podeGerir, meuId }) {
                     <td>{c.email}</td>
                     <td>{Org.nomePapel(c.papel)}</td>
                     <td>{dataTs(c.criado_em)}</td>
-                    <td className="n"><button className="del" onClick={() => confirm(t('Cancelar o convite de {email}?', { email: c.email })) && fazer(() => Org.cancelarConvite(orgId, c.email))}>{t('Cancelar')}</button></td>
+                    <td className="n"><button className="del" onClick={async () => await confirmar(t('Cancelar o convite de {email}?', { email: c.email })) && fazer(() => Org.cancelarConvite(orgId, c.email))}>{t('Cancelar')}</button></td>
                   </tr>
                 ))}
               </tbody>

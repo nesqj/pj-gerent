@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { aviso } from '../avisos-tela.jsx'
 import * as Org from '../organizacoes.js'
 import { t } from '../i18n.js'
 import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from '../marca.js'
@@ -54,8 +55,8 @@ export default function MarcaPlataforma({ onSalvou }) {
       await Org.salvarMarca(m)
       setAtual(m); setForm(m)
       onSalvou?.(m)
-      alert(t('Marca salva.'))
-    } catch (er) { alert(er.message) } finally { setSalvando(false) }
+      aviso.ok(t('Marca salva.'))
+    } catch (er) { aviso.erro(er.message) } finally { setSalvando(false) }
   }
 
   const CampoLogo = ({ campo, titulo, dica }) => (

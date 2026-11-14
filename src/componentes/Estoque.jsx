@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, uid } from '../utils.js'
 
@@ -29,7 +30,7 @@ export default function Estoque({ db, executar }) {
     // editando: mantém id, data e dia originais
     const entrada = editando ? { ...editando, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
     if (!entrada.foraDoCaixa) delete entrada.foraDoCaixa
-    if (await executar((A) => A.salvarEntrada(entrada))) {
+    if (await executar((A) => A.salvarEntrada(entrada), editando ? t('Entrada atualizada.') : t('Entrada registrada.'))) {
       cancelarEdicao()
       refProduto.current?.focus()
     }
@@ -46,9 +47,9 @@ export default function Estoque({ db, executar }) {
     setForm(novo)
   }
 
-  function excluirEntrada(en) {
-    if (confirm(t('Excluir a entrada de {qtd}× "{produto}" de {data}?\nO estoque vai diminuir {qtd} unidade(s).', { qtd: en.qtd, produto: en.produto, data: dataBR(en.dia) }))) {
-      executar((A) => A.excluirEntrada(en.id)).then((ok) => ok && editando?.id === en.id && cancelarEdicao())
+  async function excluirEntrada(en) {
+    if (await confirmar(t('Excluir a entrada de {qtd}× "{produto}" de {data}?\nO estoque vai diminuir {qtd} unidade(s).', { qtd: en.qtd, produto: en.produto, data: dataBR(en.dia) }))) {
+      executar((A) => A.excluirEntrada(en.id), t('Entrada excluída.')).then((ok) => ok && editando?.id === en.id && cancelarEdicao())
     }
   }
 

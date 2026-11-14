@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, dataBR, dataTs, extratoCaixa, hoje, hora, uid } from '../utils.js'
 
@@ -32,7 +33,7 @@ function AbrirCaixa({ executar, atual, aoTerminar }) {
   async function salvar(e) {
     e.preventDefault()
     const v = numero(valor)
-    if (!Number.isFinite(v)) return alert(t('Valor inválido.'))
+    if (!Number.isFinite(v)) return aviso.alerta(t('Valor inválido.'))
     // hoje: começa agora (vendas e compras de antes não contam); outro dia: começa no início daquele dia
     const inicio = dia === hoje() ? (atual && new Date(atual.inicio).toISOString().slice(0, 10) === dia ? atual.inicio : Date.now()) : new Date(dia + 'T00:00:00').getTime()
     if (await executar((A) => A.salvarCaixa({ inicio, saldoInicial: Math.round(v * 100) / 100 }))) aoTerminar?.()
@@ -69,11 +70,11 @@ function ControleCaixa({ db, ext, executar, irPara }) {
   async function registrar(e) {
     e.preventDefault()
     const v = numero(form.valor)
-    if (!(v > 0)) return alert(t('Informe um valor maior que zero.'))
-    if (form.tipo === 'retirar' && !editando && v > ext.saldo && !confirm(t('O caixa tem {saldo}. Retirar {valor} vai deixar o saldo negativo. Continuar?', { saldo: brl(ext.saldo), valor: brl(v) }))) return
+    if (!(v > 0)) return aviso.alerta(t('Informe um valor maior que zero.'))
+    if (form.tipo === 'retirar' && !editando && v > ext.saldo && !await confirmar(t('O caixa tem {saldo}. Retirar {valor} vai deixar o saldo negativo. Continuar?', { saldo: brl(ext.saldo), valor: brl(v) }))) return
     const dados = { tipo: form.tipo, valor: Math.round(v * 100) / 100, descricao: form.descricao.trim() }
     const m = editando ? { ...editando, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
-    if (await executar((A) => A.salvarMovCaixa(m))) { cancelar(); refValor.current?.focus() }
+    if (await executar((A) => A.salvarMovCaixa(m), m.tipo === 'retirar' ? t('Dinheiro retirado do caixa.') : t('Dinheiro colocado no caixa.'))) { cancelar(); refValor.current?.focus() }
   }
   function editar(m) {
     setEditando(m)
@@ -81,8 +82,8 @@ function ControleCaixa({ db, ext, executar, irPara }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   function cancelar() { setEditando(null); setForm(novo) }
-  function excluir(m) {
-    if (confirm(t('Excluir o movimento de {valor} de {data}?', { valor: brl(m.valor), data: dataBR(m.dia) }))) {
+  async function excluir(m) {
+    if (await confirmar(t('Excluir o movimento de {valor} de {data}?', { valor: brl(m.valor), data: dataBR(m.dia) }))) {
       executar((A) => A.excluirMovCaixa(m.id)).then((ok) => ok && editando?.id === m.id && cancelar())
     }
   }
