@@ -86,7 +86,7 @@ export default function RegraPreco({ db, executar }) {
       <div className="painel">
         <label style={{ maxWidth: 420 }}>{t('Regra padrão (para produtos sem regra escolhida)')}
           <select value={padrao?.id || ''} onChange={(e) => mudarPadrao(e.target.value)}>
-            <option value="">{t('Padrão: sem regra')}</option>
+            <option value="">{t('Padrão: Sem regra')}</option>
             {regras.map((r) => <option key={r.id} value={r.id}>{r.nome} ({formulaRegra(r)})</option>)}
           </select>
         </label>

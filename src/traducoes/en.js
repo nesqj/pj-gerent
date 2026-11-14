@@ -376,7 +376,7 @@ export default {
   'Sem regra': 'No rule',
   'padrão': 'default',
   'Padrão: {nome}': 'Default: {nome}',
-  'Padrão: sem regra': 'Default: no rule',
+  'Padrão: Sem regra': 'Default: No rule',
   'Sem regra (preço = custo)': 'No rule (price = cost)',
   'Escolha a regra de cada produto na coluna "Regra". Para criar ou mudar regras, use a aba "Regra de Preço".': 'Choose each product\'s rule in the "Rule" column. To create or change rules, use the "Pricing Rule" tab.',
   'Regra': 'Rule',

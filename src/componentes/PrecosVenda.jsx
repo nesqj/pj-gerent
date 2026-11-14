@@ -61,7 +61,7 @@ function SeletorPreco({ db, executar, k, custo }) {
   return (
     <span className="seletor-preco" onClick={(e) => e.stopPropagation()}>
       <select value={paraSelect(escolha)} onChange={(e) => mudar(e.target.value)}>
-        <option value="padrao">{padrao ? t('Padrão: {nome}', { nome: padrao.nome }) : t('Padrão: sem regra')}</option>
+        <option value="padrao">{padrao ? t('Padrão: {nome}', { nome: padrao.nome }) : t('Padrão: Sem regra')}</option>
         {regras.map((r) => <option key={r.id} value={'r:' + r.id}>{r.nome} ({formulaRegra(r)})</option>)}
         <option value="fixo">{t('Preço fixo')}</option>
       </select>
