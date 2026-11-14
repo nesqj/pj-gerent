@@ -1248,4 +1248,10 @@ export default {
   'Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças.': 'Simple interest: the amount lent × the monthly interest × the number of installments. The installments go to the Collections tab.',
   'inclui − {valor} de fiado não pago': 'includes − {valor} of unpaid credit',
   'inclui − {valor} não pago': 'includes − {valor} unpaid',
+  'Juros do fiado': 'Credit interest',
+  '{n} empréstimo(s)': '{n} loan(s)',
+  'Recebido no período': 'Received in the period',
+  'Nenhum empréstimo neste período.': 'No loans in this period.',
+  'Juros': 'Interest',
+  'Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período.': 'Profit (interest) = interest on loans made in the period − what was marked "Did not pay" in the period.',
 }

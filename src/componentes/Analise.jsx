@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado } from '../utils.js'
+import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
 // ---------- Datas ----------
@@ -33,17 +34,19 @@ const PERIODOS = [
 ]
 
 // ---------- Números do período ----------
+const lucroVenda0 = (v) => lucroDe(v.itens, fatorDesconto(v))
 function resumo(vendas) {
-  let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, naoPago = 0
+  let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, naoPago = 0, jurosFiado = 0
   for (const v of vendas) {
     faturamento += v.total
     for (const i of v.itens) itens += i.qtd
-    const l = lucroVenda(v) // lucro estimado (o fiado conta na hora; o não pago é perda no dia em que foi marcado)
-    lucro += l.lucro
-    if (l.perda > 0) { perdas += l.perda; comPrejuizo++ }
+    const base = lucroVenda0(v) // lucro de vender (preço − custo), sem os juros do fiado
+    lucro += base.lucro
+    jurosFiado += lucroVenda(v).lucro - base.lucro // juros do fiado (e multa/juros de atraso recebidos)
+    if (base.perda > 0) { perdas += base.perda; comPrejuizo++ }
   }
   return {
-    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo, naoPago,
+    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo, naoPago, jurosFiado: Math.round(jurosFiado * 100) / 100,
     ticket: vendas.length ? faturamento / vendas.length : 0,
     margem: faturamento ? (lucro / faturamento) * 100 : 0,
   }
@@ -87,6 +90,8 @@ export default function Analise({ db }) {
   const [ini, setIni] = useState(somarDias(hoje(), -29))
   const [fim, setFim] = useState(hoje())
   const [todosProdutos, setTodosProdutos] = useState(false)
+  const [aba, setAba] = useState('vendas') // 'vendas' ou 'emprestimos'
+  const comEmprestimos = podeFazer('emprestimo.salvo')
 
   const [de, ate] = periodoDe(tipo, ini, fim)
   const n = diasEntre(de, ate)
@@ -101,22 +106,18 @@ export default function Analise({ db }) {
   ra.naoPago = somaPerdas(perdasV, antDe, antAte); ra.lucro -= ra.naoPago
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
   ra.margem = ra.faturamento ? (ra.lucro / ra.faturamento) * 100 : 0
-  const naoPagoEmp = somaPerdas(perdasE, de, ate)
-  // empréstimos feitos no período: o lucro é o juro
-  const emps = (db.emprestimos || []).filter((e) => e.dia >= de && e.dia <= ate).map(lucroEmprestimo)
-  const juros = Math.round((emps.reduce((s, l) => s + l.lucro, 0) - naoPagoEmp) * 100) / 100
-  const lucroTotal = Math.round((r.lucro + juros) * 100) / 100
+  const lucroTotal = Math.round(r.lucro * 100) / 100 // só vendas (os juros do fiado aparecem num card próprio; empréstimos na outra aba)
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
   if (n === 1) {
     serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, hora: h, valor: 0, lucro: 0, vendas: 0 }))
-    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].lucro += lucroVenda(v).lucro; serie[h].vendas++ }
+    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].lucro += lucroVenda0(v).lucro; serie[h].vendas++ }
     for (const x of perdasV) if (x.dia === de) serie[new Date(x.data).getHours()].lucro -= x.valor
   } else {
     const porDia = new Map()
     for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, lucro: 0, vendas: 0 }) }
-    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.lucro += lucroVenda(v).lucro; p.vendas++ } }
+    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.lucro += lucroVenda0(v).lucro; p.vendas++ } }
     for (const x of perdasV) { const p = porDia.get(x.dia); if (p) p.lucro -= x.valor }
     serie = [...porDia.values()]
   }
@@ -149,6 +150,13 @@ export default function Analise({ db }) {
     <section>
       <h2>{t('Análise')}</h2>
 
+      {comEmprestimos && (
+        <div className="chips modo-registro">
+          <button className={'filtro' + (aba === 'vendas' ? ' ativo' : '')} onClick={() => setAba('vendas')}>{t('Vendas')}</button>
+          <button className={'filtro' + (aba === 'emprestimos' ? ' ativo' : '')} onClick={() => setAba('emprestimos')}>{t('Empréstimos')}</button>
+        </div>
+      )}
+
       {/* ---------- Período ---------- */}
       <div className="filtros">
         <div className="segmentado">
@@ -166,6 +174,9 @@ export default function Analise({ db }) {
         <small>{de === ate ? dataBR(de) : t('{de} a {ate}', { de: dataBR(de), ate: dataBR(ate) })} · {t('comparado com')} {antDe === antAte ? dataBR(antDe) : t('{de} a {ate}', { de: dataBR(antDe), ate: dataBR(antAte) })}</small>
       </div>
 
+      {aba === 'emprestimos' && comEmprestimos ? (
+        <AnaliseEmprestimos db={db} de={de} ate={ate} perdasE={perdasE} />
+      ) : (<>
       {/* ---------- Indicadores ---------- */}
       <div className="cards indicadores">
         <div className="card destaque"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /></div>
@@ -174,8 +185,8 @@ export default function Analise({ db }) {
           <b className={lucroTotal < 0 ? 'bad' : 'ok'}>{lucroTotal < 0 ? '− ' + brl(-lucroTotal) : brl(lucroTotal)}</b>
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
           {r.naoPago > 0 && <small className="var bad">{t('fiado não pago: {valor}', { valor: brl(r.naoPago) })}</small>}
-          {juros !== 0 && <small className="var">{t('inclui {valor} de juros de empréstimos', { valor: brl(juros) })}</small>}
         </div>
+        {r.jurosFiado !== 0 && <div className="card"><small>{t('Juros do fiado')}</small><b className="ok">{brl(r.jurosFiado)}</b></div>}
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>
           <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
@@ -228,6 +239,68 @@ export default function Analise({ db }) {
           <small>{t('Lucro estimado = preço vendido − custo do produto no momento da venda.')}</small>
         </>
       )}
+      </>)}
     </section>
   )
 }
+
+// ---------- Análise dos empréstimos (feitos no período) ----------
+function AnaliseEmprestimos({ db, de, ate, perdasE }) {
+  const todos = db.emprestimos || []
+  const lista = todos.filter((e) => e.dia >= de && e.dia <= ate).sort((a, b) => b.data - a.data)
+  const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
+  const juros = lista.reduce((s, e) => s + lucroEmprestimo(e).lucro, 0)
+  const naoPago = somaPerdas(perdasE, de, ate) // marcado "Não pagou" no período (de qualquer empréstimo)
+  const lucro = Math.round((juros - naoPago) * 100) / 100
+  // dinheiro que voltou no período (de qualquer empréstimo), com multa/juros de atraso
+  const recebido = todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
+    .filter((r) => r.dia >= de && r.dia <= ate).reduce((b, r) => b + (+r.valor || 0) + (+r.encargo || 0), 0), 0), 0)
+  const situacao = (e) => {
+    const f = resumoFiado(e)
+    if (!f) return { nome: 'Pago', classe: 'ok' }
+    if (f.pendente) return { nome: 'Em aberto', classe: 'warn' }
+    if (f.naoPago > 0) return { nome: 'Não pagou', classe: 'bad' }
+    return { nome: 'Pago', classe: 'ok' }
+  }
+  return (
+    <>
+      <div className="cards indicadores">
+        <div className="card destaque"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b><small className="var">{t('{n} empréstimo(s)', { n: lista.length })}</small></div>
+        <div className={'card' + (lucro < 0 ? ' card-prejuizo' : '')}>
+          <small>{lucro < 0 ? t('Prejuízo estimado') : t('Lucro (juros)')}</small>
+          <b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b>
+          {naoPago > 0 && <small className="var bad">{t('não pago: {valor}', { valor: brl(naoPago) })}</small>}
+        </div>
+        <div className="card"><small>{t('Recebido no período')}</small><b>{brl(recebido)}</b></div>
+      </div>
+      {lista.length === 0 ? (
+        <p className="vazio">{t('Nenhum empréstimo neste período.')}</p>
+      ) : (
+        <div className="tw">
+          <table>
+            <thead><tr><th>{t('Data')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('Juros')}</th><th className="n">{t('Parcelas pagas')}</th><th>{t('Situação')}</th></tr></thead>
+            <tbody>
+              {lista.map((e) => {
+                const ps = e.fiado?.parcelas || []
+                const pagas = ps.filter((p) => (+p.valor || 0) - (p.recebimentos || []).reduce((a, r) => a + (+r.valor || 0), 0) <= 0.004).length
+                const s = situacao(e)
+                return (
+                  <tr key={e.id}>
+                    <td>{dataBR(e.dia)}</td>
+                    <td>{e.fiado?.cliente}<small className="sub-linha">{t('{p}% ao mês', { p: num(e.jurosPct || 0, 2) })}</small></td>
+                    <td className="n">{brl(e.valor)}</td>
+                    <td className="n ok">{brl(lucroEmprestimo(e).lucro)}</td>
+                    <td className="n">{pagas}/{ps.length}</td>
+                    <td><span className={s.classe}>{t(s.nome)}</span></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período.')}</small>
+    </>
+  )
+}
+
