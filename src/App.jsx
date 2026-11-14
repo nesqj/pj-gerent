@@ -51,7 +51,7 @@ const GRUPOS = [
   {
     nome: 'Preços',
     itens: [
-      { id: 'regra', nome: 'Regra de Preço', icone: IconeAjustes },
+      { id: 'regra', nome: 'Calculadora de preço', icone: IconeAjustes },
     ],
   },
 ]

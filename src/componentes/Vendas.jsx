@@ -252,7 +252,7 @@ export default function Vendas({ db, executar, irPara }) {
           : selecionado
           ? <small>{t('Preço da aba "Fornecedores" ({regra}).', { regra: descricaoPreco(selecionado.resolucao) })}</small>
           : <small>{t('Produtos dos fornecedores usam o preço da aba "Fornecedores".')}</small>}
-        {selecionado?.origem === 'fornecedor' && selecionado.resolucao.tipo === 'nenhuma' && <small className="warn"> {t('Este produto está sem regra: o preço de venda é igual ao custo.')}</small>}
+        {selecionado?.origem === 'fornecedor' && selecionado.resolucao.tipo === 'nenhuma' && <small className="warn"> {t('Este produto está sem preço definido: o preço de venda é igual ao custo. Defina na aba "Calculadora de preço".')}</small>}
         {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
       </p>
 

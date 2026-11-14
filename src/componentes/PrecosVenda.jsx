@@ -150,7 +150,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
         </div>
       ) : <h2>{t('Tabela de Venda')}</h2>}
       {cadastrando && <NovoProduto db={db} executar={executar} aoTerminar={(k) => { setCadastrando(false); if (k) setSel(k) }} />}
-      <p><small>{t('Escolha a regra de cada produto na coluna "Regra". Para criar ou mudar regras, use a aba "Regra de Preço".')}</small></p>
+      <p><small>{t('O preço de venda de cada produto é definido na aba "Calculadora de preço".')}</small></p>
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}
 
@@ -167,11 +167,6 @@ export default function PrecosVenda({ db, executar, embutido }) {
             {qtdMarcados > 0 && (
               <div className="aplicar-lote">
                 <small>{t('{n} de {total} selecionado(s):', { n: qtdMarcados, total: tabela.length })}</small>
-                <select value={aplicar} onChange={(e) => setAplicar(e.target.value)}>
-                  <option value="padrao">{t('Usar a regra padrão')}</option>
-                  {regras.map((r) => <option key={r.id} value={'r:' + r.id}>{r.nome} ({formulaRegra(r)})</option>)}
-                </select>
-                <button onClick={aplicarNosMarcados}>{t('Aplicar')}</button>
                 <button className="del" onClick={excluirMarcados}>{t('Excluir selecionados')}</button>
               </div>
             )}
@@ -183,7 +178,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
                   <th><input type="checkbox" checked={todosMarcados} title={t('Selecionar todos')}
                     onChange={(e) => setMarcados(e.target.checked ? Object.fromEntries(tabela.map((i) => [i.k, true])) : {})} /></th>
                   <th>{t('Produto')}</th><th>{t('Marca')}</th><th>{t('Fornecedores')}</th><th className="n">{t('Menor custo')}</th>
-                  <th>{t('Regra')}</th><th className="n">{t('Preço de venda')}</th><th className="n">{t('Lucro')}</th><th></th>
+                  <th className="n">{t('Preço de venda')}</th><th className="n">{t('Lucro')}</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -198,7 +193,6 @@ export default function PrecosVenda({ db, executar, embutido }) {
                         {nomeFornecedor(db, i.fornecedorId)}{fornecedoresDe(i.k).length > 1 && <small className="sub-linha">{t('+ {n} fornecedor(es)', { n: fornecedoresDe(i.k).length - 1 })}</small>}
                       </td>
                       <td className="n">{brl(i.custo)}</td>
-                      <td><SeletorPreco db={db} executar={executar} k={i.k} custo={i.custo} /></td>
                       <td className="n"><b className="ok">{brl(i.preco)}</b></td>
                       <td className="n"><span className={i.preco - i.custo < 0 ? 'bad' : ''}>{brl(i.preco - i.custo)}</span></td>
                       <td className="n acoes-fiado">
@@ -229,7 +223,6 @@ export default function PrecosVenda({ db, executar, embutido }) {
                                   ? <span className="lf-preco"><span>R$</span><input inputMode="decimal" autoFocus value={ff.editando.preco} onChange={(e) => ff.setEditando({ ...ff.editando, preco: e.target.value })}
                                       onKeyDown={(e) => { if (e.key === 'Enter') ff.salvarPreco(o); if (e.key === 'Escape') ff.setEditando(null) }} /></span>
                                   : <span className="ep-preco">{brl(o.preco)}</span>}
-                                <small className="ep-venda">{t('venda {valor}', { valor: brl(i.resolucao.tipo === 'regra' ? calcularVenda(o.preco, i.resolucao.regra) : i.resolucao.tipo === 'fixo' ? i.preco : o.preco) })}</small>
                                 <span className="acoes-fiado">
                                   {ff.editando?.id === o.id
                                     ? <><button className="edit" onClick={() => ff.salvarPreco(o)}>{t('Salvar')}</button>{' '}<button className="sec" onClick={() => ff.setEditando(null)}>×</button></>

@@ -218,6 +218,12 @@ export const salvarRegras = (regras, regraPadraoId) => mudar('regras.salvas', (d
 }, regras.map((r) => `${r.nome} ${r.percentual}%`).join(', '))
 
 // Escolha de preço de um produto (chave produto|marca); null volta para a regra padrão
+// vários preços fixos de uma vez: { chave: valor }
+export const fixarPrecos = (mapa) => mudar('preco-venda.salvo', (d) => {
+  d.precoProduto = { ...d.precoProduto }
+  for (const [k, valor] of Object.entries(mapa)) d.precoProduto[k] = { tipo: 'fixo', valor: Math.round(+valor * 100) / 100 }
+}, t('{n} preço(s) fixo(s)', { n: Object.keys(mapa).length }))
+
 export const salvarPrecoProduto = (k, escolha) => mudar('preco-venda.salvo', (d) => {
   d.precoProduto = { ...d.precoProduto }
   if (!escolha || escolha.tipo === 'padrao') delete d.precoProduto[k]

@@ -765,4 +765,7 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 .ep-adicionar select { min-width: 0 }
 @media (max-width: 767px) { .ep-adicionar { grid-template-columns: 1fr 100px; } .ep-adicionar button { grid-column: 1 / -1 } }
 .qtd-produtos { color: var(--mut); white-space: nowrap }
+/* Calculadora de preço */
+.tabela-calc .calc-campo { display: inline-flex; width: 120px; vertical-align: middle }
+.tabela-calc .calc-campo input { text-align: right; padding: 6px 8px }
 
