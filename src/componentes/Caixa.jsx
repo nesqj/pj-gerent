@@ -15,6 +15,8 @@ const ORIGENS = {
   venda: { nome: 'Venda', classe: 'ok' },
   fiado: { nome: 'Recebimento de fiado', classe: 'ok' },
   compra: { nome: 'Compra de estoque', classe: 'bad' },
+  emprestimo: { nome: 'Empréstimo concedido', classe: 'bad' },
+  'emprestimo-receb': { nome: 'Recebimento de empréstimo', classe: 'ok' },
   colocar: { nome: 'Dinheiro colocado', classe: 'ok' },
   retirar: { nome: 'Dinheiro retirado', classe: 'bad' },
 }
@@ -110,6 +112,9 @@ function ControleCaixa({ db, ext, executar, irPara }) {
         <div className="card"><small>{t('Dinheiro colocado')}</small><b className="ok">+ {brl(soma('colocar'))}</b></div>
         <div className="card"><small>{t('Compras de estoque')}</small><b className="bad">− {brl(soma('compra'))}</b></div>
         <div className="card"><small>{t('Dinheiro retirado')}</small><b className="bad">− {brl(soma('retirar'))}</b></div>
+        {(soma('emprestimo') > 0 || soma('emprestimo-receb') > 0) && (
+          <div className="card"><small>{t('Empréstimos')}</small><b className="bad">− {brl(soma('emprestimo'))}</b><small className="var ok">+ {brl(soma('emprestimo-receb'))} {t('recebido de volta')}</small></div>
+        )}
       </div>
       <p><small>{t('Controle desde {data}.', { data: `${dataTs(ext.inicio)} ${hora(ext.inicio)}` })}{' '}<button className="link pequeno" onClick={() => setAjustando(true)}>{t('Ajustar saldo inicial')}</button></small></p>
       {ext.saldo < 0 && <p className="bad">{t('O caixa está negativo: saiu mais dinheiro do que entrou. Confira as compras e retiradas, ou registre o dinheiro colocado.')}</p>}
@@ -156,7 +161,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
                       <button className="del" onClick={() => excluir(m.ref)}>{t('Excluir')}</button>
                     </>
                   ) : (
-                    <button className="link pequeno" onClick={() => irPara(m.origem === 'venda' ? 'vendas' : m.origem === 'fiado' ? 'fiado' : 'estoque')}>{m.origem === 'venda' ? t('Ver em Novo Registro') : m.origem === 'fiado' ? t('Ver em Cobranças') : t('Ver no Estoque')}</button>
+                    <button className="link pequeno" onClick={() => { if (m.origem === 'venda' || m.origem === 'emprestimo') { try { sessionStorage.setItem('vendas-dia', m.dia) } catch { /* sem acesso */ } } irPara(m.origem === 'venda' || m.origem === 'emprestimo' ? 'vendas' : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? 'fiado' : 'estoque') }}>{m.origem === 'venda' || m.origem === 'emprestimo' ? t('Ver em Novo Registro') : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? t('Ver em Cobranças') : t('Ver no Estoque')}</button>
                   )}
                 </td>
               </tr>

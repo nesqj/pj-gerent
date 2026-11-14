@@ -684,3 +684,9 @@ a.botao-whats:hover { background: color-mix(in srgb, #25d366 12%, transparent) }
 .sub-linha { display: block; color: var(--mut); font-size: 12px; font-weight: 400 }
 .sub-linha.ok { color: var(--ok) }
 @media (max-width: 767px) { .sub-linha { display: inline; margin-left: 6px } }
+
+/* ---------- Empréstimo ---------- */
+.modo-registro { margin: 4px 0 14px }
+.resumo-emprestimo { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: 10px;
+  border: 1px dashed var(--borda, #444); font-size: 14px }
+

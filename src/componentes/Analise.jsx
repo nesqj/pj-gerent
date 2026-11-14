@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda, pagamentosDaVenda } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda, pagamentosDaVenda, lucroEmprestimo } from '../utils.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
 // ---------- Datas ----------
@@ -97,6 +97,11 @@ export default function Analise({ db }) {
   const vendas = db.vendas.filter((v) => v.dia >= de && v.dia <= ate)
   const anteriores = db.vendas.filter((v) => v.dia >= antDe && v.dia <= antAte)
   const r = resumo(vendas), ra = resumo(anteriores)
+  // empréstimos feitos no período: o lucro é o juro (só depois de resolvidos)
+  const emps = (db.emprestimos || []).filter((e) => e.dia >= de && e.dia <= ate).map(lucroEmprestimo)
+  const juros = Math.round(emps.reduce((s, l) => s + l.lucro, 0) * 100) / 100
+  const jurosAConfirmar = emps.reduce((s, l) => s + (l.pendente ? l.lucroPrevisto : 0), 0)
+  const lucroTotal = Math.round((r.lucro + juros) * 100) / 100
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
@@ -158,12 +163,14 @@ export default function Analise({ db }) {
       {/* ---------- Indicadores ---------- */}
       <div className="cards indicadores">
         <div className="card destaque"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /></div>
-        <div className={'card' + (r.lucro < 0 ? ' card-prejuizo' : '')}>
-          <small>{r.lucro < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small>
-          <b className={r.lucro < 0 ? 'bad' : 'ok'}>{r.lucro < 0 ? '− ' + brl(-r.lucro) : brl(r.lucro)}</b>
+        <div className={'card' + (lucroTotal < 0 ? ' card-prejuizo' : '')}>
+          <small>{lucroTotal < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small>
+          <b className={lucroTotal < 0 ? 'bad' : 'ok'}>{lucroTotal < 0 ? '− ' + brl(-lucroTotal) : brl(lucroTotal)}</b>
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
           {r.aConfirmar > 0 && <small className="var">+ {brl(r.aConfirmar)} {t('a confirmar (fiado)')}</small>}
           {r.naoPago > 0 && <small className="var bad">{t('fiado não pago: {valor}', { valor: brl(r.naoPago) })}</small>}
+          {juros !== 0 && <small className="var">{t('inclui {valor} de juros de empréstimos', { valor: brl(juros) })}</small>}
+          {jurosAConfirmar > 0 && <small className="var">+ {brl(jurosAConfirmar)} {t('de juros a confirmar')}</small>}
         </div>
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>

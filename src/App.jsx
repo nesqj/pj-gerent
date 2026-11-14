@@ -508,7 +508,7 @@ export default function App() {
         )}
         <main>
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
-          {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} />}
+          {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'caixa' && <Caixa db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'analise' && <Analise db={db} />}

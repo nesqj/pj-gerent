@@ -257,6 +257,15 @@ export function extratoCaixa(db) {
       id: 'f-' + r.id, ref: v, origem: 'fiado', data: r.data, dia: r.dia, valor: +r.valor || 0,
       descricao: `${v.fiado.cliente || ''} · ${p.n}/${v.fiado.parcelas.length}`, pagamento: r.forma,
     })))),
+    // empréstimo: o dinheiro sai do caixa (se foi pago com ele) e as parcelas recebidas voltam
+    ...(db.emprestimos || []).filter((e) => depois(e) && !e.foraDoCaixa).map((e) => ({
+      id: 'p-' + e.id, ref: e, origem: 'emprestimo', data: e.data, dia: e.dia, valor: -(+e.valor || 0),
+      descricao: `${e.fiado?.cliente || ''} · ${e.fiado?.parcelas?.length || 1}×`,
+    })),
+    ...(db.emprestimos || []).flatMap((e) => (e.fiado?.parcelas || []).flatMap((p) => (p.recebimentos || []).filter(depois).map((r) => ({
+      id: 'pr-' + r.id, ref: e, origem: 'emprestimo-receb', data: r.data, dia: r.dia, valor: +r.valor || 0,
+      descricao: `${e.fiado.cliente || ''} · ${p.n}/${e.fiado.parcelas.length}`, pagamento: r.forma,
+    })))),
     ...(db.entradas || []).filter((e) => depois(e) && !e.foraDoCaixa && e.custo != null).map((e) => ({
       id: 'e-' + e.id, ref: e, origem: 'compra', data: e.data, dia: e.dia, valor: -(+e.qtd || 0) * (+e.custo || 0),
       descricao: `${e.qtd}× ${e.produto}`,
@@ -335,3 +344,22 @@ export function lucroVenda(v) {
   return { ...base, lucro: Math.round((base.lucro - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: base.lucro, naoPago: f.naoPago }
 }
 
+// ---------- Empréstimo (crediário de dinheiro) com juros simples
+// db.emprestimos = [{ id, data, dia, valor, jurosPct (ao mês), total, foraDoCaixa, obs,
+//   fiado: { clienteId, cliente, telefone, parcelas: [mesmo formato das parcelas do fiado] } }]
+// total = valor × (1 + juros% × nº de parcelas); a última parcela leva os centavos que sobram.
+export function calcularEmprestimo(valor, jurosPct, n) {
+  const v = Math.round((+valor || 0) * 100) / 100
+  n = Math.max(1, Math.floor(+n || 1))
+  const total = Math.round(v * (1 + ((+jurosPct || 0) / 100) * n) * 100) / 100
+  const base = Math.floor((total / n) * 100) / 100
+  const parcelas = Array.from({ length: n }, (_, k) => (k === n - 1 ? Math.round((total - base * (n - 1)) * 100) / 100 : base))
+  return { valor: v, total, juros: Math.round((total - v) * 100) / 100, parcelas }
+}
+// Lucro do empréstimo = juros. Em aberto: "a confirmar". Resolvido: juros − o que não foi pago (pode virar prejuízo).
+export function lucroEmprestimo(e) {
+  const juros = Math.round(((+e.total || 0) - (+e.valor || 0)) * 100) / 100
+  const f = resumoFiado(e) || { recebido: 0, naoPago: 0, aberto: 0, pendente: false }
+  if (f.pendente) return { lucro: 0, pendente: true, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: f.aberto }
+  return { lucro: Math.round((juros - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: 0 }
+}

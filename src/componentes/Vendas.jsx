@@ -4,10 +4,14 @@ import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
 import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
 import PagamentoVenda, { montarPagamento, novoPagamento, pagamentoDaVenda } from './PagamentoVenda.jsx'
+import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
+import { podeFazer } from '../armazenamento.js'
 
 const itemNovo = { k: '', qtd: '1', preco: '' } // preco: digitado só para produtos do estoque
 
-export default function Vendas({ db, executar }) {
+export default function Vendas({ db, executar, irPara }) {
+  const [modo, setModo] = useState('venda') // 'venda' ou 'emprestimo'
+  const podeEmprestar = podeFazer('emprestimo.salvo')
   const [item, setItem] = useState(itemNovo)
   const [carrinho, setCarrinho] = useState([])
   const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
@@ -178,6 +182,19 @@ export default function Vendas({ db, executar }) {
     <section>
       <h2>{t('Novo Registro')}</h2>
 
+      {podeEmprestar && (
+        <div className="chips modo-registro">
+          <button className={'filtro' + (modo === 'venda' ? ' ativo' : '')} onClick={() => setModo('venda')}>{t('Venda')}</button>
+          <button className={'filtro' + (modo === 'emprestimo' ? ' ativo' : '')} onClick={() => { if (editando) cancelar(); setModo('emprestimo') }}>{t('Empréstimo')}</button>
+        </div>
+      )}
+
+      {modo === 'emprestimo' && podeEmprestar ? (
+        <>
+          <NovoEmprestimo db={db} executar={executar} aoSalvar={() => setDia(hoje())} />
+          <p><small>{t('Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças, e o lucro (os juros) conta quando todas forem resolvidas.')}</small></p>
+        </>
+      ) : (<>
       {/* ---------- Nova venda ---------- */}
       <form onSubmit={adicionar}>
         <label style={{ flex: '2 1 240px' }}>{t('Produto')}
@@ -290,6 +307,8 @@ export default function Vendas({ db, executar }) {
         </div>
       )}
 
+      </>)}
+
       {/* ---------- Vendas do dia ---------- */}
       <div className="linha-titulo">
         <h3>{t('Vendas de {data}', { data: dataBR(dia) })}</h3>
@@ -350,6 +369,7 @@ export default function Vendas({ db, executar }) {
         </table>
       </div>
       {semCusto && <small>* {t('Algum item vendido não tinha custo informado; o lucro considera custo zero para ele.')}</small>}
+      {podeEmprestar && <EmprestimosDoDia db={db} dia={dia} executar={executar} irPara={irPara} />}
     </section>
   )
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
+import { podeFazer } from '../armazenamento.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
@@ -38,10 +39,12 @@ export default function Fiado({ db, executar, irPara }) {
   const dia = hoje()
 
   // todas as parcelas, com a venda junto
-  const parcelas = (db.vendas || []).filter((v) => v.fiado?.parcelas?.length).flatMap((v) => v.fiado.parcelas.map((p) => {
+  // (empréstimos só para quem pode emprestar)
+  const comParcelas = (l, emp) => (l || []).filter((v) => v.fiado?.parcelas?.length).flatMap((v) => v.fiado.parcelas.map((p) => {
     const recebido = recebidoDaParcela(p)
-    return { v, p, recebido, falta: r2(Math.max(0, p.valor - recebido)), situacao: situacaoParcela(p, dia), total: v.fiado.parcelas.length }
+    return { v, p, emp, recebido, falta: r2(Math.max(0, p.valor - recebido)), situacao: situacaoParcela(p, dia), total: v.fiado.parcelas.length }
   }))
+  const parcelas = [...comParcelas(db.vendas, false), ...(podeFazer('emprestimo.salvo') ? comParcelas(db.emprestimos, true) : [])]
   const abertas = parcelas.filter((x) => ['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao))
   const soma = (l) => r2(l.reduce((s, x) => s + x.falta, 0))
   const em7 = (() => { const d = new Date(dia + 'T12:00:00'); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10) })()
@@ -66,7 +69,8 @@ export default function Fiado({ db, executar, irPara }) {
     .sort((a, c) => String(a.p.vencimento).localeCompare(String(c.p.vencimento)) || String(a.v.fiado.cliente || '').localeCompare(String(c.v.fiado.cliente || '')))
 
   // altera uma parcela (a mudança é aplicada sobre a versão mais nova da venda, no banco)
-  const gravar = (x, alterar, acao, detalhe, msgOk) => executar((A) => A.salvarFiado(x.v.id, x.p.id, alterar, acao, detalhe), msgOk)
+  const gravar = (x, alterar, acao, detalhe, msgOk) => executar((A) => A.salvarParcela(x.emp ? 'emprestimos' : 'vendas', x.v.id, x.p.id, alterar, acao, detalhe), msgOk)
+  const acao = (x, s) => (x.emp ? 'emprestimo.' : 'venda.fiado-') + s
 
   async function confirmarRecebimento(e) {
     e.preventDefault()
@@ -82,17 +86,20 @@ export default function Fiado({ db, executar, irPara }) {
       if (valor > falta + 0.004) throw new Error(t('O valor passa do que falta nesta parcela ({valor}).', { valor: brl(falta) }))
       return { ...p, naoPaga: false, recebimentos: [...(p.recebimentos || []), rec] }
     },
-      'venda.fiado-recebido', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${valor} (${recebendo.forma})`,
+      acao(x, 'recebido'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${valor} (${recebendo.forma})`,
       valor >= x.falta - 0.004 ? t('Parcela recebida. Entrou no caixa.') : t('Pagamento parcial registrado. Falta {valor}.', { valor: brl(x.falta - valor) }))
     if (ok) setRecebendo(null)
   }
 
   async function naoPagou(x) {
-    if (!(await confirmar(t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro da venda e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) }), { botao: t('Não pagou'), perigo: true }))) return
-    gravar(x, (p) => ({ ...p, naoPaga: true }), 'venda.fiado-nao-pago', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago (perda).'))
+    const texto = x.emp
+      ? t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro do empréstimo e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
+      : t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro da venda e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
+    if (!(await confirmar(texto, { botao: t('Não pagou'), perigo: true }))) return
+    gravar(x, (p) => ({ ...p, naoPaga: true }), acao(x, 'nao-pago'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago (perda).'))
   }
   function reabrir(x) {
-    gravar(x, (p) => ({ ...p, naoPaga: false }), 'venda.fiado-reaberto', `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
+    gravar(x, (p) => ({ ...p, naoPaga: false }), acao(x, 'reaberto'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
   }
   async function estornar(x) {
     const ultimo = (x.p.recebimentos || []).at(-1)
@@ -101,13 +108,13 @@ export default function Fiado({ db, executar, irPara }) {
     gravar(x, (p) => {
       if ((p.recebimentos || []).at(-1)?.id !== ultimo.id) throw new Error(t('Os recebimentos desta parcela mudaram. Confira e tente de novo.'))
       return { ...p, recebimentos: p.recebimentos.slice(0, -1) }
-    }, 'venda.fiado-estorno', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${ultimo.valor}`, t('Recebimento estornado.'))
+    }, acao(x, 'estorno'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${ultimo.valor}`, t('Recebimento estornado.'))
   }
   async function salvarData(e) {
     e.preventDefault()
     const x = parcelas.find((y) => y.v.id === mudandoData.vendaId && y.p.id === mudandoData.parcelaId)
     if (!x || !mudandoData.data) return setMudandoData(null)
-    const ok = await gravar(x, (p) => ({ ...p, vencimento: mudandoData.data }), 'venda.fiado-data',
+    const ok = await gravar(x, (p) => ({ ...p, vencimento: mudandoData.data }), acao(x, 'data'),
       `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${dataBR(x.p.vencimento)} → ${dataBR(mudandoData.data)}`, t('Data alterada.'))
     if (ok) setMudandoData(null)
   }
@@ -137,7 +144,7 @@ export default function Fiado({ db, executar, irPara }) {
       <div className="tw">
         <table>
           <thead>
-            <tr><th>{t('Vencimento')}</th><th>{t('Cliente')}</th><th>{t('Venda')}</th><th className="n">{t('Parcela')}</th><th className="n">{t('Valor')}</th><th className="n">{t('Falta')}</th><th>{t('Situação')}</th><th></th></tr>
+            <tr><th>{t('Vencimento')}</th><th>{t('Cliente')}</th><th>{t('Origem')}</th><th className="n">{t('Parcela')}</th><th className="n">{t('Valor')}</th><th className="n">{t('Falta')}</th><th>{t('Situação')}</th><th></th></tr>
           </thead>
           <tbody>
             {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma venda fiado ainda. Na aba Novo Registro, escolha "Fiado" ou divida o pagamento.')}</td></tr>}
@@ -159,7 +166,7 @@ export default function Fiado({ db, executar, irPara }) {
                   <td>{x.v.fiado.cliente}{x.v.fiado.telefone && <small className="sub-linha">{x.v.fiado.telefone}</small>}</td>
                   <td className="quebra">
                     <button className="link pequeno" onClick={() => { try { sessionStorage.setItem('vendas-dia', x.v.dia) } catch { /* sem acesso */ } irPara?.('vendas') }}>{dataBR(x.v.dia)}</button>
-                    <small className="sub-linha">{x.v.itens.map((i) => `${i.qtd}× ${i.produto}`).join(', ')}</small>
+                    <small className="sub-linha">{x.emp ? t('Empréstimo de {valor} · {p}% ao mês', { valor: brl(x.v.valor), p: String(x.v.jurosPct || 0).replace('.', ',') }) : (x.v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ')}</small>
                   </td>
                   <td className="n">{x.p.n}/{x.total}</td>
                   <td className="n">{brl(x.p.valor)}{x.recebido > 0 && <small className="sub-linha ok">{t('recebido {valor}', { valor: brl(x.recebido) })}</small>}</td>
@@ -196,7 +203,7 @@ export default function Fiado({ db, executar, irPara }) {
           </tbody>
         </table>
       </div>
-      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. O lucro da venda só conta quando todas as parcelas estão resolvidas; o que o cliente não pagou sai do lucro como perda.')}</small></p>
+      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. O lucro da venda (ou os juros do empréstimo) só conta quando todas as parcelas estão resolvidas; o que o cliente não pagou sai do lucro como perda.')}</small></p>
     </section>
   )
 }

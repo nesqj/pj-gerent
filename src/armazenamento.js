@@ -11,7 +11,7 @@ import { supabase } from './supabase.js'
 import { norm, resumoFiado } from './utils.js'
 
 const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
-const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [] })
+const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [], emprestimos: [] })
 
 let org = null          // loja ativa: { id, nome, papel, suspensa, criada_por_mim }
 let db = vazio()
@@ -147,6 +147,7 @@ function resumo(lista, x) {
   if (lista === 'precosForn') return [x.produto, x.marca].filter(Boolean).join(' — ')
   if (lista === 'vendas') return (x.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + ` = ${x.total}`
   if (lista === 'entradas') return `${x.qtd}× ${x.produto}`
+  if (lista === 'emprestimos') return `${x.fiado?.cliente || ''}: ${x.valor} → ${x.total} (${x.fiado?.parcelas?.length || 1}×, ${x.jurosPct}% a.m.)`
   if (lista === 'movCaixa') return `${x.tipo === 'retirar' ? '−' : '+'}${x.valor}${x.descricao ? ' · ' + x.descricao : ''}`
   return null
 }
@@ -264,16 +265,37 @@ export const excluirVenda = (id) => remover('vendas', 'venda.excluida', id)
 
 // Fiado: recebeu, não pagou, mudar data… (altera a venda, sem mexer nos itens)
 // alterar(parcela) devolve a parcela nova; roda sobre os dados mais novos (inclusive se outra pessoa salvou antes)
-export const salvarFiado = (vendaId, parcelaId, alterar, acao, detalhe) => mudar(acao, (d) => {
-  const i = d.vendas.findIndex((x) => x.id === vendaId)
-  const v = d.vendas[i]
+// lista: 'vendas' (fiado) ou 'emprestimos'
+export const salvarParcela = (lista, id, parcelaId, alterar, acao, detalhe) => mudar(acao, (d) => {
+  d[lista] = d[lista] || []
+  const i = d[lista].findIndex((x) => x.id === id)
+  const v = d[lista][i]
   const k = v?.fiado?.parcelas?.findIndex((p) => p.id === parcelaId) ?? -1
-  if (i < 0 || k < 0) throw new Error(t('Venda não encontrada.'))
+  if (i < 0 || k < 0) throw new Error(lista === 'vendas' ? t('Venda não encontrada.') : t('Empréstimo não encontrado.'))
   const parcelas = [...v.fiado.parcelas]
   parcelas[k] = alterar(parcelas[k])
-  d.vendas[i] = { ...v, fiado: { ...v.fiado, parcelas } }
-  return d.vendas[i]
+  d[lista][i] = { ...v, fiado: { ...v.fiado, parcelas } }
+  return d[lista][i]
 }, detalhe)
+export const salvarFiado = (...a) => salvarParcela('vendas', ...a)
+
+// Empréstimos (crediário de dinheiro): ver calcularEmprestimo em utils.js
+export const salvarEmprestimo = (e) => mudar('emprestimo.salvo', (d) => {
+  d.emprestimos = d.emprestimos || []
+  const i = d.emprestimos.findIndex((x) => x.id === e.id)
+  if (i >= 0) {
+    const f = resumoFiado(d.emprestimos[i])
+    if (f && (f.recebido > 0 || f.naoPago > 0)) throw new Error(t('Este empréstimo já tem parcela recebida. Para mudar, use a aba Cobranças ou exclua o empréstimo.'))
+    d.emprestimos[i] = e
+  } else d.emprestimos.push(e)
+  return e
+}, resumo('emprestimos', e))
+export const excluirEmprestimo = (id) => mudar('emprestimo.excluido', (d) => {
+  d.emprestimos = d.emprestimos || []
+  const item = d.emprestimos.find((x) => x.id === id)
+  d.emprestimos = d.emprestimos.filter((x) => x.id !== id)
+  return item
+}, (item) => resumo('emprestimos', item))
 
 // Clientes (para o fiado): { id, nome, telefone, obs }
 export const salvarCliente = (c) => upsert('clientes', 'cliente.salvo', c, c.nome)
