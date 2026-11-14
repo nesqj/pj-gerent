@@ -3,7 +3,7 @@ import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
 import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado, encargoAtraso } from '../utils.js'
-import PagamentoVenda, { montarPagamento, novoPagamento, pagamentoDaVenda } from './PagamentoVenda.jsx'
+import PagamentoVenda, { montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
 
@@ -59,20 +59,6 @@ export default function Vendas({ db, executar, irPara }) {
 
   function alterarItem(n, campo, valor) {
     setCarrinho(carrinho.map((i, x) => (x === n ? { ...i, [campo]: valor === '' ? '' : +valor } : i)))
-  }
-
-  function editar(v) {
-    // fiado com pagamento já registrado: a venda não muda mais por aqui (só pela aba Fiado)
-    const f = resumoFiado(v)
-    if (f && (f.recebido > 0 || f.naoPago > 0)) {
-      return aviso.alerta(t('Esta venda tem fiado com pagamento já registrado.'), t('Para mudar, use a aba Cobranças (receber, mudar data, não pagou) ou exclua a venda.'))
-    }
-    setEditando(v)
-    setCarrinho(v.itens.map((i) => ({ ...i })))
-    setPg(pagamentoDaVenda(v, db.clientes || []))
-    setDesconto(v.descontoPct ? String(v.descontoPct) : '')
-    setItem(itemNovo)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function cancelar() {
@@ -367,7 +353,6 @@ export default function Vendas({ db, executar, irPara }) {
                   {res.perda > 0 && res.lucro >= 0 && <small className="desconto-linha bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
                 </td>
                 <td>
-                  <button className="edit" onClick={() => editar(v)}>{t('Editar')}</button>{' '}
                   <button className="del" onClick={() => excluir(v)}>{t('Excluir')}</button>
                 </td>
               </tr>
