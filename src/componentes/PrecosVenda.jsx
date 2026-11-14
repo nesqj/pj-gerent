@@ -218,7 +218,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
                                     {[...new Set([i.marca || '', ...marcasDisponiveis(db)])].map((m) => <option key={m} value={m}>{m || t('(sem marca)')}</option>)}
                                   </select>
                                 </label>
-                                <button type="submit" className="edit" disabled={nomeEd.produto.trim() === i.produto && nomeEd.marca === (i.marca || '')}>{t('Salvar nome')}</button>
+                                <button type="submit" className="edit" disabled={nomeEd.produto.trim() === i.produto && nomeEd.marca === (i.marca || '')}>{t('Salvar')}</button>
                               </form>
                             )}
                             <b>{t('Fornecedores de {produto}', { produto: i.produto + (i.marca ? ' — ' + i.marca : '') })}</b>
