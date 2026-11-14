@@ -630,3 +630,16 @@ i.q.fat { background: var(--pri) } i.q.luc { background: var(--cor-lucro) } i.q.
 .dica-diario b { margin-bottom: 2px }
 .dica-linha { display: flex; align-items: center; font-size: 12.5px; color: var(--mut) }
 .dica-linha span { margin-left: auto; padding-left: 16px; color: var(--txt); font-weight: 600; font-variant-numeric: tabular-nums }
+/* estilo "bolsa": linhas em cima, vendas em colunas embaixo */
+.grafico.diario.bolsa svg { height: 320px }
+.grafico.diario .linha-fat { fill: none; stroke: var(--pri); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round }
+.grafico.diario .linha-luc { fill: none; stroke: var(--cor-lucro); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round }
+.grafico.diario .ponto-fat { fill: var(--card); stroke: var(--pri); stroke-width: 2 }
+.grafico.diario .ponto-luc { fill: var(--card); stroke: var(--cor-lucro); stroke-width: 2 }
+.grafico.diario .ponto-preju { fill: var(--card); stroke: var(--bad); stroke-width: 2 }
+.grafico.diario .barra-vendas { fill: var(--cor-vendas); opacity: .45 }
+.grafico.diario .barra-vendas.ativa { opacity: .85 }
+.grafico.diario i.l, .dica-diario i.l { display: inline-block; width: 14px; height: 0; border-top: 2.5px solid; margin-right: 6px; vertical-align: 3px }
+i.l.fat { border-color: var(--pri) } i.l.luc { border-color: var(--cor-lucro) } i.l.preju { border-color: var(--bad) }
+i.q.ven { background: var(--cor-vendas); opacity: .7 }
+
