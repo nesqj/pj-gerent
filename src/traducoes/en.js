@@ -905,6 +905,7 @@ export default {
   'Caixa': 'Cash',
   'Controle de caixa': 'Cash control',
   'Operações': 'Operations',
+  'Cobranças': 'Collections',
   'Ajustar o início do caixa': 'Adjust the cash starting point',
   'Comece o controle de caixa': 'Start cash control',
   'Informe quanto dinheiro a loja tem para girar agora (em espécie, conta e o que mais usar para comprar mercadoria). A partir daí, as vendas somam, as entradas no estoque descontam o custo, e você registra o que colocar ou retirar.': 'Enter how much money the store has to work with right now (cash, bank account and whatever else you use to buy goods). From then on, sales add up, stock entries subtract their cost, and you record what you put in or take out.',
