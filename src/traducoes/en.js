@@ -1310,4 +1310,5 @@ export default {
   '(sem marca)': '(no brand)',
   'Salvar nome': 'Save name',
   'Adicionar fornecedor': 'Add supplier',
+  'Para cadastrar um produto, use "+ Cadastrar produto" na aba Fornecedores.': 'To add a product, use "+ Add product" in the Suppliers tab.',
 }

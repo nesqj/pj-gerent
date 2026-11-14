@@ -1,20 +1,15 @@
-import { useRef, useState } from 'react'
-import { confirmar } from '../avisos-tela.jsx'
+import { useState } from 'react'
+import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
-import { brl, dataTs, gravarPrecoFornecedor, menorPreco, nomeFornecedor, norm } from '../utils.js'
+import { brl, dataTs, gravarPrecoFornecedor, lerValor, menorPreco, nomeFornecedor, norm } from '../utils.js'
 import { CamposFornecedor, doFormulario, origem, paraFormulario } from './Fornecedores.jsx'
-import { EditorMarcas, SelectMarca } from './Marcas.jsx'
+import { EditorMarcas } from './Marcas.jsx'
 
-// Página de um fornecedor: informações + produtos e preços só dele
+// Página de um fornecedor: informações + produtos e preços só dele (o cadastro de produto fica em "+ Cadastrar produto")
 export default function FornecedorDetalhe({ db, executar, forn, voltar }) {
-  const novo = { id: '', fornecedorId: forn.id, marca: '', produto: '', preco: '' }
-  const [form, setForm] = useState(novo)
   const [editInfo, setEditInfo] = useState(null) // formulário de edição das informações
   const [busca, setBusca] = useState('')
-  const refProduto = useRef(null)
-  const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
-
-  const todosProdutos = [...new Set(db.precosForn.map((p) => p.produto))].sort()
+  const [editando, setEditando] = useState(null) // { id, preco } — preço sendo mudado na linha
 
   // quantos produtos deste fornecedor usam cada marca (avisa antes de remover uma marca)
   const emUso = {}
@@ -41,12 +36,10 @@ export default function FornecedorDetalhe({ db, executar, forn, voltar }) {
     executar((A) => A.excluirFornecedor(forn.id)).then((ok) => ok && voltar())
   }
 
-  async function salvarProduto(e) {
-    e.preventDefault()
-    if (await executar((A) => gravarPrecoFornecedor(A, db, form))) {
-      setForm(novo)
-      refProduto.current?.focus()
-    }
+  async function salvarPreco(p) {
+    const preco = lerValor(editando?.preco)
+    if (String(editando?.preco ?? '').trim() === '' || !(preco >= 0)) return aviso.alerta(t('Informe o preço.'))
+    if (await executar((A) => gravarPrecoFornecedor(A, db, { ...p, preco }), t('Preço atualizado.'))) setEditando(null)
   }
 
   async function excluirProduto(p) {
@@ -106,15 +99,7 @@ export default function FornecedorDetalhe({ db, executar, forn, voltar }) {
 
       {/* ---------- Produtos deste fornecedor ---------- */}
       <div className="linha-titulo"><h3>{t('Produtos e preços')}</h3></div>
-      {forn.marcas.length === 0 && <p className="warn">{t('Cadastre pelo menos uma marca acima para poder adicionar produtos.')}</p>}
-      <form onSubmit={salvarProduto}>
-        <label style={{ flex: '2 1 220px' }}>{t('Produto')} *<input ref={refProduto} list="dlProdutosForn" required {...campo('produto')} /></label>
-        <label>{t('Marca')} *<SelectMarca fornecedor={forn} {...campo('marca')} /></label>
-        <label style={{ flex: '0 1 150px' }}>{t('Preço (R$)')} *<input type="number" step="0.01" min="0" required {...campo('preco')} /></label>
-        <button type="submit">{form.id ? t('Atualizar') : t('Adicionar produto')}</button>
-        {form.id && <button type="button" className="sec" onClick={() => setForm(novo)}>{t('Cancelar')}</button>}
-      </form>
-      <datalist id="dlProdutosForn">{todosProdutos.map((p) => <option key={p} value={p} />)}</datalist>
+      <p><small>{t('Para cadastrar um produto, use "+ Cadastrar produto" na aba Fornecedores.')}</small></p>
 
       <input className="busca" placeholder={t('Buscar produto ou marca...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
       <div className="tw">
@@ -137,12 +122,18 @@ export default function FornecedorDetalhe({ db, executar, forn, voltar }) {
                 <tr key={p.id}>
                   <td>{p.produto}</td>
                   <td>{p.marca || '-'}</td>
-                  <td className="n"><b>{brl(p.preco)}</b></td>
+                  <td className="n">{editando?.id === p.id
+                    ? <span className="lf-preco" style={{ display: 'inline-flex', width: 120 }}><span>R$</span><input inputMode="decimal" autoFocus value={editando.preco}
+                        onChange={(e) => setEditando({ ...editando, preco: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === 'Enter') salvarPreco(p); if (e.key === 'Escape') setEditando(null) }} /></span>
+                    : <b>{brl(p.preco)}</b>}</td>
                   <td>{comp}</td>
                   <td>{dataTs(p.atualizado)}</td>
                   <td>
-                    <button className="edit" onClick={() => setForm({ ...p, preco: String(p.preco) })}>{t('Editar')}</button>{' '}
-                    <button className="del" onClick={() => excluirProduto(p)}>{t('Excluir')}</button>
+                    {editando?.id === p.id
+                      ? <><button className="edit" onClick={() => salvarPreco(p)}>{t('Salvar')}</button>{' '}<button className="sec" onClick={() => setEditando(null)}>×</button></>
+                      : <><button className="edit" onClick={() => setEditando({ id: p.id, preco: String(p.preco).replace('.', ',') })}>{t('Mudar preço')}</button>{' '}
+                        <button className="del" onClick={() => excluirProduto(p)}>{t('Excluir')}</button></>}
                   </td>
                 </tr>
               )
