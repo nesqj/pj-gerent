@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
 import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda } from '../utils.js'
-import { GraficoArea, GraficoTendencia } from './Graficos.jsx'
+import { GraficoLinhas, GraficoTendencia } from './Graficos.jsx'
 
 // ---------- Datas ----------
 const paraDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -207,10 +207,10 @@ export default function Analise({ db }) {
           {/* ---------- Faturamento e lucro ---------- */}
           <div className="painel">
             <div className="painel-titulo">
-              <h3>{n === 1 ? t('Faturamento por hora') : t('Faturamento por dia')}</h3>
+              <h3>{n === 1 ? t('Faturamento, lucro e vendas por hora') : t('Faturamento, lucro e vendas por dia')}</h3>
               {melhorDia && melhorDia.valor > 0 && <small>{t('Melhor dia:')} <b>{dataBR(melhorDia.dia)}</b> {t('com')} {brl(melhorDia.valor)}</small>}
             </div>
-            <GraficoArea
+            <GraficoLinhas
               serie={serie}
               rotuloDica={(d) => (n === 1 ? t('{data} às {hora}', { data: dataBR(de), hora: d.rotulo }) : `${t(DIAS_SEMANA[deDia(d.dia).getDay()])}, ${dataBR(d.dia)}`)}
             />

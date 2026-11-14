@@ -614,3 +614,12 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 .grafico .legenda .leg-linha { width: 18px; height: 0; border-top: 2.5px solid; border-radius: 0; vertical-align: 3px }
 .grafico .legenda .leg-linha.tracejada { border-top-style: dashed }
 
+/* ---------- Gráfico de linhas (faturamento, lucro, vendas) ---------- */
+:root { --linha-lucro: #ef6b5b; --linha-vendas: #f5a524 }
+:root[data-theme="light"] { --linha-lucro: #d24a3a; --linha-vendas: #d98a06 }
+.grafico.linhas .grade { stroke: var(--bd); stroke-width: 1 }
+.grafico.linhas .eixo-vendas { fill: var(--linha-vendas); opacity: .8 }
+.grafico .legenda .leg-nota { margin-left: 4px; font-size: 11px; opacity: .8 }
+.dica small.cor-lucro { color: var(--linha-lucro) }
+.dica small.cor-vendas { color: var(--linha-vendas) }
+

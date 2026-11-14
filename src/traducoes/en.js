@@ -1015,4 +1015,8 @@ export default {
   'Produtos': 'Products',
   'Mostrar menos': 'Show less',
   'Ver todos ({n})': 'See all ({n})',
+  'Faturamento, lucro e vendas': 'Revenue, profit and sales',
+  'Faturamento, lucro e vendas por hora': 'Revenue, profit and sales by hour',
+  'Faturamento, lucro e vendas por dia': 'Revenue, profit and sales by day',
+  'vendas: eixo da direita': 'sales: right axis',
 }
