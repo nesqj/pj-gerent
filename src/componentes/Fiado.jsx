@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { distribuirRecebimento } from '../utils.js'
+import { distribuirRecebimento, encargoAtraso, textoAtraso } from '../utils.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
@@ -37,13 +37,17 @@ export default function Fiado({ db, executar, irPara }) {
   const [busca, setBusca] = useState('')
   const [recebendo, setRecebendo] = useState(null) // { vendaId, parcelaId, valor, forma }
   const [mudandoData, setMudandoData] = useState(null) // { vendaId, parcelaId, data }
+  const [configurando, setConfigurando] = useState(null) // { multaPct, jurosMesPct, carenciaDias } em edição
   const dia = hoje()
+  const cfgAtraso = db.config?.atraso
+  const podeConfigurar = podeFazer('config.salva')
 
   // todas as parcelas, com a venda junto
   // (empréstimos só para quem pode emprestar)
   const comParcelas = (l, emp) => (l || []).filter((v) => v.fiado?.parcelas?.length).flatMap((v) => v.fiado.parcelas.map((p) => {
     const recebido = recebidoDaParcela(p)
-    return { v, p, emp, recebido, falta: r2(Math.max(0, p.valor - recebido)), situacao: situacaoParcela(p, dia), total: v.fiado.parcelas.length }
+    const atraso = encargoAtraso(p, cfgAtraso, dia) // multa e juros por atraso (se configurados)
+    return { v, p, emp, recebido, falta: r2(Math.max(0, p.valor - recebido)), situacao: situacaoParcela(p, dia), total: v.fiado.parcelas.length, atraso, enc: atraso.total }
   }))
   const parcelas = [...comParcelas(db.vendas, false), ...(podeFazer('emprestimo.salvo') ? comParcelas(db.emprestimos, true) : [])]
   const abertas = parcelas.filter((x) => ['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao))
@@ -52,6 +56,7 @@ export default function Fiado({ db, executar, irPara }) {
   const cards = {
     receber: soma(abertas),
     atrasado: soma(abertas.filter((x) => x.situacao === 'atrasada')),
+    encargos: r2(abertas.reduce((s, x) => s + x.enc, 0)),
     nAtrasado: abertas.filter((x) => x.situacao === 'atrasada').length,
     semana: soma(abertas.filter((x) => x.p.vencimento >= dia && x.p.vencimento <= em7)),
     naoPago: soma(parcelas.filter((x) => x.situacao === 'nao_paga')),
@@ -68,6 +73,7 @@ export default function Fiado({ db, executar, irPara }) {
         ...g, situacao, abertas: abertasG,
         proxima: abertasG[0] || g.parcelas.find((x) => x.situacao === 'nao_paga') || g.parcelas.at(-1),
         falta: soma(abertasG),
+        encargo: r2(abertasG.reduce((s, x) => s + x.enc, 0)),
         pagas: g.parcelas.filter((x) => x.situacao === 'paga').length,
       }
     })
@@ -97,6 +103,15 @@ export default function Fiado({ db, executar, irPara }) {
   const gravar = (x, alterar, acao, detalhe, msgOk) => executar((A) => A.salvarParcela(x.emp ? 'emprestimos' : 'vendas', x.v.id, x.p.id, alterar, acao, detalhe), msgOk)
   const acao = (x, s) => (x.emp ? 'emprestimo.' : 'venda.fiado-') + s
 
+  async function salvarAtraso(e) {
+    e.preventDefault()
+    const n = (s) => (String(s ?? '').trim() === '' ? 0 : numero(s))
+    const atraso = { multaPct: n(configurando.multaPct), jurosMesPct: n(configurando.jurosMesPct), carenciaDias: Math.max(0, parseInt(configurando.carenciaDias, 10) || 0) }
+    if (!(atraso.multaPct >= 0) || !(atraso.jurosMesPct >= 0)) return aviso.alerta(t('Confira os valores.'))
+    if (atraso.multaPct > 2 && !(await confirmar(t('Multa de {p}% passa dos 2% que o Código de Defesa do Consumidor costuma permitir. Salvar mesmo assim?', { p: String(atraso.multaPct).replace('.', ',') })))) return
+    if (await executar((A) => A.salvarConfig({ ...(db.config || {}), atraso }), t('Multa e juros por atraso salvos.'))) setConfigurando(null)
+  }
+
   // Recebeu: paga sempre a parcela mais antiga; o que passar dela quita as próximas, em ordem
   async function confirmarRecebimento(e) {
     e.preventDefault()
@@ -104,19 +119,21 @@ export default function Fiado({ db, executar, irPara }) {
     const x = g?.abertas[0]
     if (!x) return setRecebendo(null)
     const valor = r2(numero(recebendo.valor))
+    const comEncargo = !recebendo.perdoar && g.encargo > 0
+    const limite = r2(g.falta + (comEncargo ? g.encargo : 0))
     if (!(valor > 0)) return aviso.alerta(t('Informe um valor maior que zero.'))
-    if (valor > g.falta + 0.004) return aviso.alerta(t('O valor passa do que falta nesta compra ({valor}).', { valor: brl(g.falta) }))
+    if (valor > limite + 0.004) return aviso.alerta(t('O valor passa do que falta nesta compra ({valor}).', { valor: brl(limite) }))
     const rec = { id: uid(), data: Date.now(), dia: hoje(), forma: recebendo.forma }
     let quitadas = 0
     const ok = await executar((A) => A.alterarParcelas(x.emp ? 'emprestimos' : 'vendas', x.v.id, (ps) => {
       // refeito sobre os dados mais novos (outra pessoa pode ter recebido antes)
-      const r = distribuirRecebimento(ps, valor, rec)
+      const r = distribuirRecebimento(ps, valor, rec, comEncargo ? (p) => encargoAtraso(p, cfgAtraso, hoje()).total : null)
       if (r.sobra > 0.004) throw new Error(t('O valor passa do que falta nesta compra ({valor}).', { valor: brl(valor - r.sobra) }))
       quitadas = r.quitadas
       return r.parcelas
     }, acao(x, 'recebido'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${valor} (${recebendo.forma})`))
     if (!ok) return
-    const resta = r2(g.falta - valor)
+    const resta = r2(limite - valor)
     aviso.ok(quitadas > 1 ? t('Recebido. Quitou {n} parcelas.', { n: quitadas }) : quitadas === 1 ? t('Parcela recebida. Entrou no caixa.') : t('Pagamento parcial registrado.'),
       resta > 0.004 ? t('Ainda falta {valor} desta compra.', { valor: brl(resta) }) : t('Compra quitada.'))
     setRecebendo(null)
@@ -156,7 +173,7 @@ export default function Fiado({ db, executar, irPara }) {
   }
 
   const mensagem = (x) => t('Olá, {cliente}! Passando para lembrar da parcela {n} de {valor}, combinada para {data}. Obrigado!', {
-    cliente: String(x.v.fiado.cliente || '').split(' ')[0], n: `${x.p.n}/${x.total}`, valor: brl(x.falta), data: dataBR(x.p.vencimento),
+    cliente: String(x.v.fiado.cliente || '').split(' ')[0], n: `${x.p.n}/${x.total}`, valor: brl(x.falta + x.enc), data: dataBR(x.p.vencimento),
   })
 
   return (
@@ -165,10 +182,25 @@ export default function Fiado({ db, executar, irPara }) {
 
       <div className="cards">
         <div className="card destaque"><small>{t('A receber')}</small><b>{brl(cards.receber)}</b><small className="var">{t('{n} parcela(s) em aberto', { n: abertas.length })}</small></div>
-        <div className={'card' + (cards.atrasado > 0 ? ' card-prejuizo' : '')}><small>{t('Atrasado')}</small><b className={cards.atrasado > 0 ? 'bad' : ''}>{brl(cards.atrasado)}</b><small className="var">{t('{n} parcela(s)', { n: cards.nAtrasado })}</small></div>
+        <div className={'card' + (cards.atrasado > 0 ? ' card-prejuizo' : '')}><small>{t('Atrasado')}</small><b className={cards.atrasado > 0 ? 'bad' : ''}>{brl(cards.atrasado)}</b><small className="var">{t('{n} parcela(s)', { n: cards.nAtrasado })}</small>{cards.encargos > 0 && <small className="var bad">{t('+ {valor} de multa e juros', { valor: brl(cards.encargos) })}</small>}</div>
         <div className="card"><small>{t('Vence em 7 dias')}</small><b>{brl(cards.semana)}</b></div>
         <div className="card"><small>{t('Não pagos (perda)')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{cards.naoPago > 0 ? '− ' + brl(cards.naoPago) : brl(0)}</b></div>
       </div>
+
+      <div className="config-atraso">
+        <small>{textoAtraso(cfgAtraso) ? <>{t('Atraso')}: <b>{textoAtraso(cfgAtraso)}</b></> : t('Sem multa ou juros por atraso.')}</small>
+        {podeConfigurar && !configurando && <button className="link pequeno" onClick={() => setConfigurando({ multaPct: String(cfgAtraso?.multaPct ?? '').replace('.', ','), jurosMesPct: String(cfgAtraso?.jurosMesPct ?? '').replace('.', ','), carenciaDias: String(cfgAtraso?.carenciaDias ?? '') })}>{t('Multa e juros por atraso')}</button>}
+      </div>
+      {configurando && (
+        <form className="painel form-atraso" onSubmit={salvarAtraso}>
+          <label>{t('Multa (%)')}<input inputMode="decimal" placeholder="0" value={configurando.multaPct} onChange={(e) => setConfigurando({ ...configurando, multaPct: e.target.value })} /></label>
+          <label>{t('Juros de atraso (% ao mês)')}<input inputMode="decimal" placeholder="0" value={configurando.jurosMesPct} onChange={(e) => setConfigurando({ ...configurando, jurosMesPct: e.target.value })} /></label>
+          <label>{t('Carência (dias)')}<input type="number" min="0" step="1" placeholder="0" value={configurando.carenciaDias} onChange={(e) => setConfigurando({ ...configurando, carenciaDias: e.target.value })} /></label>
+          <button type="submit">{t('Salvar')}</button>
+          <button type="button" className="sec" onClick={() => setConfigurando(null)}>{t('Cancelar')}</button>
+          <small style={{ flex: '1 1 100%' }}>{t('A multa é cobrada uma vez; os juros contam por dia de atraso. Valem para todas as compras e empréstimos. No comércio, a multa costuma ser limitada a 2%.')}</small>
+        </form>
+      )}
 
       <div className="linha-titulo">
         <input className="busca" placeholder={t('Buscar cliente, telefone ou produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
@@ -203,8 +235,8 @@ export default function Fiado({ db, executar, irPara }) {
                         ? <button className="link pequeno" onClick={() => setAbertos({ ...abertos, [g.v.id]: !aberto })} title={t('Ver todas as parcelas')}>{t('{pagas} de {total} pagas', { pagas: g.pagas, total: g.parcelas.length })} {aberto ? '▴' : '▾'}</button>
                         : t('Parcela única')}
                     </td>
-                    <td className="n">{g.abertas.length ? <>{brl(x.falta)}<small className="sub-linha">{x.p.n}/{x.total}</small></> : '-'}</td>
-                    <td className="n"><b>{g.falta > 0 ? brl(g.falta) : '-'}</b></td>
+                    <td className="n">{g.abertas.length ? <>{brl(x.falta)}<small className="sub-linha">{x.p.n}/{x.total}</small>{x.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(x.enc), n: x.atraso.dias })}</small>}</> : '-'}</td>
+                    <td className="n"><b>{g.falta > 0 ? brl(g.falta + g.encargo) : '-'}</b>{g.encargo > 0 && <small className="sub-linha bad">{t('com {valor} de atraso', { valor: brl(g.encargo) })}</small>}</td>
                     <td><span className={s.classe}>{t(s.nome)}</span></td>
                     <td className="n acoes-fiado">{acoes(x)}</td>
                   </tr>
@@ -216,7 +248,7 @@ export default function Fiado({ db, executar, irPara }) {
                         <td colSpan="2"><small>{t('Parcela {n} de {total}', { n: y.p.n, total: y.total })}</small></td>
                         <td className="n"><small>{brl(y.p.valor)}</small>{y.recebido > 0 && <small className="sub-linha ok">{t('recebido {valor}', { valor: brl(y.recebido) })}</small>}</td>
                         <td className="n"></td>
-                        <td className="n">{y.situacao === 'paga' ? '-' : brl(y.falta)}</td>
+                        <td className="n">{y.situacao === 'paga' ? '-' : brl(y.falta + y.enc)}{y.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(y.enc), n: y.atraso.dias })}</small>}</td>
                         <td><span className={sy.classe}>{t(sy.nome)}</span></td>
                         <td className="n acoes-fiado">{acoes(y)}</td>
                       </tr>
@@ -258,6 +290,12 @@ export default function Fiado({ db, executar, irPara }) {
                         </select>
                         <button type="submit">{t('Confirmar')}</button>
                         <button type="button" className="sec" onClick={() => setRecebendo(null)}>×</button>
+                        {x.enc > 0 && (
+                          <label className="check perdoar">
+                            <input type="checkbox" checked={!!recebendo.perdoar} onChange={(e) => setRecebendo({ ...recebendo, perdoar: e.target.checked, valor: String(r2(x.falta + (e.target.checked ? 0 : x.enc))).replace('.', ',') })} />
+                            {t('Perdoar multa e juros ({valor})', { valor: brl(x.enc) })}
+                          </label>
+                        )}
                       </form>
                     ) : (
                       <>
@@ -267,7 +305,7 @@ export default function Fiado({ db, executar, irPara }) {
                         )}
                         {['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao) && daVez && (
                           <>
-                            <button className="edit" title={t('O valor que passar desta parcela quita as próximas')} onClick={() => setRecebendo({ vendaId: x.v.id, parcelaId: x.p.id, valor: String(x.falta).replace('.', ','), forma: 'PIX' })}>{t('Recebeu')}</button>{' '}
+                            <button className="edit" title={t('O valor que passar desta parcela quita as próximas')} onClick={() => setRecebendo({ vendaId: x.v.id, parcelaId: x.p.id, valor: String(r2(x.falta + x.enc)).replace('.', ','), forma: 'PIX', perdoar: false })}>{t('Recebeu')}</button>{' '}
                             <button className="del" onClick={() => naoPagou(x)}>{t('Não pagou')}</button>{' '}
                             <button className="sec mini" title={t('Mudar data')} onClick={() => setMudandoData({ vendaId: x.v.id, parcelaId: x.p.id, data: x.p.vencimento })}>📅</button>{' '}
                             {whats && <a className="botao-whats" href={whats} target="_blank" rel="noreferrer" title={t('Lembrar no WhatsApp')}>WhatsApp</a>}

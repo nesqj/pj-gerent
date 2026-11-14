@@ -722,4 +722,10 @@ tr.linha-parcela td { background: color-mix(in srgb, var(--txt) 3%, transparent)
 tr.linha-parcela td:first-child { padding-left: 28px; color: var(--mut) }
 b.motivo { font-weight: 600 }
 small.aguarda { color: var(--mut); font-size: 12px }
+/* Cobranças: multa e juros por atraso */
+.config-atraso { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: -6px 0 12px; color: var(--mut) }
+.form-atraso { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 14px }
+.form-atraso label { flex: 0 1 170px }
+.inline-form .perdoar { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap }
+.inline-form { flex-wrap: wrap }
 

@@ -254,7 +254,7 @@ export function extratoCaixa(db) {
       pagamento: Array.isArray(v.pagamentos) ? v.pagamentos.filter((p) => +p.valor > 0).map((p) => p.forma).join(' + ') : v.pagamento,
     })),
     ...(db.vendas || []).flatMap((v) => (v.fiado?.parcelas || []).flatMap((p) => (p.recebimentos || []).filter(depois).map((r) => ({
-      id: 'f-' + r.id, ref: v, origem: 'fiado', data: r.data, dia: r.dia, valor: +r.valor || 0,
+      id: 'f-' + r.id, ref: v, origem: 'fiado', data: r.data, dia: r.dia, valor: (+r.valor || 0) + (+r.encargo || 0),
       descricao: `${v.fiado.cliente || ''} · ${p.n}/${v.fiado.parcelas.length}`, pagamento: r.forma,
     })))),
     // empréstimo: o dinheiro sai do caixa (se foi pago com ele) e as parcelas recebidas voltam
@@ -263,7 +263,7 @@ export function extratoCaixa(db) {
       descricao: `${e.fiado?.cliente || ''} · ${e.fiado?.parcelas?.length || 1}×`,
     })),
     ...(db.emprestimos || []).flatMap((e) => (e.fiado?.parcelas || []).flatMap((p) => (p.recebimentos || []).filter(depois).map((r) => ({
-      id: 'pr-' + r.id, ref: e, origem: 'emprestimo-receb', data: r.data, dia: r.dia, valor: +r.valor || 0,
+      id: 'pr-' + r.id, ref: e, origem: 'emprestimo-receb', data: r.data, dia: r.dia, valor: (+r.valor || 0) + (+r.encargo || 0),
       descricao: `${e.fiado.cliente || ''} · ${p.n}/${e.fiado.parcelas.length}`, pagamento: r.forma,
     })))),
     ...(db.entradas || []).filter((e) => depois(e) && !e.foraDoCaixa && e.custo != null).map((e) => ({
@@ -341,7 +341,7 @@ export function lucroVenda(v) {
   const f = resumoFiado(v)
   if (!f) return { ...base, pendente: false, lucroPrevisto: base.lucro, naoPago: 0 }
   const juros = +v.fiado.juros || 0 // juros do fiado: lucro a mais, também só quando o cliente paga
-  const previsto = Math.round((base.lucro + juros) * 100) / 100
+  const previsto = Math.round((base.lucro + juros + encargosRecebidos(v)) * 100) / 100 // + multa/juros de atraso já recebidos
   if (f.pendente) return { ...base, lucro: 0, pendente: true, lucroPrevisto: previsto, aReceber: f.aberto, naoPago: f.naoPago, juros }
   return { ...base, lucro: Math.round((previsto - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: previsto, naoPago: f.naoPago, juros }
 }
@@ -360,7 +360,7 @@ export function calcularEmprestimo(valor, jurosPct, n) {
 }
 // Lucro do empréstimo = juros. Em aberto: "a confirmar". Resolvido: juros − o que não foi pago (pode virar prejuízo).
 export function lucroEmprestimo(e) {
-  const juros = Math.round(((+e.total || 0) - (+e.valor || 0)) * 100) / 100
+  const juros = Math.round(((+e.total || 0) - (+e.valor || 0) + encargosRecebidos(e)) * 100) / 100
   const f = resumoFiado(e) || { recebido: 0, naoPago: 0, aberto: 0, pendente: false }
   if (f.pendente) return { lucro: 0, pendente: true, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: f.aberto }
   return { lucro: Math.round((juros - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: 0 }
@@ -415,7 +415,7 @@ export function lerCPF(s) {
 // Recebimento de fiado/empréstimo: paga primeiro a parcela mais antiga; o que sobrar vai para as próximas.
 // Devolve { parcelas, quitadas, sobra } (sobra > 0 = valor maior do que tudo o que falta).
 const parcelaAberta = (p) => !p.naoPaga && (+p.valor || 0) - recebidoDaParcela(p) > 0.004
-export function distribuirRecebimento(parcelas, valor, rec) {
+export function distribuirRecebimento(parcelas, valor, rec, encargoDe) {
   const ordem = parcelas.map((p, i) => ({ p, i })).filter((x) => parcelaAberta(x.p))
     .sort((a, b) => String(a.p.vencimento).localeCompare(String(b.p.vencimento)) || a.p.n - b.p.n)
   const novas = [...parcelas]
@@ -424,10 +424,35 @@ export function distribuirRecebimento(parcelas, valor, rec) {
   for (const { p, i } of ordem) {
     if (resta <= 0.004) break
     const falta = Math.round(((+p.valor || 0) - recebidoDaParcela(p)) * 100) / 100
+    const enc = Math.min(resta, encargoDe ? encargoDe(p) : 0)
+    resta = Math.round((resta - enc) * 100) / 100
     const parte = Math.min(falta, resta)
-    novas[i] = { ...p, recebimentos: [...(p.recebimentos || []), { ...rec, id: rec.id + '-' + p.n, valor: parte }] }
+    novas[i] = { ...p, recebimentos: [...(p.recebimentos || []), { ...rec, id: rec.id + '-' + p.n, valor: parte, ...(enc > 0 ? { encargo: enc } : {}) }] }
     resta = Math.round((resta - parte) * 100) / 100
     if (parte >= falta - 0.004) quitadas++
   }
   return { parcelas: novas, quitadas, sobra: resta }
 }
+
+// ---------- Multa e juros por atraso
+// db.config.atraso = { multaPct, jurosMesPct, carenciaDias }
+// Multa: % do que falta, uma vez. Juros: % ao mês, por dia de atraso (contados do vencimento).
+// O que já foi pago de multa/juros (recebimento.encargo) é descontado.
+export const encargoPago = (p) => (p.recebimentos || []).reduce((s, r) => s + (+r.encargo || 0), 0)
+export const encargosRecebidos = (v) => (v.fiado?.parcelas || []).reduce((s, p) => s + encargoPago(p), 0)
+export function encargoAtraso(p, cfg, dia = hoje()) {
+  const zero = { dias: 0, multa: 0, juros: 0, total: 0 }
+  if (!cfg || !(+cfg.multaPct > 0 || +cfg.jurosMesPct > 0) || p.naoPaga) return zero
+  const falta = (+p.valor || 0) - recebidoDaParcela(p)
+  if (falta <= 0.004 || !p.vencimento) return zero
+  const dias = Math.round((new Date(dia + 'T12:00:00') - new Date(p.vencimento + 'T12:00:00')) / 86400000)
+  if (dias <= 0 || dias <= (+cfg.carenciaDias || 0)) return zero
+  const r = (x) => Math.round(x * 100) / 100
+  const multa = r(falta * (+cfg.multaPct || 0) / 100)
+  const juros = r(falta * ((+cfg.jurosMesPct || 0) / 100 / 30) * dias)
+  return { dias, multa, juros, total: Math.max(0, r(multa + juros - encargoPago(p))) }
+}
+export const textoAtraso = (cfg) => cfg && (+cfg.multaPct > 0 || +cfg.jurosMesPct > 0)
+  ? [+cfg.multaPct > 0 && t('multa {p}%', { p: String(cfg.multaPct).replace('.', ',') }), +cfg.jurosMesPct > 0 && t('juros {p}% ao mês', { p: String(cfg.jurosMesPct).replace('.', ',') })].filter(Boolean).join(' + ')
+    + (+cfg.carenciaDias > 0 ? ' ' + t('(depois de {n} dia(s) de atraso)', { n: cfg.carenciaDias }) : '')
+  : ''
