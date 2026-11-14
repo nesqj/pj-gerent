@@ -147,7 +147,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
         <div className="card"><small>{t('Empréstimos')}</small><b>{lista.length}</b></div>
         <div className="card"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b></div>
         <div className="card">
-          <small>{t('Falta receber')}</small><b>{brl(faltaTotal)}</b>
+          <small>{t('A receber')}</small><b>{brl(faltaTotal)}</b>
         </div>
         <div className={'card' + (jurosConfirmados < 0 ? ' card-prejuizo' : '')}>
           <small>{t('Lucro (juros)')}</small>
@@ -157,7 +157,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
       </div>
       <div className="tw">
         <table>
-          <thead><tr><th>{t('Hora')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('Falta receber')}</th><th className="n">{t('Recebido')}</th><th className="n">{t('Lucro (juros)')}</th><th></th></tr></thead>
+          <thead><tr><th>{t('Hora')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('A receber')}</th><th className="n">{t('Recebido')}</th><th className="n">{t('Lucro (juros)')}</th><th></th></tr></thead>
           <tbody>
             {lista.length === 0 && <tr><td colSpan="7" className="vazio">{t('Nenhum empréstimo neste dia.')}</td></tr>}
             {lista.map((e) => {
