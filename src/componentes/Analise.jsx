@@ -265,8 +265,8 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
   return (
     <>
       <div className="cards indicadores">
-        <div className="card destaque"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b><small className="var">{t('{n} empréstimo(s)', { n: lista.length })}</small></div>
-        <div className={'card' + (lucro < 0 ? ' card-prejuizo' : '')}>
+        <div className="card"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b><small className="var">{t('{n} empréstimo(s)', { n: lista.length })}</small></div>
+        <div className={'card' + (lucro < 0 ? ' card-prejuizo' : ' destaque')}>
           <small>{lucro < 0 ? t('Prejuízo estimado') : t('Lucro (juros)')}</small>
           <b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b>
           {naoPago > 0 && <small className="var bad">{t('não pago: {valor}', { valor: brl(naoPago) })}</small>}
