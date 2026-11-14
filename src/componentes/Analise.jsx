@@ -216,7 +216,7 @@ export default function Analise({ db }) {
           <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
         </div>
         <div className="card">
-          <small>{t('Despesas com estoque')}</small><b className={despesas > 0 ? 'bad' : ''}>{despesas > 0 ? '− ' + brl(despesas) : brl(0)}</b>
+          <small>{t('Despesas com estoque')}</small><b>{brl(despesas)}</b>
           {despesasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(despesasAnt) })}</small>}
         </div>
       </div>
