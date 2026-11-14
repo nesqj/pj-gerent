@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { trabalhaCom } from './NovoProduto.jsx'
 import { t } from '../i18n.js'
@@ -95,6 +95,17 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const qtdMarcados = tabela.filter((i) => marcados[i.k]).length
   const todosMarcados = tabela.length > 0 && qtdMarcados === tabela.length
 
+  async function excluirProduto(i) {
+    const lista = fornecedoresDe(i.k)
+    const nome = i.produto + (i.marca ? ' — ' + i.marca : '')
+    if (!(await confirmar(lista.length > 1
+      ? t('Excluir "{produto}" de todos os {n} fornecedores?', { produto: nome, n: lista.length })
+      : t('Excluir "{produto}"?', { produto: nome }), { perigo: true }))) return
+    if (await executar(async (A) => { for (const o of lista) await A.excluirPrecoFornecedor(o.id) }, t('Produto excluído.'))) {
+      if (sel === i.k) setSel('')
+    }
+  }
+
   async function aplicarNosMarcados() {
     const ks = tabela.filter((i) => marcados[i.k]).map((i) => i.k)
     if (!ks.length) return
@@ -110,58 +121,8 @@ export default function PrecosVenda({ db, executar, embutido }) {
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}
 
-      {/* ---------- Produto selecionado ---------- */}
-      {item && (
-        <>
-          <div className="resultado">
-            <div><small>{t('Produto')}</small><b>{item.produto}{item.marca ? ` — ${item.marca}` : ''}</b></div>
-            <div><small>{t('Fornecedor mais barato')}</small><b>{nomeFornecedor(db, item.fornecedorId)}</b></div>
-            <div><small>{t('Menor preço')}</small><b>{brl(item.custo)}</b></div>
-            <div><small>{t('Regra')}</small><SeletorPreco db={db} executar={executar} k={item.k} custo={item.custo} /></div>
-            <div className="destaque"><small>{t('Preço de venda')}</small><b>{brl(item.preco)}</b></div>
-            <div><button className="sec" onClick={() => setSel('')}>{t('Ver todos')}</button></div>
-          </div>
-
-          <div className="tw">
-            <table>
-              <thead>
-                <tr><th>{t('Fornecedor')}</th><th className="n">{t('Preço')}</th><th className="n">{t('Venda calculada')}</th><th>{t('Atualizado')}</th><th></th></tr>
-              </thead>
-              <tbody>
-                {ofertas.map((p, n) => (
-                  <tr key={p.id} className={n === 0 ? 'best' : ''}>
-                    <td>{nomeFornecedor(db, p.fornecedorId)}</td>
-                    <td className="n">{ff.editando?.id === p.id
-                      ? <input className="cel" inputMode="decimal" autoFocus value={ff.editando.preco} onChange={(e) => ff.setEditando({ ...ff.editando, preco: e.target.value })}
-                          onKeyDown={(e) => { if (e.key === 'Enter') ff.salvarPreco(p); if (e.key === 'Escape') ff.setEditando(null) }} />
-                      : brl(p.preco)}</td>
-                    <td className="n">{brl(item.resolucao.tipo === 'regra' ? calcularVenda(p.preco, item.resolucao.regra) : item.resolucao.tipo === 'fixo' ? item.preco : p.preco)}</td>
-                    <td>{dataTs(p.atualizado)}</td>
-                    <td className="n acoes-fiado">
-                      {ff.editando?.id === p.id
-                        ? <><button className="edit" onClick={() => ff.salvarPreco(p)}>{t('Salvar')}</button>{' '}<button className="sec" onClick={() => ff.setEditando(null)}>×</button></>
-                        : <><button className="edit" onClick={() => ff.setEditando({ id: p.id, preco: String(p.preco).replace('.', ',') })}>{t('Mudar preço')}</button>{' '}<button className="del" onClick={() => ff.remover(p)}>{t('Remover')}</button></>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {ff.semEste.length > 0 && (
-            <form className="inline-form adicionar-forn" onSubmit={ff.adicionar}>
-              <small>{t('Outro fornecedor também tem este produto?')}</small>
-              <select value={ff.novo.fornecedorId || ff.semEste[0].id} onChange={(e) => ff.setNovo({ ...ff.novo, fornecedorId: e.target.value })}>
-                {ff.semEste.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
-              </select>
-              <input inputMode="decimal" placeholder={t('Preço (R$)')} style={{ width: 110 }} value={ff.novo.preco} onChange={(e) => ff.setNovo({ ...ff.novo, preco: e.target.value })} />
-              <button type="submit">+ {t('Adicionar')}</button>
-            </form>
-          )}
-        </>
-      )}
-
       {/* ---------- Tabela com todos os produtos ---------- */}
-      {!item && itens.length > 0 && (
+      {itens.length > 0 && (
         <>
           <div className="linha-titulo">
             <input className="busca" style={{ marginBottom: 0 }} placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
@@ -184,26 +145,64 @@ export default function PrecosVenda({ db, executar, embutido }) {
                   <th><input type="checkbox" checked={todosMarcados} title={t('Selecionar todos')}
                     onChange={(e) => setMarcados(e.target.checked ? Object.fromEntries(tabela.map((i) => [i.k, true])) : {})} /></th>
                   <th>{t('Produto')}</th><th>{t('Marca')}</th><th>{t('Fornecedores')}</th><th className="n">{t('Menor custo')}</th>
-                  <th>{t('Regra')}</th><th className="n">{t('Preço de venda')}</th><th className="n">{t('Lucro')}</th>
+                  <th>{t('Regra')}</th><th className="n">{t('Preço de venda')}</th><th className="n">{t('Lucro')}</th><th></th>
                 </tr>
               </thead>
               <tbody>
-                {tabela.length === 0 && <tr><td colSpan="8" className="vazio">{t('Nada encontrado.')}</td></tr>}
+                {tabela.length === 0 && <tr><td colSpan="9" className="vazio">{t('Nada encontrado.')}</td></tr>}
                 {tabela.map((i) => (
-                  <tr key={i.k} className={'clicavel' + (marcados[i.k] ? ' em-edicao' : '')} onClick={() => setSel(i.k)} title={descricaoPreco(i.resolucao)}>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" checked={!!marcados[i.k]} onChange={(e) => setMarcados({ ...marcados, [i.k]: e.target.checked })} />
-                    </td>
-                    <td>{i.produto}</td>
-                    <td>{i.marca || '-'}</td>
-                    <td title={fornecedoresDe(i.k).map((o) => nomeFornecedor(db, o.fornecedorId) + ': ' + brl(o.preco)).join('\n')}>
-                      {nomeFornecedor(db, i.fornecedorId)}{fornecedoresDe(i.k).length > 1 && <small className="sub-linha">{t('+ {n} fornecedor(es)', { n: fornecedoresDe(i.k).length - 1 })}</small>}
-                    </td>
-                    <td className="n">{brl(i.custo)}</td>
-                    <td><SeletorPreco db={db} executar={executar} k={i.k} custo={i.custo} /></td>
-                    <td className="n"><b className="ok">{brl(i.preco)}</b></td>
-                    <td className="n"><span className={i.preco - i.custo < 0 ? 'bad' : ''}>{brl(i.preco - i.custo)}</span></td>
-                  </tr>
+                  <Fragment key={i.k}>
+                    <tr className={(marcados[i.k] ? 'em-edicao' : '') + (sel === i.k ? ' linha-aberta' : '')} title={descricaoPreco(i.resolucao)}>
+                      <td><input type="checkbox" checked={!!marcados[i.k]} onChange={(e) => setMarcados({ ...marcados, [i.k]: e.target.checked })} /></td>
+                      <td>{i.produto}</td>
+                      <td>{i.marca || '-'}</td>
+                      <td title={fornecedoresDe(i.k).map((o) => nomeFornecedor(db, o.fornecedorId) + ': ' + brl(o.preco)).join('\n')}>
+                        {nomeFornecedor(db, i.fornecedorId)}{fornecedoresDe(i.k).length > 1 && <small className="sub-linha">{t('+ {n} fornecedor(es)', { n: fornecedoresDe(i.k).length - 1 })}</small>}
+                      </td>
+                      <td className="n">{brl(i.custo)}</td>
+                      <td><SeletorPreco db={db} executar={executar} k={i.k} custo={i.custo} /></td>
+                      <td className="n"><b className="ok">{brl(i.preco)}</b></td>
+                      <td className="n"><span className={i.preco - i.custo < 0 ? 'bad' : ''}>{brl(i.preco - i.custo)}</span></td>
+                      <td className="n acoes-fiado">
+                        <button className="edit" onClick={() => { ff.setEditando(null); setSel(sel === i.k ? '' : i.k) }}>{sel === i.k ? t('Fechar') : t('Editar')}</button>{' '}
+                        <button className="del" onClick={() => excluirProduto(i)}>{t('Excluir')}</button>
+                      </td>
+                    </tr>
+                    {sel === i.k && (
+                      <tr className="linha-edicao-produto">
+                        <td colSpan="9">
+                          <div className="edicao-produto">
+                            <b>{t('Fornecedores de {produto}', { produto: i.produto + (i.marca ? ' — ' + i.marca : '') })}</b>
+                            {ofertas.map((o, n) => (
+                              <div key={o.id} className={'ep-linha' + (n === 0 ? ' best' : '')}>
+                                <span className="ep-nome">{nomeFornecedor(db, o.fornecedorId)}{n === 0 && <small> · {t('mais barato')}</small>}</span>
+                                {ff.editando?.id === o.id
+                                  ? <span className="lf-preco"><span>R$</span><input inputMode="decimal" autoFocus value={ff.editando.preco} onChange={(e) => ff.setEditando({ ...ff.editando, preco: e.target.value })}
+                                      onKeyDown={(e) => { if (e.key === 'Enter') ff.salvarPreco(o); if (e.key === 'Escape') ff.setEditando(null) }} /></span>
+                                  : <span className="ep-preco">{brl(o.preco)}</span>}
+                                <small className="ep-venda">{t('venda {valor}', { valor: brl(i.resolucao.tipo === 'regra' ? calcularVenda(o.preco, i.resolucao.regra) : i.resolucao.tipo === 'fixo' ? i.preco : o.preco) })}</small>
+                                <span className="acoes-fiado">
+                                  {ff.editando?.id === o.id
+                                    ? <><button className="edit" onClick={() => ff.salvarPreco(o)}>{t('Salvar')}</button>{' '}<button className="sec" onClick={() => ff.setEditando(null)}>×</button></>
+                                    : <><button className="edit" onClick={() => ff.setEditando({ id: o.id, preco: String(o.preco).replace('.', ',') })}>{t('Mudar preço')}</button>{' '}<button className="del" onClick={() => ff.remover(o)}>{t('Remover')}</button></>}
+                                </span>
+                              </div>
+                            ))}
+                            {ff.semEste.length > 0 && (
+                              <form className="inline-form adicionar-forn" onSubmit={ff.adicionar}>
+                                <small>{t('Outro fornecedor também tem este produto?')}</small>
+                                <select value={ff.novo.fornecedorId || ff.semEste[0].id} onChange={(e) => ff.setNovo({ ...ff.novo, fornecedorId: e.target.value })}>
+                                  {ff.semEste.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+                                </select>
+                                <input inputMode="decimal" placeholder={t('Preço (R$)')} style={{ width: 110 }} value={ff.novo.preco} onChange={(e) => ff.setNovo({ ...ff.novo, preco: e.target.value })} />
+                                <button type="submit">+ {t('Adicionar')}</button>
+                              </form>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

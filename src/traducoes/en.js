@@ -1297,4 +1297,9 @@ export default {
   'Cadastre o produto uma vez e marque todos os fornecedores que têm ele, com o preço de cada um.': 'Add the product once and pick every supplier that has it, with each one\'s price.',
   'Nenhum fornecedor trabalha com esta marca.': 'No supplier works with this brand.',
   'Produtos e preços de venda': 'Products and selling prices',
+  'Fornecedores de {produto}': 'Suppliers of {produto}',
+  'venda {valor}': 'sale {valor}',
+  'Excluir "{produto}" de todos os {n} fornecedores?': 'Delete "{produto}" from all {n} suppliers?',
+  'Excluir "{produto}"?': 'Delete "{produto}"?',
+  'Produto excluído.': 'Product deleted.',
 }
