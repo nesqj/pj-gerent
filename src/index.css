@@ -792,3 +792,6 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 .lf-preco .sufixo { color: var(--mut); font-size: 13px; padding-right: 10px }
 @media (max-width: 767px) { .np-linha, .np-blocos { grid-template-columns: 1fr } .np-botoes button { flex: 1 } }
 
+
+/* pagamento: o link "Dividir pagamento" fica na altura do meio do campo */
+.pg-linha-unica > .link { min-height: 39px; display: inline-flex; align-items: center }
