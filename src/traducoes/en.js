@@ -1336,4 +1336,9 @@ export default {
   'Digite o preço de venda ou a % de aumento sobre o custo (o menor custo entre os fornecedores) e aperte Enter. O preço vale para qualquer fornecedor.': 'Type the selling price or the % markup on cost (the lowest cost among suppliers) and press Enter. The price applies to any supplier.',
   'margem {p}': 'margin {p}',
   'Embaixo fica a tabela de produtos: nela você define o preço de venda de cada um (digitando o preço ou a % sobre o custo).': 'Below is the products table: set each one\'s selling price there (typing the price or the % on cost).',
+  'Confira o preço de venda.': 'Check the selling price.',
+  'sobre o menor custo: {valor}': 'on the lowest cost: {valor}',
+  'preencha o custo do fornecedor acima': 'fill in the supplier cost above',
+  'Aumento': 'Markup',
+  'lucro {valor} · margem {p}': 'profit {valor} · margin {p}',
 }

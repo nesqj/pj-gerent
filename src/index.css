@@ -768,4 +768,7 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 /* Calculadora de preço */
 .tabela-calc .calc-campo { display: inline-flex; width: 120px; vertical-align: middle }
 .tabela-calc .calc-campo input { text-align: right; padding: 6px 8px }
+.bloco-venda .venda-linha { grid-template-columns: 120px 140px 1fr }
+.bloco-venda .venda-linha small { font-size: 12px }
+@media (max-width: 767px) { .bloco-venda .venda-linha { grid-template-columns: 1fr 1fr } .bloco-venda .venda-linha small { grid-column: 1 / -1 } }
 
