@@ -1263,4 +1263,12 @@ export default {
   'Lucro real': 'Actual profit',
   'Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro de cada parcela quando ela é paga.': 'Estimated profit = price sold − cost. On credit, each installment\'s share of the profit counts when it is paid.',
   'Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos.': 'Estimated profit = price sold − cost. On credit, each installment\'s share of the profit counts when it is paid, plus late fees and interest received.',
+  'Despesas': 'Expenses',
+  'Despesas com estoque': 'Stock expenses',
+  'período anterior: {valor}': 'previous period: {valor}',
+  'Entradas no estoque': 'Stock entries',
+  'Itens comprados': 'Items bought',
+  'Nenhuma compra de estoque neste período.': 'No stock purchases in this period.',
+  'Por produto': 'By product',
+  'Despesas com estoque = quantidade × custo de cada entrada no estoque feita no período (inclusive as pagas fora do caixa).': 'Stock expenses = quantity × cost of each stock entry made in the period (including those paid outside the cash).',
 }
