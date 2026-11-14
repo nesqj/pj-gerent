@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
-import { brl, calcularEmprestimo, dataBR, encargoAtraso, extratoCaixa, faltaReceber, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
+import { brl, calcularEmprestimo, dataBR, encargoAtraso, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
 import { AvisoCliente } from './Clientes.jsx'
 
@@ -125,7 +125,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
     return { falta: Math.round(((f?.aberto || 0) + atraso) * 100) / 100, atraso: Math.round(atraso * 100) / 100 }
   }
   const faltas = lista.map(faltaDe)
-  const faltaTotal = faltaReceber(db.emprestimos, db.config?.atraso) // tudo o que falta receber dos empréstimos, não só do dia
   const jurosConfirmados = lucros.reduce((s, l) => s + l.lucro, 0)
 
   async function excluir(e) {
@@ -145,9 +144,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
       <div className="cards">
         <div className="card"><small>{t('Empréstimos')}</small><b>{lista.length}</b></div>
         <div className="card"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b></div>
-        <div className="card">
-          <small>{t('A receber')}</small><b>{brl(faltaTotal)}</b>
-        </div>
         <div className={'card' + (jurosConfirmados < 0 ? ' card-prejuizo' : '')}>
           <small>{t('Lucro (juros)')}</small>
           <b className={jurosConfirmados < 0 ? 'bad' : 'ok'}>{jurosConfirmados < 0 ? '− ' + brl(-jurosConfirmados) : brl(jurosConfirmados)}</b>
