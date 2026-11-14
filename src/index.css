@@ -118,9 +118,9 @@ form {
   display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
   background: var(--card); border: 1px solid var(--bd); border-radius: 10px; padding: 16px; margin-bottom: 18px;
 }
-label { display: flex; flex-direction: column; font-size: 13px; color: var(--mut); gap: 6px; flex: 1 1 180px }
+label { display: flex; flex-direction: column; font-size: 13px; color: var(--mut); gap: 6px; flex: 1 1 180px; min-width: 0 }
 input, select {
-  padding: 9px 10px; border: 1px solid var(--bd-forte); border-radius: 8px; font-size: 14px;
+  padding: 9px 10px; max-width: 100%; min-width: 0; border: 1px solid var(--bd-forte); border-radius: 8px; font-size: 14px;
   color: var(--txt); background: var(--campo); outline: none;
 }
 input:focus, select:focus { border-color: var(--pri); box-shadow: 0 0 0 3px var(--pri-foco) }
@@ -800,3 +800,6 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 .titulo-secao { margin-bottom: 12px }
 .titulo-secao + .texto-secao { margin-top: -6px }
 
+
+/* listas com nomes compridos não podem passar da largura da tela (no celular a página ia para o lado) */
+label > select { width: 100%; text-overflow: ellipsis }
