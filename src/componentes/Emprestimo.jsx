@@ -142,10 +142,11 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
           <b className={jurosConfirmados < 0 ? 'bad' : 'ok'}>{jurosConfirmados < 0 ? '− ' + brl(-jurosConfirmados) : brl(jurosConfirmados)}</b>
         </div>
       </div>
-      {lista.length > 0 && <div className="tw">
+      <div className="tw">
         <table>
           <thead><tr><th>{t('Hora')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('Recebido')}</th><th className="n">{t('Lucro (juros)')}</th><th></th></tr></thead>
           <tbody>
+            {lista.length === 0 && <tr><td colSpan="6" className="vazio">{t('Nenhum empréstimo neste dia.')}</td></tr>}
             {lista.map((e) => {
               const l = lucroEmprestimo(e)
               const n = e.fiado?.parcelas?.length || 1
@@ -168,7 +169,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
             })}
           </tbody>
         </table>
-      </div>}
+      </div>
     </>
   )
 }
