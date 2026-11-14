@@ -1,6 +1,7 @@
 // Avisos na tela, no mesmo estilo do PJ CRM:
 //  - aviso.ok / aviso.erro / aviso.info / aviso.alerta: notificação no canto (biblioteca "sonner",
-//    canto inferior direito, cores para sucesso/erro, botão de fechar, some sozinha em 4 s)
+//    canto inferior direito, um embaixo do outro (nunca um sobre o outro), faixa colorida por tipo,
+//    botão de fechar, some sozinha em 4 s)
 //  - confirmar(texto): janela de confirmação no lugar do confirm() do navegador (devolve true/false)
 //  - perguntar(texto, padrão): janela com um campo no lugar do prompt() (devolve o texto ou null)
 import { useEffect, useRef, useState } from 'react'
@@ -79,7 +80,9 @@ export function AvisosNaTela() {
       <Toaster
         theme={tema}
         position="bottom-right"
-        richColors
+        expand
+        visibleToasts={4}
+        gap={10}
         closeButton
         duration={4000}
         toastOptions={{ className: 'aviso-toast' }}

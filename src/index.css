@@ -577,8 +577,30 @@ input.campo-erro { border-color: var(--bad) !important; box-shadow: 0 0 0 3px va
   .dialogo-botoes { flex-direction: column-reverse }
   .dialogo-botoes button { width: 100% }
 }
-/* notificações (sonner) com a fonte do app */
-.aviso-toast { font-family: inherit !important; font-size: 14px !important }
+/* notificações (sonner) com o visual do app: cartão, faixa colorida à esquerda e ícone da cor do tipo */
+.aviso-toast {
+  --cor-aviso: var(--pri);
+  font-family: inherit !important; font-size: 14px !important;
+  background: var(--card) !important; color: var(--txt) !important;
+  border: 1px solid var(--bd) !important; border-left: 4px solid var(--cor-aviso) !important; border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .38), 0 2px 6px rgba(0, 0, 0, .2) !important;
+  padding: 14px 38px 14px 14px !important; gap: 12px !important; align-items: flex-start !important;
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--cor-aviso) 10%, transparent), transparent 55%) !important;
+}
+:root[data-theme="light"] .aviso-toast { box-shadow: 0 10px 28px rgba(0, 0, 0, .12), 0 2px 6px rgba(0, 0, 0, .06) !important }
+.aviso-toast[data-type="success"] { --cor-aviso: var(--ok) }
+.aviso-toast[data-type="error"] { --cor-aviso: var(--bad) }
+.aviso-toast[data-type="warning"] { --cor-aviso: var(--warn) }
+.aviso-toast[data-type="info"] { --cor-aviso: var(--pri) }
+.aviso-toast [data-icon] { color: var(--cor-aviso) !important; margin-top: 1px }
+.aviso-toast [data-icon] svg { width: 18px; height: 18px }
+.aviso-toast [data-title] { font-weight: 600 !important; color: var(--txt) !important; line-height: 1.35 }
+.aviso-toast [data-description] { color: var(--mut) !important; font-size: 13px !important; line-height: 1.4; margin-top: 2px }
+.aviso-toast [data-close-button] {
+  left: auto !important; right: 8px !important; top: 10px !important; transform: none !important;
+  background: transparent !important; border: none !important; color: var(--mut) !important; width: 22px !important; height: 22px !important;
+}
+.aviso-toast [data-close-button]:hover { color: var(--txt) !important; background: var(--hover) !important }
 
 /* ---------- Prejuízo (venda abaixo do custo) ---------- */
 tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent) }
