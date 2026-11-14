@@ -85,7 +85,7 @@ export default function Fornecedores({ db, executar }) {
         <h2>{t('Fornecedores')}</h2>
         {!(cadastrando || db.fornecedores.length === 0) && <button onClick={() => setCadastrando(true)}>+ {t('Cadastrar fornecedor')}</button>}
       </div>
-      <p className="texto-secao"><small>{t('Cadastre aqui de quem você compra, com o contato e as marcas que cada um trabalha. Clique no cartão do fornecedor para ver os produtos dele e atualizar os preços de custo.')}</small></p>
+      <p className="texto-secao"><small>{t('Cadastre de quem você compra e as marcas de cada um. Clique no fornecedor para ver os produtos dele.')}</small></p>
       {/* o formulário fica fechado; abre pelo botão (ou já aberto quando ainda não há fornecedores) */}
       {(cadastrando || db.fornecedores.length === 0) && (
         <form onSubmit={salvar}>

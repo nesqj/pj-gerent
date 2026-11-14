@@ -1347,6 +1347,6 @@ export default {
   'marca {marca}': 'brand {marca}',
   'preencha o custo ao lado': 'fill in the cost on the left',
   'Desmarcar todos': 'Deselect all',
-  'Cadastre aqui de quem você compra, com o contato e as marcas que cada um trabalha. Clique no cartão do fornecedor para ver os produtos dele e atualizar os preços de custo.': 'Register here who you buy from, with the contact and the brands each one works with. Click the supplier card to see their products and update cost prices.',
-  'Cadastre o produto com o botão "+ Cadastrar produto". Na tabela, digite o preço de venda ou a % de aumento sobre o menor custo e aperte Enter para salvar; o preço vale para qualquer fornecedor. Em "Editar" você muda o nome, a marca e os fornecedores do produto.': 'Add the product with the "+ Add product" button. In the table, type the selling price or the % markup on the lowest cost and press Enter to save; the price applies to any supplier. In "Edit" you change the product\'s name, brand and suppliers.',
+  'Cadastre de quem você compra e as marcas de cada um. Clique no fornecedor para ver os produtos dele.': 'Register who you buy from and their brands. Click a supplier to see their products.',
+  'Digite o preço ou a % sobre o custo e aperte Enter. Em "Editar", mude nome, marca e fornecedores.': 'Type the price or the % on cost and press Enter. In "Edit", change name, brand and suppliers.',
 }
