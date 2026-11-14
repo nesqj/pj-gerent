@@ -935,7 +935,7 @@ export default {
   'Ex: aporte do sócio, empréstimo, troco inicial...': 'E.g.: partner contribution, loan, starting change...',
   'Retirar': 'Take out',
   'Colocar': 'Put in',
-  'As vendas entram sozinhas e as entradas no estoque descontam o custo sozinhas. Aqui vai só o dinheiro que entra ou sai por fora delas.': 'Sales come in automatically and stock entries subtract their cost automatically. Here goes only the money that comes in or goes out apart from them.',
+  'As vendas entram sozinhas; as entradas no estoque e os produtos de fornecedor vendidos descontam o custo sozinhos. Aqui vai só o dinheiro que entra ou sai por fora deles.': 'Sales come in on their own; stock entries and supplier products sold subtract their cost on their own. Here goes only the money that comes in or goes out outside of them.',
   'Extrato': 'Statement',
   'Saldo': 'Balance',
   'Nenhum movimento neste período.': 'No movements in this period.',
@@ -1271,4 +1271,5 @@ export default {
   'Nenhuma compra de estoque neste período.': 'No stock purchases in this period.',
   'Por produto': 'By product',
   'Despesas com estoque = quantidade × custo de cada entrada no estoque feita no período (inclusive as pagas fora do caixa).': 'Stock expenses = quantity × cost of each stock entry made in the period (including those paid outside the cash).',
+  'Pago ao fornecedor': 'Paid to supplier',
 }

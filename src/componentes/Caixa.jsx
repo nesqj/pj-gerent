@@ -15,6 +15,7 @@ const ORIGENS = {
   venda: { nome: 'Venda', classe: 'ok' },
   fiado: { nome: 'Recebimento de fiado', classe: 'ok' },
   compra: { nome: 'Compra de estoque', classe: 'bad' },
+  fornecedor: { nome: 'Pago ao fornecedor', classe: 'bad' },
   emprestimo: { nome: 'Empréstimo concedido', classe: 'bad' },
   'emprestimo-receb': { nome: 'Recebimento de empréstimo', classe: 'ok' },
   colocar: { nome: 'Dinheiro colocado', classe: 'ok' },
@@ -126,7 +127,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
         <button type="submit">{editando ? t('Salvar alterações') : form.tipo === 'retirar' ? t('Retirar') : t('Colocar')}</button>
         {editando && <button type="button" className="sec" onClick={cancelar}>{t('Cancelar edição')}</button>}
       </form>
-      <p><small>{t('As vendas entram sozinhas e as entradas no estoque descontam o custo sozinhas. Aqui vai só o dinheiro que entra ou sai por fora delas.')}</small></p>
+      <p><small>{t('As vendas entram sozinhas; as entradas no estoque e os produtos de fornecedor vendidos descontam o custo sozinhos. Aqui vai só o dinheiro que entra ou sai por fora deles.')}</small></p>
 
       <div className="linha-titulo">
         <h3>{t('Extrato')}</h3>
@@ -153,7 +154,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
                       <button className="del" onClick={() => excluir(m.ref)}>{t('Excluir')}</button>
                     </>
                   ) : (
-                    <button className="link pequeno" onClick={() => { if (m.origem === 'venda' || m.origem === 'emprestimo') { try { sessionStorage.setItem('vendas-dia', m.dia) } catch { /* sem acesso */ } } irPara(m.origem === 'venda' || m.origem === 'emprestimo' ? 'vendas' : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? 'fiado' : 'estoque') }}>{m.origem === 'venda' || m.origem === 'emprestimo' ? t('Ver em Novo Registro') : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? t('Ver em Cobranças') : t('Ver no Estoque')}</button>
+                    <button className="link pequeno" onClick={() => { if (['venda', 'emprestimo', 'fornecedor'].includes(m.origem)) { try { sessionStorage.setItem('vendas-dia', m.dia) } catch { /* sem acesso */ } } irPara(['venda', 'emprestimo', 'fornecedor'].includes(m.origem) ? 'vendas' : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? 'fiado' : 'estoque') }}>{['venda', 'emprestimo', 'fornecedor'].includes(m.origem) ? t('Ver em Novo Registro') : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? t('Ver em Cobranças') : t('Ver no Estoque')}</button>
                   )}
                 </td>
               </tr>

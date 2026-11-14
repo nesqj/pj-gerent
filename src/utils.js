@@ -266,6 +266,13 @@ export function extratoCaixa(db) {
       id: 'pr-' + r.id, ref: e, origem: 'emprestimo-receb', data: r.data, dia: r.dia, valor: (+r.valor || 0) + (+r.encargo || 0),
       descricao: `${e.fiado.cliente || ''} · ${p.n}/${e.fiado.parcelas.length}`, pagamento: r.forma,
     })))),
+    // produto de fornecedor vendido: o custo é pago ao fornecedor com o dinheiro do caixa, no dia da venda
+    ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'fornecedor' && i.custo != null && +i.qtd > 0) }))
+      .filter((x) => x.itens.length).map(({ v, itens }) => ({
+        id: 'pf-' + v.id, ref: v, origem: 'fornecedor', data: v.data, dia: v.dia,
+        valor: -Math.round(itens.reduce((s, i) => s + (+i.qtd || 0) * (+i.custo || 0), 0) * 100) / 100,
+        descricao: itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ' (' + i.marca + ')' : ''}`).join(', '),
+      })),
     ...(db.entradas || []).filter((e) => depois(e) && !e.foraDoCaixa && e.custo != null).map((e) => ({
       id: 'e-' + e.id, ref: e, origem: 'compra', data: e.data, dia: e.dia, valor: -(+e.qtd || 0) * (+e.custo || 0),
       descricao: `${e.qtd}× ${e.produto}`,
