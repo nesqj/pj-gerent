@@ -59,6 +59,7 @@ export default function Fornecedores({ db, executar }) {
   const [form, setForm] = useState(fornecedorVazio)
   const [busca, setBusca] = useState('')
   const [aberto, setAberto] = useState(null) // id do fornecedor com a página aberta
+  const [cadastrando, setCadastrando] = useState(false) // formulário de novo fornecedor aberto
 
   const fornAberto = db.fornecedores.find((f) => f.id === aberto)
   if (fornAberto) return <FornecedorDetalhe db={db} executar={executar} forn={fornAberto} voltar={() => setAberto(null)} />
@@ -68,7 +69,8 @@ export default function Fornecedores({ db, executar }) {
     const o = doFormulario(form)
     if (await executar((A) => A.salvarFornecedor(o))) {
       setForm(fornecedorVazio)
-      setAberto(o.id) // abre a página do fornecedor para cadastrar os produtos
+      setCadastrando(false)
+      setAberto(o.id) // abre a página do fornecedor (marcas, contato)
     }
   }
 
@@ -79,12 +81,20 @@ export default function Fornecedores({ db, executar }) {
 
   return (
     <section>
-      <h2>{t('Fornecedores')}</h2>
-      <form onSubmit={salvar}>
-        <CamposFornecedor form={form} setForm={setForm} />
-        <button type="submit">{t('Cadastrar fornecedor')}</button>
-        <button type="button" className="sec" onClick={() => setForm(fornecedorVazio)}>{t('Limpar')}</button>
-      </form>
+      <div className="linha-titulo titulo-secao">
+        <h2>{t('Fornecedores')}</h2>
+        {!(cadastrando || db.fornecedores.length === 0) && <button onClick={() => setCadastrando(true)}>+ {t('Cadastrar fornecedor')}</button>}
+      </div>
+      {/* o formulário fica fechado; abre pelo botão (ou já aberto quando ainda não há fornecedores) */}
+      {(cadastrando || db.fornecedores.length === 0) && (
+        <form onSubmit={salvar}>
+          <CamposFornecedor form={form} setForm={setForm} />
+          <button type="submit">{t('Cadastrar fornecedor')}</button>
+          {db.fornecedores.length > 0
+            ? <button type="button" className="sec" onClick={() => { setForm(fornecedorVazio); setCadastrando(false) }}>{t('Cancelar')}</button>
+            : <button type="button" className="sec" onClick={() => setForm(fornecedorVazio)}>{t('Limpar')}</button>}
+        </form>
+      )}
 
       <input className="busca" placeholder={t('Buscar por nome, cidade ou marca...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
 

@@ -796,3 +796,6 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 /* pagamento: o link "Dividir pagamento" fica na altura do meio do campo */
 .pg-linha-unica > .link { min-height: 39px; display: inline-flex; align-items: center }
 .selecionar-todos { white-space: nowrap }
+.titulo-secao h2 { margin: 0 }
+.titulo-secao { margin-bottom: 12px }
+
