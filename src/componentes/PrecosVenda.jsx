@@ -75,7 +75,7 @@ function SeletorPreco({ db, executar, k, custo }) {
   )
 }
 
-export default function PrecosVenda({ db, executar }) {
+export default function PrecosVenda({ db, executar, embutido }) {
   const [sel, setSel] = useState('')
   const [busca, setBusca] = useState('')
   const [marcados, setMarcados] = useState({}) // produtos marcados para aplicar uma regra de uma vez
@@ -105,7 +105,7 @@ export default function PrecosVenda({ db, executar }) {
 
   return (
     <section>
-      <h2>{t('Tabela de Venda')}</h2>
+      {embutido ? <h3 className="titulo-produtos">{t('Produtos e preços de venda')}</h3> : <h2>{t('Tabela de Venda')}</h2>}
       <p><small>{t('Escolha a regra de cada produto na coluna "Regra". Para criar ou mudar regras, use a aba "Regra de Preço".')}</small></p>
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}

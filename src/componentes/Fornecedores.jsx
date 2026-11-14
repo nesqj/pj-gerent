@@ -4,6 +4,7 @@ import { norm, uid } from '../utils.js'
 import FornecedorDetalhe from './FornecedorDetalhe.jsx'
 import { EditorMarcas } from './Marcas.jsx'
 import NovoProduto from './NovoProduto.jsx'
+import PrecosVenda from './PrecosVenda.jsx'
 
 export const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ')
 
@@ -109,6 +110,9 @@ export default function Fornecedores({ db, executar }) {
           )
         })}
       </div>
+
+      {/* produtos e preço de venda (era a aba "Tabela de Venda") */}
+      <PrecosVenda db={db} executar={executar} embutido />
     </section>
   )
 }

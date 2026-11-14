@@ -746,4 +746,5 @@ small.aguarda { color: var(--mut); font-size: 12px }
 @media (max-width: 767px) { .lf-linha { grid-template-columns: 1fr 110px 32px } }
 .adicionar-forn { margin: 10px 0 4px; flex-wrap: wrap; gap: 8px }
 .adicionar-forn small { color: var(--mut) }
+h3.titulo-produtos { margin: 28px 0 6px; padding-top: 18px; border-top: 1px solid var(--bd) }
 

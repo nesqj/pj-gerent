@@ -3,7 +3,6 @@ import { aviso, confirmar } from './avisos-tela.jsx'
 import * as Armazenamento from './armazenamento.js'
 import * as Org from './organizacoes.js'
 import Fornecedores from './componentes/Fornecedores.jsx'
-import PrecosVenda from './componentes/PrecosVenda.jsx'
 import Vendas from './componentes/Vendas.jsx'
 import RegraPreco from './componentes/RegraPreco.jsx'
 import Analise from './componentes/Analise.jsx'
@@ -25,7 +24,7 @@ import { corTextoSobre, definirFuso, FUSO_PADRAO, hexValido, hoje } from './util
 import pacote from '../package.json'
 import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from './marca.js'
 import {
-  IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCalculadora, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
+  IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
   IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
   IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado,
 } from './icones.jsx'
@@ -52,7 +51,6 @@ const GRUPOS = [
   {
     nome: 'Preços',
     itens: [
-      { id: 'venda', nome: 'Tabela de Venda', icone: IconeCalculadora },
       { id: 'regra', nome: 'Regra de Preço', icone: IconeAjustes },
     ],
   },
@@ -93,7 +91,7 @@ const RODAPE = [
 ]
 
 // Abas que o vendedor vê (o banco também confere o que cada papel pode gravar)
-const ABAS_DO_VENDEDOR = ['vendas', 'fiado', 'clientes', 'estoque', 'venda', 'config', 'ajuda']
+const ABAS_DO_VENDEDOR = ['vendas', 'fiado', 'clientes', 'estoque', 'forn', 'config', 'ajuda']
 const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.includes(aba)
 
 const chaveLoja = (uid) => 'pjgerent-loja-' + uid
@@ -517,7 +515,6 @@ export default function App() {
           {!noAdmin && aba === 'analise' && <Analise db={db} />}
           {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'forn' && <Fornecedores db={db} executar={executar} />}
-          {!noAdmin && aba === 'venda' && <PrecosVenda db={db} executar={executar} />}
           {!noAdmin && aba === 'regra' && <RegraPreco db={db} executar={executar} />}
           {!noAdmin && aba === 'config' && <Configuracoes db={db} executar={executar} usuario={sessao.usuario} loja={loja} adminPlataforma={adminPlataforma} />}
           {!noAdmin && aba === 'ajuda' && <Ajuda irPara={irPara} />}

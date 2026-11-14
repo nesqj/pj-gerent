@@ -4,7 +4,7 @@ import { t } from '../i18n.js'
 import { brl, calcularVenda, escolhaProduto, formulaRegra, margemDe, pct, produtosAVenda, regraPadraoDe, regrasDe, textoCalculo, uid } from '../utils.js'
 
 // Aba de regras de preço: cria várias regras com nome e escolhe qual é a padrão.
-// Em "Tabela de Venda" cada produto escolhe a regra que quiser.
+// Na aba Fornecedores (tabela de produtos) cada produto escolhe a regra que quiser.
 const vazio = { id: '', nome: '', percentual: '' }
 
 export default function RegraPreco({ db, executar }) {
@@ -56,7 +56,7 @@ export default function RegraPreco({ db, executar }) {
   return (
     <section>
       <h2>{t('Regra de Preço')}</h2>
-      <p><small>{t('Crie quantas regras quiser. Em "Tabela de Venda" você escolhe a regra de cada produto; os produtos sem escolha usam a regra padrão.')}</small></p>
+      <p><small>{t('Crie quantas regras quiser. Na aba "Fornecedores" você escolhe a regra de cada produto; os produtos sem escolha usam a regra padrão.')}</small></p>
 
       {/* ---------- Criar / editar regra ---------- */}
       <div className="linha-titulo"><h3>{form.id ? t('Editar regra') : t('Nova regra')}</h3></div>
@@ -91,7 +91,7 @@ export default function RegraPreco({ db, executar }) {
           </select>
         </label>
         <p style={{ marginTop: 10 }}><small>
-          {t('{n} produto(s) com regra própria ou preço fixo. Para mudar, use a aba "Tabela de Venda".', { n: comEscolha })}
+          {t('{n} produto(s) com regra própria ou preço fixo. Para mudar, use a aba "Fornecedores".', { n: comEscolha })}
         </small></p>
       </div>
 

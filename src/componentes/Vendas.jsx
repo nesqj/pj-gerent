@@ -26,7 +26,7 @@ export default function Vendas({ db, executar, irPara }) {
   // Duas origens de produtos:
   // - Estoque: cada entrada é um lote com o próprio custo; você escolhe de qual lote está vendendo.
   //   O preço é digitado na hora da venda, e a quantidade é controlada por lote.
-  // - Fornecedores: preço calculado na aba "Tabela de Venda", sem controle de quantidade
+  // - Fornecedores: preço calculado na aba "Fornecedores", sem controle de quantidade
   const estoque = calcularEstoque(db)
   const lotes = calcularLotes(db)
   // quanto de um lote já está no carrinho (ou na venda em edição, que devolve o que tinha tirado)
@@ -246,8 +246,8 @@ export default function Vendas({ db, executar, irPara }) {
         {selecionado?.origem === 'estoque'
           ? <small>{t('Produto do estoque: digite o preço pelo qual está vendendo.')}</small>
           : selecionado
-          ? <small>{t('Preço da aba "Tabela de Venda" ({regra}).', { regra: descricaoPreco(selecionado.resolucao) })}</small>
-          : <small>{t('Produtos dos fornecedores usam o preço da aba "Tabela de Venda".')}</small>}
+          ? <small>{t('Preço da aba "Fornecedores" ({regra}).', { regra: descricaoPreco(selecionado.resolucao) })}</small>
+          : <small>{t('Produtos dos fornecedores usam o preço da aba "Fornecedores".')}</small>}
         {selecionado?.origem === 'fornecedor' && selecionado.resolucao.tipo === 'nenhuma' && <small className="warn"> {t('Este produto está sem regra: o preço de venda é igual ao custo.')}</small>}
         {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
       </p>
