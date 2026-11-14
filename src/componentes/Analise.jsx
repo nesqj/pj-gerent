@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -35,6 +35,25 @@ const PERIODOS = [
 
 // ---------- Números do período ----------
 const lucroVenda0 = (v) => lucroDe(v.itens, fatorDesconto(v))
+
+// Lucro das vendas pelo que foi pago: a parte paga na hora conta no dia da venda; no fiado, cada parcela paga traz
+// a % do lucro da venda proporcional ao que entrou (sem os juros do fiado). O que não foi pago não traz lucro.
+// Devolve [{ dia, data, lucro }] para somar por período, dia ou hora.
+function lucrosPagos(todas) {
+  const ev = []
+  for (const v of todas) {
+    const aReceber = pagoNaHora(v) + totalFiado(v)
+    if (!(aReceber > 0)) continue
+    const porReal = lucroVenda0(v).lucro / aReceber // lucro de cada real que entra
+    const naHora = pagoNaHora(v)
+    if (naHora > 0) ev.push({ dia: v.dia, data: v.data, lucro: naHora * porReal })
+    for (const p of v.fiado?.parcelas || []) for (const r of p.recebimentos || []) {
+      if (+r.valor > 0) ev.push({ dia: r.dia, data: r.data || v.data, lucro: +r.valor * porReal })
+    }
+  }
+  return ev
+}
+const somaLucros = (ev, de, ate) => Math.round(ev.filter((x) => x.dia >= de && x.dia <= ate).reduce((s, x) => s + x.lucro, 0) * 100) / 100
 
 function resumo(vendas) {
   let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, naoPago = 0, jurosFiado = 0
@@ -103,8 +122,9 @@ export default function Analise({ db }) {
   const r = resumo(vendas), ra = resumo(anteriores)
   // "Não pagou" (fiado e empréstimo): perda no dia em que foi marcado
   const perdasV = perdasNaoPago(db.vendas), perdasE = perdasNaoPago(db.emprestimos || [])
-  r.naoPago = somaPerdas(perdasV, de, ate); r.lucro -= r.naoPago
-  ra.naoPago = somaPerdas(perdasV, antDe, antAte); ra.lucro -= ra.naoPago
+  const evLucro = lucrosPagos(db.vendas)
+  r.naoPago = somaPerdas(perdasV, de, ate); r.lucro = somaLucros(evLucro, de, ate)
+  ra.naoPago = somaPerdas(perdasV, antDe, antAte); ra.lucro = somaLucros(evLucro, antDe, antAte)
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
   ra.margem = ra.faturamento ? (ra.lucro / ra.faturamento) * 100 : 0
   const lucroTotal = Math.round(r.lucro * 100) / 100
@@ -113,13 +133,13 @@ export default function Analise({ db }) {
   let serie
   if (n === 1) {
     serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, hora: h, valor: 0, lucro: 0, vendas: 0 }))
-    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].lucro += lucroVenda0(v).lucro; serie[h].vendas++ }
-    for (const x of perdasV) if (x.dia === de) serie[new Date(x.data).getHours()].lucro -= x.valor
+    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].vendas++ }
+    for (const x of evLucro) if (x.dia === de) serie[new Date(x.data).getHours()].lucro += x.lucro
   } else {
     const porDia = new Map()
     for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, lucro: 0, vendas: 0 }) }
-    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.lucro += lucroVenda0(v).lucro; p.vendas++ } }
-    for (const x of perdasV) { const p = porDia.get(x.dia); if (p) p.lucro -= x.valor }
+    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.vendas++ } }
+    for (const x of evLucro) { const p = porDia.get(x.dia); if (p) p.lucro += x.lucro }
     serie = [...porDia.values()]
   }
   const melhorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
@@ -185,7 +205,6 @@ export default function Analise({ db }) {
           <small>{lucroTotal < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small>
           <b className={lucroTotal < 0 ? 'bad' : 'ok'}>{lucroTotal < 0 ? '− ' + brl(-lucroTotal) : brl(lucroTotal)}</b>
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
-          {r.naoPago > 0 && <small className="var bad">{t('fiado não pago: {valor}', { valor: brl(r.naoPago) })}</small>}
         </div>
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>
@@ -236,7 +255,7 @@ export default function Analise({ db }) {
               <Participacao linhas={pagamentos} total={r.faturamento} />
             </div>
           </div>
-          <small>{t('Lucro estimado = preço vendido − custo do produto no momento da venda.')}</small>
+          <small>{t('Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro de cada parcela quando ela é paga.')}</small>
         </>
       )}
       </>)}

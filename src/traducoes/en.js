@@ -1261,4 +1261,5 @@ export default {
   'Pendências': 'Outstanding',
   'em aberto {aberto} · não pago {naoPago}': 'open {aberto} · unpaid {naoPago}',
   'Lucro real': 'Actual profit',
+  'Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro de cada parcela quando ela é paga.': 'Estimated profit = price sold − cost. On credit, each installment\'s share of the profit counts when it is paid.',
 }
