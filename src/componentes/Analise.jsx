@@ -245,6 +245,14 @@ export default function Analise({ db }) {
 }
 
 // ---------- Análise dos empréstimos (feitos no período) ----------
+// Resultado de um empréstimo já fechado (tudo pago, ou o resto marcado "Não pagou"): o que voltou − o que foi emprestado.
+// Em aberto: null.
+function resultadoEmprestimo(e) {
+  if (resumoFiado(e)?.pendente) return null
+  const voltou = (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || []).reduce((b, r) => b + (+r.valor || 0) + (+r.encargo || 0), 0), 0)
+  return Math.round((voltou - (+e.valor || 0)) * 100) / 100
+}
+
 function AnaliseEmprestimos({ db, de, ate, perdasE }) {
   const todos = db.emprestimos || []
   const lista = todos.filter((e) => e.dia >= de && e.dia <= ate).sort((a, b) => b.data - a.data)
@@ -255,6 +263,17 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
   // dinheiro que voltou no período (de qualquer empréstimo), com multa/juros de atraso
   const recebido = todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
     .filter((r) => r.dia >= de && r.dia <= ate).reduce((b, r) => b + (+r.valor || 0) + (+r.encargo || 0), 0), 0), 0)
+  // por cliente: soma o resultado dos empréstimos já fechados
+  const mapa = new Map()
+  for (const e of lista) {
+    const res = resultadoEmprestimo(e)
+    if (res == null) continue
+    const k = e.fiado?.clienteId || e.fiado?.cliente || '?'
+    const c = mapa.get(k) || { nome: e.fiado?.cliente || '-', n: 0, emprestado: 0, resultado: 0 }
+    c.n++; c.emprestado += +e.valor || 0; c.resultado = Math.round((c.resultado + res) * 100) / 100
+    mapa.set(k, c)
+  }
+  const porCliente = [...mapa.values()].sort((a, b) => b.resultado - a.resultado)
   const situacao = (e) => {
     const f = resumoFiado(e)
     if (!f) return { nome: 'Pago', classe: 'ok' }
@@ -278,12 +297,13 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
       ) : (
         <div className="tw">
           <table>
-            <thead><tr><th>{t('Data')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('Juros')}</th><th className="n">{t('Parcelas pagas')}</th><th>{t('Situação')}</th></tr></thead>
+            <thead><tr><th>{t('Data')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('Juros')}</th><th className="n">{t('Parcelas pagas')}</th><th>{t('Situação')}</th><th className="n">{t('Resultado')}</th></tr></thead>
             <tbody>
               {lista.map((e) => {
                 const ps = e.fiado?.parcelas || []
                 const pagas = ps.filter((p) => (+p.valor || 0) - (p.recebimentos || []).reduce((a, r) => a + (+r.valor || 0), 0) <= 0.004).length
                 const s = situacao(e)
+                const res = resultadoEmprestimo(e)
                 return (
                   <tr key={e.id}>
                     <td>{dataBR(e.dia)}</td>
@@ -292,6 +312,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
                     <td className="n ok">{brl(lucroEmprestimo(e).lucro)}</td>
                     <td className="n">{pagas}/{ps.length}</td>
                     <td><span className={s.classe}>{t(s.nome)}</span></td>
+                    <td className="n">{res == null ? <small>{t('em aberto')}</small> : <b className={res < 0 ? 'bad' : 'ok'}>{res < 0 ? '− ' + brl(-res) : brl(res)}</b>}</td>
                   </tr>
                 )
               })}
@@ -299,7 +320,23 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
           </table>
         </div>
       )}
-      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período.')}</small>
+      {porCliente.length > 0 && (
+        <div className="painel">
+          <h3 className="painel-titulo">{t('Resultado por cliente (empréstimos fechados)')}</h3>
+          <div className="lista-produtos">
+            <div className="lp-linha lp-cabecalho"><span>{t('Cliente')}</span><span>{t('Empréstimos')}</span><span>{t('Emprestado')}</span><span>{t('Resultado')}</span></div>
+            {porCliente.map((c) => (
+              <div key={c.nome} className="lp-linha">
+                <span className="lp-nome">{c.nome}</span>
+                <span>{c.n}</span>
+                <span>{brl(c.emprestado)}</span>
+                <span className={c.resultado < 0 ? 'bad' : 'ok'}>{c.resultado < 0 ? '− ' + brl(-c.resultado) : brl(c.resultado)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.')}</small>
     </>
   )
 }

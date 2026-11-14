@@ -1254,4 +1254,8 @@ export default {
   'Nenhum empréstimo neste período.': 'No loans in this period.',
   'Juros': 'Interest',
   'Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período.': 'Profit (interest) = interest on loans made in the period − what was marked "Did not pay" in the period.',
+  'Resultado': 'Result',
+  'em aberto': 'open',
+  'Resultado por cliente (empréstimos fechados)': 'Result per customer (closed loans)',
+  'Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = interest on loans made in the period − what was marked "Did not pay" in the period. Result = what came back (with late fees) − what was lent, once the loan closes.',
 }
