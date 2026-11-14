@@ -1168,6 +1168,7 @@ export default {
   '{n} cliente(s) devendo': '{n} customer(s) owing',
   '{n} cliente(s)': '{n} customer(s)',
   'Editando {nome}': 'Editing {nome}',
+  'Cadastrados ({n})': 'Registered ({n})',
   'Novo cliente': 'New customer',
   'Ex: endereço, indicação, limite combinado...': 'E.g.: address, referral, agreed limit...',
   'Cadastrar': 'Add',
