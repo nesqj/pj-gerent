@@ -172,27 +172,49 @@ export function menorPreco(db, produto, marca) {
 // Estoque próprio (separado dos fornecedores), por nome do produto.
 // Entradas: { produto, qtd, custo }. Saídas: itens de venda com origem 'estoque'
 // (o preço de venda é digitado na hora da venda).
-// Retorna Map nome normalizado → { k, produto, entradas, vendidos, saldo, custo }
-// O custo vale o da entrada mais recente.
+// Retorna Map nome normalizado → { k, produto, entradas, vendidos, saldo, custo, ultimoCusto }
+// custo = CUSTO MÉDIO PONDERADO das unidades em estoque (padrão do varejo):
+//   cada entrada mistura o custo dela com o das unidades que ainda estão lá;
+//   cada venda tira unidades sem mudar o custo médio das que sobram.
+//   Ex.: 1 un. a R$ 1.000 + 1 un. a R$ 100 → custo médio R$ 550, valor em estoque R$ 1.100.
 export function calcularEstoque(db) {
   const m = new Map()
-  const entradas = [...(db.entradas || [])].sort((a, b) => a.data - b.data)
-  for (const e of entradas) {
-    const k = norm(e.produto)
-    const s = m.get(k) || { k, produto: e.produto, entradas: 0, vendidos: 0, saldo: 0, custo: null }
-    s.entradas += +e.qtd
-    s.produto = e.produto
-    if (e.custo != null) s.custo = +e.custo
-    m.set(k, s)
+  const pega = (k, produto) => {
+    if (!m.has(k)) m.set(k, { k, produto, entradas: 0, vendidos: 0, saldo: 0, custo: null, ultimoCusto: null, temEntrada: false })
+    return m.get(k)
   }
-  for (const v of db.vendas || []) {
-    for (const i of v.itens) {
-      if (i.origem !== 'estoque') continue
-      const s = m.get(norm(i.produto))
-      if (s) s.vendidos += +i.qtd
+  // entradas e vendas em ordem de data
+  const eventos = [
+    ...(db.entradas || []).map((e) => ({ data: e.data || 0, ordem: 0, entrada: e })),
+    ...(db.vendas || []).flatMap((v) => (v.itens || []).filter((i) => i.origem === 'estoque').map((i) => ({ data: v.data || 0, ordem: 1, item: i }))),
+  ].sort((a, b) => a.data - b.data || a.ordem - b.ordem)
+  for (const ev of eventos) {
+    if (ev.entrada) {
+      const e = ev.entrada
+      const s = pega(norm(e.produto), e.produto)
+      const qtd = +e.qtd || 0
+      s.temEntrada = true
+      s.produto = e.produto
+      s.entradas += qtd
+      if (e.custo != null) {
+        const c = +e.custo
+        const antes = Math.max(0, s.saldo)
+        s.custo = antes > 0 && s.custo != null ? (antes * s.custo + qtd * c) / (antes + qtd) : c
+        s.ultimoCusto = c
+      }
+      s.saldo += qtd
+    } else {
+      const i = ev.item
+      const s = pega(norm(i.produto), i.produto)
+      s.vendidos += +i.qtd || 0
+      s.saldo -= +i.qtd || 0
     }
   }
-  for (const s of m.values()) s.saldo = s.entradas - s.vendidos
+  // produto que só aparece em vendas (sem nenhuma entrada) não entra na lista do estoque
+  for (const [k, s] of m) {
+    if (!s.temEntrada) m.delete(k)
+    else { if (s.custo != null) s.custo = Math.round(s.custo * 100) / 100; delete s.temEntrada }
+  }
   return m
 }
 

@@ -985,4 +985,6 @@ export default {
   'Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Para excluir esta entrada, exclua antes a venda desse produto na aba Vendas.': '{n} unit(s) were sold and only {saldo} remain in stock. To delete this entry, first delete that product\'s sale in the Sales tab.',
   'Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Exclua antes a venda desse produto em Vendas: {dias}.': '{n} unit(s) were sold and only {saldo} remain in stock. First delete that product\'s sale in Sales: {dias}.',
   'Ver venda de {data}': 'See sale from {data}',
+  'Custo médio': 'Average cost',
+  'Média do custo das unidades em estoque, pesando a quantidade de cada entrada.': 'Average cost of the units in stock, weighted by the quantity of each entry.',
 }

@@ -92,7 +92,7 @@ export default function Estoque({ db, executar, irPara }) {
         <label style={{ flex: '0 1 110px' }}>{t('Quantidade')} *<input type="number" min="1" step="1" required {...campo('qtd')} /></label>
         <label style={{ flex: '0 1 160px' }}>{t('Custo unit. (R$)')} *
           <input type="number" min="0" step="0.01" required
-            placeholder={existente?.custo != null ? `${t('último')}: ${brl(existente.custo)}` : ''} {...campo('custo')} />
+            placeholder={existente?.ultimoCusto != null ? `${t('último')}: ${brl(existente.ultimoCusto)}` : ''} {...campo('custo')} />
         </label>
         <label style={{ flex: '1 1 100%' }}>{t('Observação')}<input placeholder={t('Ex: nota fiscal 123, IMEI, de quem comprou...')} {...campo('obs')} /></label>
         {db.caixa && (
@@ -130,7 +130,7 @@ export default function Estoque({ db, executar, irPara }) {
       <div className="tw">
         <table>
           <thead>
-            <tr><th>{t('Produto')}</th><th className="n">{t('Custo unit.')}</th><th className="n">{t('Entradas')}</th><th className="n">{t('Vendidos')}</th><th className="n">{t('Em estoque')}</th><th className="n">{t('Valor (custo)')}</th></tr>
+            <tr><th>{t('Produto')}</th><th className="n" title={t('Média do custo das unidades em estoque, pesando a quantidade de cada entrada.')}>{t('Custo médio')}</th><th className="n">{t('Entradas')}</th><th className="n">{t('Vendidos')}</th><th className="n">{t('Em estoque')}</th><th className="n">{t('Valor (custo)')}</th></tr>
           </thead>
           <tbody>
             {linhas.length === 0 && <tr><td colSpan="6" className="vazio">{todos.length ? t('Nada encontrado.') : t('Nenhum produto no estoque. Registre uma entrada acima.')}</td></tr>}
