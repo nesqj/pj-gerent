@@ -334,7 +334,7 @@ export function pagamentosDaVenda(v) {
 export const pagoNaHora = (v) => (Array.isArray(v.pagamentos) ? v.pagamentos.reduce((s, p) => s + (+p.valor || 0), 0) : +v.total || 0)
 
 // Lucro de uma venda. Com fiado:
-//  - ainda em aberto: o lucro fica "a confirmar" (não conta) até você confirmar se o cliente pagou
+//  - o lucro (com os juros do fiado) conta no dia da venda, mesmo com parcelas em aberto (é estimado)
 //  - resolvido: lucro = lucro da venda − o que o cliente não pagou (o calote vira perda)
 export function lucroVenda(v) {
   const base = lucroDe(v.itens, fatorDesconto(v))
@@ -342,8 +342,7 @@ export function lucroVenda(v) {
   if (!f) return { ...base, pendente: false, lucroPrevisto: base.lucro, naoPago: 0 }
   const juros = +v.fiado.juros || 0 // juros do fiado: lucro a mais, também só quando o cliente paga
   const previsto = Math.round((base.lucro + juros + encargosRecebidos(v)) * 100) / 100 // + multa/juros de atraso já recebidos
-  if (f.pendente) return { ...base, lucro: 0, pendente: true, lucroPrevisto: previsto, aReceber: f.aberto, naoPago: f.naoPago, juros }
-  return { ...base, lucro: Math.round((previsto - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: previsto, naoPago: f.naoPago, juros }
+  return { ...base, lucro: Math.round((previsto - f.naoPago) * 100) / 100, pendente: f.pendente, lucroPrevisto: previsto, aReceber: f.aberto, naoPago: f.naoPago, juros }
 }
 
 // ---------- Empréstimo (crediário de dinheiro) com juros simples
@@ -358,12 +357,11 @@ export function calcularEmprestimo(valor, jurosPct, n) {
   const parcelas = Array.from({ length: n }, (_, k) => (k === n - 1 ? Math.round((total - base * (n - 1)) * 100) / 100 : base))
   return { valor: v, total, juros: Math.round((total - v) * 100) / 100, parcelas }
 }
-// Lucro do empréstimo = juros. Em aberto: "a confirmar". Resolvido: juros − o que não foi pago (pode virar prejuízo).
+// Lucro do empréstimo = juros (estimado, conta no dia do empréstimo) − o que não foi pago (pode virar prejuízo).
 export function lucroEmprestimo(e) {
   const juros = Math.round(((+e.total || 0) - (+e.valor || 0) + encargosRecebidos(e)) * 100) / 100
   const f = resumoFiado(e) || { recebido: 0, naoPago: 0, aberto: 0, pendente: false }
-  if (f.pendente) return { lucro: 0, pendente: true, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: f.aberto }
-  return { lucro: Math.round((juros - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: 0 }
+  return { lucro: Math.round((juros - f.naoPago) * 100) / 100, pendente: f.pendente, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: f.aberto }
 }
 
 // ---------- Clientes
@@ -456,3 +454,9 @@ export const textoAtraso = (cfg) => cfg && (+cfg.multaPct > 0 || +cfg.jurosMesPc
   ? [+cfg.multaPct > 0 && t('multa {p}%', { p: String(cfg.multaPct).replace('.', ',') }), +cfg.jurosMesPct > 0 && t('juros {p}% ao mês', { p: String(cfg.jurosMesPct).replace('.', ',') })].filter(Boolean).join(' + ')
     + (+cfg.carenciaDias > 0 ? ' ' + t('(depois de {n} dia(s) de atraso)', { n: cfg.carenciaDias }) : '')
   : ''
+
+// Quanto falta receber de uma lista (vendas fiado ou empréstimos): parcelas em aberto + multa e juros de atraso de hoje
+export function faltaReceber(lista, cfgAtraso) {
+  return Math.round((lista || []).reduce((s, v) => s + (resumoFiado(v)?.aberto || 0)
+    + (v.fiado?.parcelas || []).reduce((a, p) => a + encargoAtraso(p, cfgAtraso).total, 0), 0) * 100) / 100
+}

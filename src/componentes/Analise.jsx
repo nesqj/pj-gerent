@@ -34,18 +34,17 @@ const PERIODOS = [
 
 // ---------- Números do período ----------
 function resumo(vendas) {
-  let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, aConfirmar = 0, naoPago = 0
+  let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, naoPago = 0
   for (const v of vendas) {
     faturamento += v.total
     for (const i of v.itens) itens += i.qtd
-    const l = lucroVenda(v) // fiado em aberto: o lucro fica "a confirmar"
+    const l = lucroVenda(v) // lucro estimado (o fiado conta na hora; o não pago sai)
     lucro += l.lucro
-    if (l.pendente) aConfirmar += l.lucroPrevisto
     naoPago += l.naoPago || 0
     if (l.perda > 0) { perdas += l.perda; comPrejuizo++ }
   }
   return {
-    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo, aConfirmar, naoPago,
+    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo, naoPago,
     ticket: vendas.length ? faturamento / vendas.length : 0,
     margem: faturamento ? (lucro / faturamento) * 100 : 0,
   }
@@ -97,10 +96,9 @@ export default function Analise({ db }) {
   const vendas = db.vendas.filter((v) => v.dia >= de && v.dia <= ate)
   const anteriores = db.vendas.filter((v) => v.dia >= antDe && v.dia <= antAte)
   const r = resumo(vendas), ra = resumo(anteriores)
-  // empréstimos feitos no período: o lucro é o juro (só depois de resolvidos)
+  // empréstimos feitos no período: o lucro é o juro
   const emps = (db.emprestimos || []).filter((e) => e.dia >= de && e.dia <= ate).map(lucroEmprestimo)
   const juros = Math.round(emps.reduce((s, l) => s + l.lucro, 0) * 100) / 100
-  const jurosAConfirmar = emps.reduce((s, l) => s + (l.pendente ? l.lucroPrevisto : 0), 0)
   const lucroTotal = Math.round((r.lucro + juros) * 100) / 100
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
@@ -126,8 +124,8 @@ export default function Analise({ db }) {
     const fator = 1 - (+v.descontoPct || 0) / 100
     // fiado: em aberto não entra no lucro; o que não foi pago sai do lucro proporcionalmente
     const lv = lucroVenda(v)
-    const ajusteLucro = lv.pendente ? 0 : 1
-    const calotePorReal = !lv.pendente && v.total > 0 ? (lv.naoPago || 0) / v.total : 0
+    const ajusteLucro = 1
+    const calotePorReal = v.total > 0 ? (lv.naoPago || 0) / v.total : 0
     for (const i of v.itens) {
       const k = (i.produto + '|' + (i.marca || '')).toLowerCase()
       const p = prod.get(k) || { produto: i.produto, marca: i.marca, qtd: 0, faturamento: 0, lucro: 0 }
@@ -167,10 +165,8 @@ export default function Analise({ db }) {
           <small>{lucroTotal < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small>
           <b className={lucroTotal < 0 ? 'bad' : 'ok'}>{lucroTotal < 0 ? '− ' + brl(-lucroTotal) : brl(lucroTotal)}</b>
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
-          {r.aConfirmar > 0 && <small className="var">+ {brl(r.aConfirmar)} {t('a confirmar (fiado)')}</small>}
           {r.naoPago > 0 && <small className="var bad">{t('fiado não pago: {valor}', { valor: brl(r.naoPago) })}</small>}
           {juros !== 0 && <small className="var">{t('inclui {valor} de juros de empréstimos', { valor: brl(juros) })}</small>}
-          {jurosAConfirmar > 0 && <small className="var">+ {brl(jurosAConfirmar)} {t('de juros a confirmar')}</small>}
         </div>
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>

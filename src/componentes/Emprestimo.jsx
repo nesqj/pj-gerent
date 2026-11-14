@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
-import { brl, calcularEmprestimo, dataBR, encargoAtraso, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
+import { brl, calcularEmprestimo, dataBR, encargoAtraso, extratoCaixa, faltaReceber, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
 import { AvisoCliente } from './Clientes.jsx'
 
@@ -125,9 +125,8 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
     return { falta: Math.round(((f?.aberto || 0) + atraso) * 100) / 100, atraso: Math.round(atraso * 100) / 100 }
   }
   const faltas = lista.map(faltaDe)
-  const faltaTotal = faltas.reduce((s, x) => s + x.falta, 0)
+  const faltaTotal = faltaReceber(db.emprestimos, db.config?.atraso) // tudo o que falta receber dos empréstimos, não só do dia
   const jurosConfirmados = lucros.reduce((s, l) => s + l.lucro, 0)
-  const jurosAConfirmar = lucros.reduce((s, l) => s + (l.pendente ? l.lucroPrevisto : 0), 0)
 
   async function excluir(e) {
     const f = resumoFiado(e)
@@ -152,7 +151,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
         <div className={'card' + (jurosConfirmados < 0 ? ' card-prejuizo' : '')}>
           <small>{t('Lucro (juros)')}</small>
           <b className={jurosConfirmados < 0 ? 'bad' : 'ok'}>{jurosConfirmados < 0 ? '− ' + brl(-jurosConfirmados) : brl(jurosConfirmados)}</b>
-          {jurosAConfirmar > 0 && <small className="var">+ {brl(jurosAConfirmar)} {t('a confirmar')}</small>}
         </div>
       </div>
       <div className="tw">
@@ -173,9 +171,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
                   </td>
                   <td className="n">{brl(l.recebido)}</td>
                   <td className="n">
-                    {l.pendente
-                      ? <span className="pendente">{t('a confirmar')}<small className="sub-linha">{t('previsto {valor}', { valor: brl(l.lucroPrevisto) })}</small></span>
-                      : l.lucro < 0 ? <span className="bad">− {brl(-l.lucro)}<small className="desconto-linha">{t('prejuízo')}</small></span> : <span className="ok">{brl(l.lucro)}</span>}
+                    {l.lucro < 0 ? <span className="bad">− {brl(-l.lucro)}<small className="desconto-linha">{t('prejuízo')}</small></span> : <span className="ok">{brl(l.lucro)}</span>}
                     {l.naoPago > 0 && <small className="desconto-linha bad">{t('não pago: {valor}', { valor: brl(l.naoPago) })}</small>}
                   </td>
                   <td>

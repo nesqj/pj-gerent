@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado, encargoAtraso } from '../utils.js'
+import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado, faltaReceber } from '../utils.js'
 import PagamentoVenda, { montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
@@ -126,7 +126,7 @@ export default function Vendas({ db, executar, irPara }) {
       .filter((p) => p.nome && p.resta <= 2)
     if (await executar((A) => A.salvarVenda(venda))) {
       const resultado = lucroVenda(venda)
-      if (venda.fiado) aviso.info(editando ? t('Venda atualizada com fiado.') : t('Venda registrada com fiado.'), t('{valor} a receber de {cliente}. O lucro conta quando você confirmar o pagamento na aba Cobranças.', { valor: brl(resumoFiado(venda).aberto), cliente: venda.fiado.cliente }))
+      if (venda.fiado) aviso.info(editando ? t('Venda atualizada com fiado.') : t('Venda registrada com fiado.'), t('{valor} a receber de {cliente}. Acompanhe na aba Cobranças.', { valor: brl(resumoFiado(venda).aberto), cliente: venda.fiado.cliente }))
       else if (resultado.lucro < 0) aviso.alerta(editando ? t('Venda atualizada com prejuízo.') : t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
       else if (resultado.perda > 0) aviso.alerta(editando ? t('Venda atualizada.') : t('Venda registrada.'), t('Atenção: {n} item(ns) vendido(s) abaixo do custo (perda de {valor}).', { n: resultado.itensComPrejuizo, valor: brl(resultado.perda) }))
       else aviso.ok(editando ? t('Venda atualizada.') : t('Venda registrada.'), brl(venda.total))
@@ -154,18 +154,15 @@ export default function Vendas({ db, executar, irPara }) {
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
   const totalDia = vendasDia.reduce((s, v) => s + v.total, 0)
   const custoDia = vendasDia.reduce((s, v) => s + v.itens.reduce((c, i) => c + (i.custo ?? 0) * i.qtd, 0), 0)
-  // lucro só do que já está confirmado (fiado em aberto fica "a confirmar")
+  // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
   const lucroDia = Math.round(vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) * 100) / 100
-  const aConfirmarDia = vendasDia.reduce((s, v) => { const l = lucroVenda(v); return s + (l.pendente ? l.lucroPrevisto : 0) }, 0)
   const perdasDia = vendasDia.reduce((s, v) => s + lucroVenda(v).perda, 0)
   const vendasComPrejuizo = vendasDia.filter((v) => lucroVenda(v).perda > 0).length
   const semCusto = vendasDia.some((v) => v.itens.some((i) => i.custo == null))
   const somaForma = (forma) => vendasDia.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === forma).reduce((a, x) => a + x.valor, 0), 0)
   const porPagamento = PAGAMENTOS.map((p) => ({ p, total: somaForma(p) }))
-  // fiado do dia: o que falta receber (parcelas com os juros do fiado + multa e juros de atraso), igual ao dos empréstimos
-  const temFiadoDia = vendasDia.some((v) => v.fiado)
-  const aReceberDia = Math.round(vendasDia.reduce((s, v) => s + (resumoFiado(v)?.aberto || 0)
-    + (v.fiado?.parcelas || []).reduce((a, p) => a + encargoAtraso(p, db.config?.atraso).total, 0), 0) * 100) / 100
+  // fiado: tudo o que ainda falta receber (de todas as vendas, não só do dia), com juros do fiado e atraso
+  const aReceberFiado = faltaReceber(db.vendas.filter((v) => v.fiado), db.config?.atraso)
   const textoPagamento = (v) => { const l = pagamentosDaVenda(v); return l.length > 1 ? l.map((x) => `${t(x.forma)} ${brl(x.valor)}`).join(' + ') : t(l[0]?.forma || v.pagamento) }
 
   return (
@@ -182,7 +179,7 @@ export default function Vendas({ db, executar, irPara }) {
       {modo === 'emprestimo' && podeEmprestar ? (
         <>
           <NovoEmprestimo db={db} executar={executar} aoSalvar={() => setDia(hoje())} />
-          <p><small>{t('Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças, e o lucro (os juros) conta quando todas forem resolvidas.')}</small></p>
+          <p><small>{t('Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças.')}</small></p>
         </>
       ) : (<>
       {/* ---------- Nova venda ---------- */}
@@ -314,7 +311,6 @@ export default function Vendas({ db, executar, irPara }) {
         <div className={'card' + (lucroDia < 0 ? ' card-prejuizo' : '')}>
           <small>{lucroDia < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}{semCusto ? ' *' : ''}</small>
           <b className={lucroDia < 0 ? 'bad' : 'ok'}>{lucroDia < 0 ? '− ' + brl(-lucroDia) : brl(lucroDia)}</b>
-          {aConfirmarDia > 0 && <small className="var">+ {brl(aConfirmarDia)} {t('a confirmar (fiado)')}</small>}
         </div>
         {perdasDia > 0 && (
           <div className="card card-prejuizo">
@@ -326,7 +322,7 @@ export default function Vendas({ db, executar, irPara }) {
         {porPagamento.map(({ p, total }) => (
           <div key={p} className="card"><small>{t(p)}</small><b>{brl(total)}</b></div>
         ))}
-        {temFiadoDia && <div className="card"><small>{t('A receber (fiado)')}</small><b>{brl(aReceberDia)}</b></div>}
+        {aReceberFiado > 0 && <div className="card"><small>{t('A receber (fiado)')}</small><b>{brl(aReceberFiado)}</b></div>}
       </div>
 
       <div className="tw">
@@ -347,8 +343,7 @@ export default function Vendas({ db, executar, irPara }) {
                   {v.descontoPct > 0 && <small className="desconto-linha">{t('{p}% de desconto', { p: num(v.descontoPct, 2) })}</small>}
                 </td>
                 <td className="n">
-                  {res.pendente ? <span className="pendente">{t('a confirmar')}<small className="sub-linha">{t('previsto {valor}', { valor: brl(res.lucroPrevisto) })}</small></span>
-                    : temCustoV ? <ValorLucro valor={res.lucro} /> : '-'}
+                  {temCustoV ? <ValorLucro valor={res.lucro} /> : '-'}
                   {res.naoPago > 0 && <small className="desconto-linha bad">{t('não pago: {valor}', { valor: brl(res.naoPago) })}</small>}
                   {res.perda > 0 && res.lucro >= 0 && <small className="desconto-linha bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
                 </td>

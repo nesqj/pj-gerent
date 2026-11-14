@@ -7,7 +7,7 @@ import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParc
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
 // "Recebeu" registra o pagamento (total ou parcial) e entra no caixa; "Não pagou" vira perda.
-// O lucro da venda só conta quando todas as parcelas estão resolvidas (pagas ou não pagas).
+// O lucro conta no dia da venda/empréstimo; o que o cliente não pagar sai do lucro.
 const SITUACOES = {
   atrasada: { nome: 'Atrasado', classe: 'bad' },
   vence_hoje: { nome: 'Vence hoje', classe: 'warn' },
@@ -260,7 +260,7 @@ export default function Fiado({ db, executar, irPara }) {
           </tbody>
         </table>
       </div>
-      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. O lucro da venda (ou os juros do empréstimo) só conta quando todas as parcelas estão resolvidas; o que o cliente não pagou sai do lucro como perda.')}</small></p>
+      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. O que o cliente não pagar ("Não pagou") sai do lucro como perda.')}</small></p>
     </section>
   )
 

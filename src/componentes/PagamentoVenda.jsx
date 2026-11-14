@@ -188,7 +188,6 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
               <small>{n > 1 ? t('de {inicio} a {fim}', { inicio: dataCurta(datas[0]), fim: dataCurta(datas[n - 1]) }) : t('em {data}', { data: dataCurta(datas[0]) })}</small>
             </div>
           )}
-          <small>{t('O lucro desta venda só conta quando você confirmar na aba Cobranças se o cliente pagou.')}</small>
         </div>
       )}
     </div>

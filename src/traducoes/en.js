@@ -1243,4 +1243,7 @@ export default {
   'combinado {valor} · recebido {recebido}': 'agreed {valor} · received {recebido}',
   'combinado {valor}': 'agreed {valor}',
   'A receber (fiado)': 'Receivable (credit)',
+  '{valor} a receber de {cliente}. Acompanhe na aba Cobranças.': '{valor} to receive from {cliente}. Follow it in the Collections tab.',
+  '"Recebeu" entra no caixa na data do recebimento. O que o cliente não pagar ("Não pagou") sai do lucro como perda.': '"Received" goes into the cash on the payment date. What the customer does not pay ("Did not pay") comes out of the profit as a loss.',
+  'Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças.': 'Simple interest: the amount lent × the monthly interest × the number of installments. The installments go to the Collections tab.',
 }
