@@ -80,6 +80,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const [busca, setBusca] = useState('')
   const [marcados, setMarcados] = useState({}) // produtos marcados para aplicar uma regra de uma vez
   const [aplicar, setAplicar] = useState('padrao')
+  const [ordem, setOrdem] = useState('az') // 'az' (alfabética) ou 'recentes' (ordem de cadastro, mais novos primeiro)
 
   const regras = regrasDe(db)
   const itens = produtosAVenda(db)
@@ -90,8 +91,11 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const ff = FornecedoresDoProduto({ db, executar, item: item || {}, ofertas })
   const fornecedoresDe = (k) => db.precosForn.filter((p) => chave(p.produto, p.marca) === k)
 
+  const criadoEm = (o) => { const n = parseInt(String(o.id || '').slice(0, 8), 36); return Number.isFinite(n) && n > 1e12 ? n : (o.atualizado || 0) }
+  const cadastro = (k) => Math.min(...fornecedoresDe(k).map(criadoEm))
   const b = norm(busca)
   const tabela = itens.filter((i) => !b || norm(i.produto + ' ' + i.marca + ' ' + nomeFornecedor(db, i.fornecedorId)).includes(b))
+  if (ordem === 'recentes') tabela.sort((x, y) => cadastro(y.k) - cadastro(x.k))
   const qtdMarcados = tabela.filter((i) => marcados[i.k]).length
   const todosMarcados = tabela.length > 0 && qtdMarcados === tabela.length
 
@@ -126,6 +130,10 @@ export default function PrecosVenda({ db, executar, embutido }) {
         <>
           <div className="linha-titulo">
             <input className="busca" style={{ marginBottom: 0 }} placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+            <div className="chips">
+              <button className={'filtro' + (ordem === 'az' ? ' ativo' : '')} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
+              <button className={'filtro' + (ordem === 'recentes' ? ' ativo' : '')} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
+            </div>
             {qtdMarcados > 0 && (
               <div className="aplicar-lote">
                 <small>{t('{n} selecionado(s):', { n: qtdMarcados })}</small>

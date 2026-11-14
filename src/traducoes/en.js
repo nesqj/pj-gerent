@@ -1302,4 +1302,6 @@ export default {
   'Excluir "{produto}" de todos os {n} fornecedores?': 'Delete "{produto}" from all {n} suppliers?',
   'Excluir "{produto}"?': 'Delete "{produto}"?',
   'Produto excluído.': 'Product deleted.',
+  'A–Z': 'A–Z',
+  'Mais recentes': 'Newest',
 }
