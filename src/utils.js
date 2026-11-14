@@ -271,7 +271,7 @@ export function extratoCaixa(db) {
       .filter((x) => x.itens.length).map(({ v, itens }) => ({
         id: 'pf-' + v.id, ref: v, origem: 'fornecedor', data: v.data, dia: v.dia,
         valor: -Math.round(itens.reduce((s, i) => s + (+i.qtd || 0) * (+i.custo || 0), 0) * 100) / 100,
-        descricao: itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ' (' + i.marca + ')' : ''}`).join(', '),
+        descricao: itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ' (' + i.marca + ')' : ''}${i.fornecedor ? ' · ' + i.fornecedor : ''}`).join(', '),
       })),
     ...(db.entradas || []).filter((e) => depois(e) && !e.foraDoCaixa && e.custo != null).map((e) => ({
       id: 'e-' + e.id, ref: e, origem: 'compra', data: e.data, dia: e.dia, valor: -(+e.qtd || 0) * (+e.custo || 0),

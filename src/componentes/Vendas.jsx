@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
+import { chave } from '../utils.js'
 import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
 import PagamentoVenda, { montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
 
-const itemNovo = { k: '', qtd: '1', preco: '' } // preco: digitado só para produtos do estoque
+const itemNovo = { k: '', qtd: '1', preco: '', forn: '' } // preco: digitado só para produtos do estoque; forn: fornecedor escolhido
 
 export default function Vendas({ db, executar, irPara }) {
   const [modo, setModo] = useState('venda') // 'venda' ou 'emprestimo'
@@ -68,8 +69,14 @@ export default function Vendas({ db, executar, irPara }) {
     setDesconto('')
   }
 
+  // fornecedores que vendem o produto escolhido, do mais barato para o mais caro
+  const fornecedoresDo = (o) => (o?.origem !== 'fornecedor' ? [] : (db.precosForn || [])
+    .filter((x) => chave(x.produto, x.marca) === o.k)
+    .map((x) => ({ id: x.fornecedorId, nome: (db.fornecedores || []).find((f) => f.id === x.fornecedorId)?.nome || t('Fornecedor'), custo: +x.preco }))
+    .sort((a, b) => a.custo - b.custo))
+
   function escolherProduto(k) {
-    setItem({ ...item, k, preco: '' })
+    setItem({ ...item, k, preco: '', forn: '' })
   }
 
   function adicionar(e) {
@@ -82,8 +89,11 @@ export default function Vendas({ db, executar, irPara }) {
       if (+item.qtd > disp) return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: p.produto, n: disp }), p.detalhe)
     }
     const preco = p.origem === 'estoque' ? +item.preco : p.preco
-    setCarrinho([...carrinho, { produto: p.produto, marca: p.marca, qtd: +item.qtd, preco, custo: p.custo, origem: p.origem,
-      ...(p.origem === 'estoque' ? { entradaId: p.entradaId, lote: p.detalhe } : {}) }])
+    // produto de fornecedor: o custo é o do fornecedor escolhido (o mais barato, se não escolher)
+    const forn = p.origem === 'fornecedor' ? (fornecedoresDo(p).find((f) => f.id === item.forn) || fornecedoresDo(p)[0]) : null
+    setCarrinho([...carrinho, { produto: p.produto, marca: p.marca, qtd: +item.qtd, preco, custo: forn ? forn.custo : p.custo, origem: p.origem,
+      ...(p.origem === 'estoque' ? { entradaId: p.entradaId, lote: p.detalhe } : {}),
+      ...(forn ? { fornecedorId: forn.id, fornecedor: forn.nome } : {}) }])
     setItem(itemNovo)
   }
 
@@ -202,6 +212,13 @@ export default function Vendas({ db, executar, irPara }) {
             )}
           </select>
         </label>
+        {selecionado?.origem === 'fornecedor' && (
+          <label style={{ flex: '1 1 220px' }}>{t('Fornecedor')}
+            <select value={item.forn || fornecedoresDo(selecionado)[0]?.id || ''} onChange={(e) => setItem({ ...item, forn: e.target.value })}>
+              {fornecedoresDo(selecionado).map((f) => <option key={f.id} value={f.id}>{f.nome} · {t('custo')} {brl(f.custo)}</option>)}
+            </select>
+          </label>
+        )}
         <label style={{ flex: '0 1 100px' }}>{t('Qtd.')}
           <input type="number" min="1" step="1" required max={selecionado?.origem === 'estoque' ? Math.max(1, disponivelLote(selecionado.entradaId)) : undefined}
             value={item.qtd} onChange={(e) => setItem({ ...item, qtd: e.target.value })} />
@@ -253,7 +270,7 @@ export default function Vendas({ db, executar, irPara }) {
                   const l = lucroItem(i, fatorCarrinho)
                   return (
                   <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
-                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}</td>
+                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
                     <td className="n">
                       <input className={'cel' + (i.origem === 'estoque' && (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
                         max={i.origem === 'estoque' ? (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) + +i.qtd : undefined}
