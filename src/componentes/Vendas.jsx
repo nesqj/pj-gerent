@@ -32,7 +32,7 @@ export default function Vendas({ db, executar, irPara }) {
   // quanto de um lote já está no carrinho (ou na venda em edição, que devolve o que tinha tirado)
   const doLoteEm = (itens, id) => itens.filter((i) => i.origem === 'estoque' && i.entradaId === id).reduce((x, i) => x + (+i.qtd || 0), 0)
   const disponivelLote = (id) => (lotes.get(id)?.saldo ?? 0) + (editando ? doLoteEm(editando.itens, id) : 0) - doLoteEm(carrinho, id)
-  const detalheLote = (l) => [`${t('custo')} ${l.custo != null ? brl(l.custo) : '-'}`, l.dia && dataBR(l.dia), l.obs].filter(Boolean).join(' · ')
+  const detalheLote = (l) => [`${t('custo')} ${l.custo != null ? brl(l.custo) : '-'}`, l.obs].filter(Boolean).join(' · ')
   const doEstoque = [...lotes.values()]
     .map((l) => ({ id: 'l:' + l.id, entradaId: l.id, origem: 'estoque', k: l.k, produto: l.produto, marca: '', preco: null, custo: l.custo,
       detalhe: detalheLote(l), disp: disponivelLote(l.id) }))
