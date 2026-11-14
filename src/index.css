@@ -604,15 +604,7 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 .lp-nome small { color: var(--mut) }
 @media (max-width: 767px) { .lp-linha { grid-template-columns: minmax(0, 1fr) 36px 84px 84px; font-size: 13px; gap: 6px } }
 
-/* ---------- Tendência por semana ---------- */
-.grafico.tendencia .marcador { fill: var(--card); stroke: var(--pri); stroke-width: 2.5 }
-.grafico.tendencia .marcador.parcial { stroke-dasharray: 2 2 }
-.grafico.tendencia .marcador.previsto { stroke: var(--neon) }
-.grafico.tendencia .faixa-previsao { fill: color-mix(in srgb, var(--neon) 6%, transparent) }
-.grafico.tendencia .eixo-prev { fill: var(--neon) }
-.grafico.tendencia .guia-linha { stroke: var(--mut); stroke-dasharray: 3 3; opacity: .6 }
 .grafico .legenda .leg-linha { width: 18px; height: 0; border-top: 2.5px solid; border-radius: 0; vertical-align: 3px }
-.grafico .legenda .leg-linha.tracejada { border-top-style: dashed }
 
 /* ---------- Gráfico de linhas (faturamento, lucro, vendas) ---------- */
 :root { --linha-lucro: #ef6b5b; --linha-vendas: #f5a524 }
