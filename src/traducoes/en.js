@@ -1233,7 +1233,7 @@ export default {
   'Multa (%)': 'Late fee (%)',
   'Juros de atraso (% ao mês)': 'Late interest (% per month)',
   'Carência (dias)': 'Grace period (days)',
-  'A multa é cobrada uma vez; os juros contam por dia de atraso. Valem para todas as compras e empréstimos. No comércio, a multa costuma ser limitada a 2%.': 'The fee is charged once; interest accrues per day late. They apply to all purchases and loans. In retail, the late fee is usually capped at 2%.',
+  'A multa é cobrada uma vez, quando a carência acaba; os juros contam por dia, a partir do fim da carência. Valem para todas as compras e empréstimos. No comércio, a multa costuma ser limitada a 2%.': 'The fee is charged once, when the grace period ends; interest accrues per day after the grace period. They apply to all purchases and loans. In retail, the late fee is usually capped at 2%.',
   'Confira os valores.': 'Check the values.',
   'Multa de {p}% passa dos 2% que o Código de Defesa do Consumidor costuma permitir. Salvar mesmo assim?': 'A {p}% fee is above the 2% the Consumer Protection Code usually allows. Save anyway?',
   'Multa e juros por atraso salvos.': 'Late fee and interest saved.',

@@ -198,7 +198,7 @@ export default function Fiado({ db, executar, irPara }) {
           <label>{t('Carência (dias)')}<input type="number" min="0" step="1" placeholder="0" value={configurando.carenciaDias} onChange={(e) => setConfigurando({ ...configurando, carenciaDias: e.target.value })} /></label>
           <button type="submit">{t('Salvar')}</button>
           <button type="button" className="sec" onClick={() => setConfigurando(null)}>{t('Cancelar')}</button>
-          <small style={{ flex: '1 1 100%' }}>{t('A multa é cobrada uma vez; os juros contam por dia de atraso. Valem para todas as compras e empréstimos. No comércio, a multa costuma ser limitada a 2%.')}</small>
+          <small style={{ flex: '1 1 100%' }}>{t('A multa é cobrada uma vez, quando a carência acaba; os juros contam por dia, a partir do fim da carência. Valem para todas as compras e empréstimos. No comércio, a multa costuma ser limitada a 2%.')}</small>
         </form>
       )}
 

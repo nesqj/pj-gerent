@@ -436,7 +436,7 @@ export function distribuirRecebimento(parcelas, valor, rec, encargoDe) {
 
 // ---------- Multa e juros por atraso
 // db.config.atraso = { multaPct, jurosMesPct, carenciaDias }
-// Multa: % do que falta, uma vez. Juros: % ao mês, por dia de atraso (contados do vencimento).
+// Multa: % do que falta, uma vez. Juros: % ao mês, por dia de atraso (contados a partir do fim da carência).
 // O que já foi pago de multa/juros (recebimento.encargo) é descontado.
 export const encargoPago = (p) => (p.recebimentos || []).reduce((s, r) => s + (+r.encargo || 0), 0)
 export const encargosRecebidos = (v) => (v.fiado?.parcelas || []).reduce((s, p) => s + encargoPago(p), 0)
@@ -449,7 +449,7 @@ export function encargoAtraso(p, cfg, dia = hoje()) {
   if (dias <= 0 || dias <= (+cfg.carenciaDias || 0)) return zero
   const r = (x) => Math.round(x * 100) / 100
   const multa = r(falta * (+cfg.multaPct || 0) / 100)
-  const juros = r(falta * ((+cfg.jurosMesPct || 0) / 100 / 30) * dias)
+  const juros = r(falta * ((+cfg.jurosMesPct || 0) / 100 / 30) * (dias - (+cfg.carenciaDias || 0)))
   return { dias, multa, juros, total: Math.max(0, r(multa + juros - encargoPago(p))) }
 }
 export const textoAtraso = (cfg) => cfg && (+cfg.multaPct > 0 || +cfg.jurosMesPct > 0)
