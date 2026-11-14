@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
 import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda } from '../utils.js'
+import { Anel, AnelPontilhado, BarrasSegmentadas, CalendarioCalor, ColunasDegrade, GraficoArea, Sparkline } from './Graficos.jsx'
 
 // ---------- Datas ----------
 const paraDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -48,8 +49,6 @@ function resumo(vendas) {
   }
 }
 
-const compacto = (n) => (n >= 1000 ? t('{n} mil', { n: num(n / 1000, 1) }) : num(n))
-
 function Variacao({ atual, anterior, pontos, semAnterior }) {
   if (semAnterior) return <small className="var">{t('sem vendas no período anterior')}</small>
   if (pontos) {
@@ -61,83 +60,6 @@ function Variacao({ atual, anterior, pontos, semAnterior }) {
   const d = ((atual - anterior) / anterior) * 100
   if (Math.abs(d) < 0.05) return <small className="var">{t('= igual ao período anterior')}</small>
   return <small className={'var ' + (d > 0 ? 'ok' : 'bad')}>{d > 0 ? '▲' : '▼'} {pct(Math.abs(d))} {t('vs anterior')}</small>
-}
-
-// ---------- Gráfico de colunas (uma série) ----------
-function GraficoColunas({ dados, rotuloDica }) {
-  const [hover, setHover] = useState(null)
-  const L = 640, A = 220, esq = 52, dir = 8, topo = 12, base = 26
-  const larg = L - esq - dir, alt = A - topo - base
-  const max = Math.max(...dados.map((d) => d.valor), 0)
-  // escala "redonda" para o eixo
-  const passo = (() => {
-    if (!max) return 1
-    const bruto = max / 4, ordem = 10 ** Math.floor(Math.log10(bruto))
-    return [1, 2, 2.5, 5, 10].map((m) => m * ordem).find((p) => p >= bruto)
-  })()
-  const teto = Math.max(passo * Math.ceil(max / passo), passo)
-  const y = (v) => topo + alt - (v / teto) * alt
-  const banda = larg / dados.length
-  const w = Math.max(2, Math.min(24, banda - 2))
-  const cadaRotulo = Math.ceil(dados.length / 10)
-  const ticks = Array.from({ length: Math.round(teto / passo) + 1 }, (_, i) => i * passo)
-
-  return (
-    <div className="grafico" onMouseLeave={() => setHover(null)}>
-      <svg viewBox={`0 0 ${L} ${A}`} role="img" aria-label={t('Faturamento por período')}>
-        {ticks.map((tk) => (
-          <g key={tk}>
-            <line x1={esq} x2={L - dir} y1={y(tk)} y2={y(tk)} className="grade" />
-            <text x={esq - 8} y={y(tk) + 4} textAnchor="end" className="eixo">{compacto(tk)}</text>
-          </g>
-        ))}
-        {dados.map((d, i) => {
-          const cx = esq + banda * i + banda / 2
-          const h = y(0) - y(d.valor)
-          const r = Math.min(4, h, w / 2)
-          const x0 = cx - w / 2, x1 = cx + w / 2, yb = y(0), yt = y(d.valor)
-          return (
-            <g key={d.rotulo + i}>
-              {d.valor > 0 && (
-                <path
-                  className={'barra' + (hover === i ? ' ativa' : '')}
-                  d={`M${x0},${yb} V${yt + r} Q${x0},${yt} ${x0 + r},${yt} H${x1 - r} Q${x1},${yt} ${x1},${yt + r} V${yb} Z`}
-                />
-              )}
-              {i % cadaRotulo === 0 && <text x={cx} y={A - 8} textAnchor="middle" className="eixo">{d.rotulo}</text>}
-              {/* área de hover maior que a barra */}
-              <rect x={esq + banda * i} y={topo} width={banda} height={alt} fill="transparent" onMouseEnter={() => setHover(i)} />
-            </g>
-          )
-        })}
-      </svg>
-      {hover != null && (
-        <div className="dica" style={{ left: `${Math.min(88, Math.max(12, ((esq + banda * hover + banda / 2) / L) * 100))}%` }}>
-          <b>{rotuloDica(dados[hover])}</b>
-          <span>{brl(dados[hover].valor)}</span>
-          <small>{dados[hover].vendas === 1 ? t('1 venda') : t('{n} vendas', { n: dados[hover].vendas })}</small>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ---------- Barras horizontais (participação) ----------
-function BarrasParticipacao({ linhas, total }) {
-  return (
-    <div className="participacao">
-      {linhas.map((l) => {
-        const p = total ? (l.valor / total) * 100 : 0
-        return (
-          <div key={l.nome} className="part-linha">
-            <span className="part-nome">{t(l.nome)}</span>
-            <div className="part-trilho"><div className="part-barra" style={{ width: `${p}%` }} /></div>
-            <span className="part-valor">{brl(l.valor)} <small>{pct(p)}</small></span>
-          </div>
-        )
-      })}
-    </div>
-  )
 }
 
 export default function Analise({ db }) {
@@ -154,17 +76,19 @@ export default function Analise({ db }) {
   const anteriores = db.vendas.filter((v) => v.dia >= antDe && v.dia <= antAte)
   const r = resumo(vendas), ra = resumo(anteriores)
 
-  // série do gráfico: por hora quando é um dia só, senão por dia
+  // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
   if (n === 1) {
-    serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, hora: h, valor: 0, vendas: 0 }))
-    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].vendas++ }
+    serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, hora: h, valor: 0, lucro: 0, vendas: 0 }))
+    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].lucro += lucroVenda(v).lucro; serie[h].vendas++ }
   } else {
     const porDia = new Map()
-    for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, vendas: 0 }) }
-    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.vendas++ } }
+    for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, lucro: 0, vendas: 0 }) }
+    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.lucro += lucroVenda(v).lucro; p.vendas++ } }
     serie = [...porDia.values()]
   }
+  const faturamentoPorDia = new Map()
+  for (const v of vendas) faturamentoPorDia.set(v.dia, (faturamentoPorDia.get(v.dia) || 0) + v.total)
   const melhorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
 
   // por forma de pagamento
@@ -217,10 +141,10 @@ export default function Analise({ db }) {
 
       {/* ---------- Indicadores ---------- */}
       <div className="cards indicadores">
-        <div className="card destaque"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /></div>
-        <div className={'card' + (r.lucro < 0 ? ' card-prejuizo' : '')}><small>{r.lucro < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small><b className={r.lucro < 0 ? 'bad' : ''}>{r.lucro < 0 ? '− ' + brl(-r.lucro) : brl(r.lucro)}</b><Variacao atual={r.lucro} anterior={ra.lucro} /></div>
+        <div className="card destaque card-neon"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /><Sparkline valores={serie.map((d) => d.valor)} cor="var(--pri)" /></div>
+        <div className={'card card-neon' + (r.lucro < 0 ? ' card-prejuizo' : '')}><small>{r.lucro < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small><b className={r.lucro < 0 ? 'bad' : ''}>{r.lucro < 0 ? '− ' + brl(-r.lucro) : brl(r.lucro)}</b><Variacao atual={r.lucro} anterior={ra.lucro} /><Sparkline valores={serie.map((d) => d.lucro)} cor={r.lucro < 0 ? 'var(--bad)' : 'var(--neon)'} /></div>
         <div className="card"><small>{t('Margem')}</small><b className={r.margem < 0 ? 'bad' : ''}>{pct(r.margem)}</b><Variacao atual={r.margem} anterior={ra.margem} pontos semAnterior={!ra.vendas} /></div>
-        <div className="card"><small>{t('Vendas')}</small><b>{r.vendas}</b><Variacao atual={r.vendas} anterior={ra.vendas} /></div>
+        <div className="card card-neon"><small>{t('Vendas')}</small><b>{r.vendas}</b><Variacao atual={r.vendas} anterior={ra.vendas} /><Sparkline valores={serie.map((d) => d.vendas)} cor="var(--neon)" /></div>
         <div className="card"><small>{t('Ticket médio')}</small><b>{brl(r.ticket)}</b><Variacao atual={r.ticket} anterior={ra.ticket} /></div>
         <div className="card"><small>{t('Itens vendidos')}</small><b>{r.itens}</b><Variacao atual={r.itens} anterior={ra.itens} /></div>
         {r.perdas > 0 && (
@@ -235,26 +159,51 @@ export default function Analise({ db }) {
         <p className="vazio">{t('Nenhuma venda neste período.')}</p>
       ) : (
         <>
-          {/* ---------- Faturamento ao longo do tempo ---------- */}
-          <div className="painel">
-            <div className="painel-titulo">
-              <h3>{n === 1 ? t('Faturamento por hora') : t('Faturamento por dia')}</h3>
-              {melhorDia && melhorDia.valor > 0 && <small>{t('Melhor dia:')} <b>{dataBR(melhorDia.dia)}</b> {t('com')} {brl(melhorDia.valor)}</small>}
+          {/* ---------- Painel de gráficos ---------- */}
+          <div className="dash-grade">
+            <div className="painel neon dash-largo">
+              <div className="painel-titulo">
+                <h3 className="titulo-neon">{n === 1 ? t('Faturamento por hora') : t('Faturamento por dia')}</h3>
+                {melhorDia && melhorDia.valor > 0 && <small>{t('Melhor dia:')} <b>{dataBR(melhorDia.dia)}</b> {t('com')} {brl(melhorDia.valor)}</small>}
+              </div>
+              <div className="destaque-numero"><b>{brl(r.faturamento)}</b><small>{t('no período')}</small></div>
+              <GraficoArea
+                serie={serie}
+                rotuloDica={(d) => (n === 1 ? t('{data} às {hora}', { data: dataBR(de), hora: d.rotulo }) : `${t(DIAS_SEMANA[deDia(d.dia).getDay()])}, ${dataBR(d.dia)}`)}
+              />
             </div>
-            <GraficoColunas
-              dados={serie}
-              rotuloDica={(d) => (n === 1 ? t('{data} às {hora}', { data: dataBR(de), hora: d.rotulo }) : `${t(DIAS_SEMANA[deDia(d.dia).getDay()])}, ${dataBR(d.dia)}`)}
-            />
-          </div>
+            <div className="painel neon">
+              <h3 className="painel-titulo titulo-neon">{t('Calendário de vendas')}</h3>
+              <CalendarioCalor porDia={faturamentoPorDia} de={de} ate={ate} melhor={melhorDia?.valor > 0 ? melhorDia.dia : null} />
+            </div>
 
-          <div className="duas-colunas">
-            <div className="painel">
-              <h3 className="painel-titulo">{t('Por forma de pagamento')}</h3>
-              <BarrasParticipacao linhas={pagamentos} total={r.faturamento} />
+            <div className="painel neon">
+              <h3 className="painel-titulo titulo-neon">{t('Por forma de pagamento')}</h3>
+              <div className="aneis">
+                {pagamentos.map((pg) => (
+                  <Anel key={pg.nome} fracao={r.faturamento ? pg.valor / r.faturamento : 0}
+                    centro={pct(r.faturamento ? (pg.valor / r.faturamento) * 100 : 0).replace(/,\d+/, '')} rotulo={t(pg.nome)} sub={brl(pg.valor)} />
+                ))}
+              </div>
             </div>
-            <div className="painel">
-              <h3 className="painel-titulo">{t('Por dia da semana')}</h3>
-              <BarrasParticipacao linhas={semana} total={r.faturamento} />
+            <div className="painel neon">
+              <h3 className="painel-titulo titulo-neon">{t('Por dia da semana')}</h3>
+              <ColunasDegrade linhas={semana} destaque={semana.reduce((m, d, i) => (d.valor > (semana[m]?.valor ?? 0) ? i : m), 0)} />
+            </div>
+
+            <div className="painel neon">
+              <h3 className="painel-titulo titulo-neon">{t('Produtos que mais faturam')}</h3>
+              <BarrasSegmentadas total={r.faturamento}
+                linhas={[...prod.values()].sort((a, b) => b.faturamento - a.faturamento).slice(0, 6).map((x) => ({ nome: x.produto, valor: x.faturamento }))} />
+            </div>
+            <div className="painel neon">
+              <h3 className="painel-titulo titulo-neon">{t('Resumo')}</h3>
+              <div className="aneis">
+                <AnelPontilhado centro={r.vendas} rotulo={t('Vendas')} fracao={ra.vendas ? Math.min(1, r.vendas / (ra.vendas * 2)) : 1} sub={ra.vendas ? t('{n} antes', { n: ra.vendas }) : ''} />
+                <AnelPontilhado centro={r.itens} rotulo={t('Itens')} fracao={ra.itens ? Math.min(1, r.itens / (ra.itens * 2)) : 1} sub={ra.itens ? t('{n} antes', { n: ra.itens }) : ''} />
+                <Anel fracao={Math.max(0, r.margem) / 100} centro={pct(r.margem).replace(/,\d+/, '')} rotulo={t('Margem')} sub={t('do faturamento')}
+                  cor={r.margem < 0 ? 'var(--bad)' : 'var(--pri)'} cor2={r.margem < 0 ? 'var(--bad)' : 'var(--neon)'} />
+              </div>
             </div>
           </div>
 
