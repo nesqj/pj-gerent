@@ -752,12 +752,12 @@ small.aguarda { color: var(--mut); font-size: 12px }
 tr.linha-aberta td { background: color-mix(in srgb, var(--pri) 6%, transparent) }
 tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, transparent); padding: 10px 14px 14px }
 .edicao-produto { display: flex; flex-direction: column; gap: 8px; max-width: 760px }
-.ep-linha { display: grid; grid-template-columns: 1fr 120px 130px auto; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid var(--bd); border-radius: 8px; background: var(--card) }
+.ep-linha { display: grid; grid-template-columns: 1fr 120px auto; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid var(--bd); border-radius: 8px; background: var(--card) }
 .ep-linha.best { border-color: var(--ok-borda) }
 .ep-nome small { color: var(--ok) }
 .ep-preco { text-align: right; font-weight: 600 }
 .ep-venda { color: var(--mut); text-align: right }
-@media (max-width: 767px) { .ep-linha { grid-template-columns: 1fr 100px; } .ep-venda { display: none } }
+@media (max-width: 767px) { .ep-linha { grid-template-columns: 1fr 100px; } .ep-linha .acoes-fiado { grid-column: 1 / -1 } }
 .ep-nome-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; background: none; border: none; padding: 0 0 6px; margin: 0 }
 .ep-nome-form label { flex: 0 1 260px }
 .ep-adicionar { display: grid; grid-template-columns: 1fr 120px auto; gap: 10px; align-items: center; margin: 0; padding: 8px 10px;

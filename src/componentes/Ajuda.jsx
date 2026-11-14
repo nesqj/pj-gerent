@@ -12,15 +12,11 @@ const TOPICOS = [
   },
   {
     aba: 'forn', nome: 'Fornecedores',
-    texto: 'Cadastre o fornecedor, de onde ele é, contato e as marcas que ele trabalha. Clique no cartão para abrir a página dele, onde ficam os produtos e preços só daquele fornecedor. Embaixo fica a tabela de produtos com o preço de venda (definido na aba Calculadora de preço).',
+    texto: 'Cadastre o fornecedor, de onde ele é, contato e as marcas que ele trabalha. Clique no cartão para abrir a página dele, onde ficam os produtos e preços só daquele fornecedor. Embaixo fica a tabela de produtos: nela você define o preço de venda de cada um (digitando o preço ou a % sobre o custo).',
   },
   {
     aba: 'estoque', nome: 'Estoque',
     texto: 'Registre os produtos que chegaram para revenda com quantidade e custo. Cada venda de um produto do estoque diminui a quantidade. As entradas podem ser editadas ou excluídas.',
-  },
-  {
-    aba: 'regra', nome: 'Calculadora de preço',
-    texto: 'Defina o preço de venda de cada produto: digite o preço ou a % de aumento sobre o custo. Marque vários produtos para aplicar a mesma % de uma vez. O preço vale para qualquer fornecedor.',
   },
   {
     aba: 'config', nome: 'Configurações',

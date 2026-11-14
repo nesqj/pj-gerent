@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useState } from 'react'
+import { podeFazer } from '../armazenamento.js'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import NovoProduto, { marcasDisponiveis, trabalhaCom } from './NovoProduto.jsx'
 import { t } from '../i18n.js'
 import {
-  brl, calcularVenda, chave, dataTs, descricaoPreco, escolhaProduto, formulaRegra, gravarPrecoFornecedor, lerValor, nomeFornecedor, norm,
+  brl, pct, calcularVenda, chave, dataTs, descricaoPreco, escolhaProduto, formulaRegra, gravarPrecoFornecedor, lerValor, nomeFornecedor, norm,
   produtosAVenda, regraPadraoDe, regrasDe, resolverPreco,
 } from '../utils.js'
 
@@ -77,7 +78,10 @@ function SeletorPreco({ db, executar, k, custo }) {
 export default function PrecosVenda({ db, executar, embutido }) {
   const [sel, setSel] = useState('')
   const [busca, setBusca] = useState('')
-  const [marcados, setMarcados] = useState({}) // produtos marcados para aplicar uma regra de uma vez
+  const [marcados, setMarcados] = useState({}) // produtos marcados (aplicar % ou excluir de uma vez)
+  const [rascunho, setRascunho] = useState({}) // k → { campo: 'pct' | 'preco', valor } enquanto digita
+  const [pctLote, setPctLote] = useState('')
+  const podeEditarPreco = podeFazer('preco-venda.salvo')
   const [aplicar, setAplicar] = useState('padrao')
   const [nomeEd, setNomeEd] = useState(null) // { produto, marca } em edição
   const [cadastrando, setCadastrando] = useState(false)
@@ -108,6 +112,38 @@ export default function PrecosVenda({ db, executar, embutido }) {
     const existe = itens.some((x) => x.k === chave(produto, marca) && x.k !== i.k)
     if (existe && !(await confirmar(t('Já existe "{produto}" com essa marca. Juntar os dois em um só?', { produto: produto + (marca ? ' — ' + marca : '') })))) return
     if (await executar((A) => A.renomearProduto(i.k, produto, marca), t('Nome do produto atualizado.'))) setSel(chave(produto, marca))
+  }
+
+  // ---------- preço de venda fixo (era a aba "Calculadora de preço")
+  const r2 = (x) => Math.round(x * 100) / 100
+  const paraTexto = (n, casas) => (n == null || !Number.isFinite(n) ? '' : (casas ? r2(n).toFixed(casas) : String(r2(n))).replace('.', ','))
+  const fixo = (i) => escolhaProduto(db, i.k).tipo === 'fixo'
+  const aumento = (custo, preco) => (custo > 0 ? ((preco - custo) / custo) * 100 : null)
+  // produtos que ainda usam uma regra antiga: viram preço fixo no valor de hoje (uma vez só)
+  const pendentes = itens.filter((i) => !fixo(i) && i.resolucao.tipo === 'regra')
+  useEffect(() => {
+    if (podeEditarPreco && pendentes.length) executar((A) => A.fixarPrecos(Object.fromEntries(pendentes.map((i) => [i.k, r2(i.preco)]))))
+  }, [pendentes.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  const limparRascunho = (k) => setRascunho((r) => { const n = { ...r }; delete n[k]; return n })
+  async function salvarPrecoVenda(i, valor) {
+    limparRascunho(i.k)
+    if (!(valor >= 0)) return aviso.alerta(t('Confira o preço.'))
+    if (fixo(i) && r2(valor) === r2(i.preco)) return
+    await executar((A) => A.salvarPrecoProduto(i.k, { tipo: 'fixo', valor: r2(valor) }), t('Preço de {produto} salvo.', { produto: i.produto }))
+  }
+  function confirmarLinha(i) {
+    const d = rascunho[i.k]
+    if (!d) return
+    if (d.campo === 'pct') { const p = lerValor(d.valor); if (!Number.isFinite(p)) return aviso.alerta(t('Confira a porcentagem.')); salvarPrecoVenda(i, i.custo * (1 + p / 100)) }
+    else salvarPrecoVenda(i, lerValor(d.valor))
+  }
+  async function aplicarPctLote() {
+    const p = lerValor(pctLote)
+    if (!Number.isFinite(p) || p < 0) return aviso.alerta(t('Informe a porcentagem.'))
+    const lista = tabela.filter((i) => marcados[i.k])
+    if (await executar((A) => A.fixarPrecos(Object.fromEntries(lista.map((i) => [i.k, r2(i.custo * (1 + p / 100))]))), t('Preço de {n} produto(s) calculado com +{p}% sobre o custo.', { n: lista.length, p: paraTexto(p) }))) {
+      setMarcados({}); setPctLote('')
+    }
   }
 
   async function excluirProduto(i) {
@@ -150,7 +186,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
         </div>
       ) : <h2>{t('Tabela de Venda')}</h2>}
       {cadastrando && <NovoProduto db={db} executar={executar} aoTerminar={(k) => { setCadastrando(false); if (k) setSel(k) }} />}
-      <p><small>{t('O preço de venda de cada produto é definido na aba "Calculadora de preço".')}</small></p>
+      <p><small>{t('Digite o preço de venda ou a % de aumento sobre o custo (o menor custo entre os fornecedores) e aperte Enter. O preço vale para qualquer fornecedor.')}</small></p>
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}
 
@@ -167,22 +203,26 @@ export default function PrecosVenda({ db, executar, embutido }) {
             {qtdMarcados > 0 && (
               <div className="aplicar-lote">
                 <small>{t('{n} de {total} selecionado(s):', { n: qtdMarcados, total: tabela.length })}</small>
+                {podeEditarPreco && <>
+                  <span className="lf-preco" style={{ width: 100 }}><input inputMode="decimal" placeholder="0" value={pctLote} onChange={(e) => setPctLote(e.target.value)} /><span style={{ paddingRight: 10 }}>%</span></span>
+                  <button onClick={aplicarPctLote}>{t('Aplicar % sobre o custo')}</button>
+                </>}
                 <button className="del" onClick={excluirMarcados}>{t('Excluir selecionados')}</button>
               </div>
             )}
           </div>
           <div className="tw">
-            <table>
+            <table className="tabela-calc">
               <thead>
                 <tr>
                   <th><input type="checkbox" checked={todosMarcados} title={t('Selecionar todos')}
                     onChange={(e) => setMarcados(e.target.checked ? Object.fromEntries(tabela.map((i) => [i.k, true])) : {})} /></th>
                   <th>{t('Produto')}</th><th>{t('Marca')}</th><th>{t('Fornecedores')}</th><th className="n">{t('Menor custo')}</th>
-                  <th className="n">{t('Preço de venda')}</th><th className="n">{t('Lucro')}</th><th></th>
+                  <th className="n">{t('Aumento (%)')}</th><th className="n">{t('Preço de venda')}</th><th className="n">{t('Lucro')}</th><th></th>
                 </tr>
               </thead>
               <tbody>
-                {tabela.length === 0 && <tr><td colSpan="9" className="vazio">{t('Nada encontrado.')}</td></tr>}
+                {tabela.length === 0 && <tr><td colSpan="10" className="vazio">{t('Nada encontrado.')}</td></tr>}
                 {tabela.map((i) => (
                   <Fragment key={i.k}>
                     <tr className={(marcados[i.k] ? 'em-edicao' : '') + (sel === i.k ? ' linha-aberta' : '')} title={descricaoPreco(i.resolucao)}>
@@ -193,8 +233,33 @@ export default function PrecosVenda({ db, executar, embutido }) {
                         {nomeFornecedor(db, i.fornecedorId)}{fornecedoresDe(i.k).length > 1 && <small className="sub-linha">{t('+ {n} fornecedor(es)', { n: fornecedoresDe(i.k).length - 1 })}</small>}
                       </td>
                       <td className="n">{brl(i.custo)}</td>
-                      <td className="n"><b className="ok">{brl(i.preco)}</b></td>
-                      <td className="n"><span className={i.preco - i.custo < 0 ? 'bad' : ''}>{brl(i.preco - i.custo)}</span></td>
+                      {(() => {
+                        const d = rascunho[i.k]
+                        // enquanto digita: mexeu na %, recalcula o preço; mexeu no preço, recalcula a %
+                        const precoVer = d?.campo === 'pct' ? i.custo * (1 + (lerValor(d.valor) || 0) / 100) : d?.campo === 'preco' ? lerValor(d.valor) : i.preco
+                        const pctVer = d?.campo === 'preco' ? aumento(i.custo, lerValor(d.valor)) : d?.campo === 'pct' ? lerValor(d.valor) : aumento(i.custo, i.preco)
+                        const lucro = (Number.isFinite(precoVer) ? precoVer : 0) - i.custo
+                        const campo = (nome, valor, casas) => ({
+                          value: d?.campo === nome ? d.valor : paraTexto(valor, casas),
+                          onChange: (e) => setRascunho({ ...rascunho, [i.k]: { campo: nome, valor: e.target.value } }),
+                          onBlur: () => confirmarLinha(i),
+                          onKeyDown: (e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') limparRascunho(i.k) },
+                          disabled: !podeEditarPreco,
+                        })
+                        return (
+                          <>
+                            <td className="n"><span className="lf-preco calc-campo"><input inputMode="decimal" {...campo('pct', pctVer)} /><span style={{ paddingRight: 10 }}>%</span></span></td>
+                            <td className="n">
+                              <span className="lf-preco calc-campo"><span>R$</span><input inputMode="decimal" {...campo('preco', precoVer, 2)} /></span>
+                              {!fixo(i) && <small className="sub-linha warn">{t('sem preço definido (= custo)')}</small>}
+                            </td>
+                            <td className="n">
+                              <span className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</span>
+                              {precoVer > 0 && <small className="sub-linha">{t('margem {p}', { p: pct((lucro / precoVer) * 100) })}</small>}
+                            </td>
+                          </>
+                        )
+                      })()}
                       <td className="n acoes-fiado">
                         <button className="edit" onClick={() => { ff.setEditando(null); setNomeEd({ produto: i.produto, marca: i.marca || '' }); setSel(sel === i.k ? '' : i.k) }}>{sel === i.k ? t('Fechar') : t('Editar')}</button>{' '}
                         <button className="del" onClick={() => excluirProduto(i)}>{t('Excluir')}</button>
@@ -202,7 +267,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
                     </tr>
                     {sel === i.k && (
                       <tr className="linha-edicao-produto">
-                        <td colSpan="9">
+                        <td colSpan="10">
                           <div className="edicao-produto">
                             {nomeEd && (
                               <form className="ep-nome-form" onSubmit={(e) => { e.preventDefault(); salvarNome(i) }}>

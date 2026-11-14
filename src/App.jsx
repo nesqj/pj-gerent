@@ -4,7 +4,6 @@ import * as Armazenamento from './armazenamento.js'
 import * as Org from './organizacoes.js'
 import Fornecedores from './componentes/Fornecedores.jsx'
 import Vendas from './componentes/Vendas.jsx'
-import RegraPreco from './componentes/RegraPreco.jsx'
 import Analise from './componentes/Analise.jsx'
 import Estoque from './componentes/Estoque.jsx'
 import Caixa from './componentes/Caixa.jsx'
@@ -24,7 +23,7 @@ import { corTextoSobre, definirFuso, FUSO_PADRAO, hexValido, hoje } from './util
 import pacote from '../package.json'
 import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from './marca.js'
 import {
-  IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
+  IconeAjuda, IconeCaixaProduto, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
   IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
   IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado,
 } from './icones.jsx'
@@ -46,12 +45,6 @@ const GRUPOS = [
       { id: 'forn', nome: 'Fornecedores', icone: IconeCaminhao },
       { id: 'estoque', nome: 'Estoque', icone: IconeCaixaProduto },
       { id: 'clientes', nome: 'Clientes', icone: IconeUsuarios },
-    ],
-  },
-  {
-    nome: 'Preços',
-    itens: [
-      { id: 'regra', nome: 'Calculadora de preço', icone: IconeAjustes },
     ],
   },
 ]
@@ -515,7 +508,6 @@ export default function App() {
           {!noAdmin && aba === 'analise' && <Analise db={db} />}
           {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'forn' && <Fornecedores db={db} executar={executar} />}
-          {!noAdmin && aba === 'regra' && <RegraPreco db={db} executar={executar} />}
           {!noAdmin && aba === 'config' && <Configuracoes db={db} executar={executar} usuario={sessao.usuario} loja={loja} adminPlataforma={adminPlataforma} />}
           {!noAdmin && aba === 'ajuda' && <Ajuda irPara={irPara} />}
         </main>
