@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { brl, num, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid } from '../utils.js'
+import { brl, num, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda } from '../utils.js'
 
 const itemNovo = { k: '', qtd: '1', preco: '' } // preco: digitado só para produtos do estoque
 
@@ -28,6 +28,12 @@ export default function Vendas({ db, executar }) {
   const pctDesconto = Math.min(100, Math.max(0, +desconto || 0))
   const valorDesconto = Math.round(subtotalCarrinho * pctDesconto) / 100
   const totalCarrinho = Math.round((subtotalCarrinho - valorDesconto) * 100) / 100
+  // lucro do carrinho (com o desconto) e prejuízo de quem vende abaixo do custo
+  const fatorCarrinho = 1 - pctDesconto / 100
+  const lucroCarrinho = lucroDe(carrinho, fatorCarrinho)
+  const temCusto = carrinho.some((i) => i.custo != null)
+  // preço digitado abaixo do custo (produto do estoque)
+  const abaixoDoCusto = selecionado?.origem === 'estoque' && selecionado.custo != null && item.preco !== '' && +item.preco < selecionado.custo
 
   // estoque disponível = estoque salvo + o que a venda em edição já tinha tirado − o que está no carrinho
   const doEstoqueEm = (itens, k) => itens.filter((i) => i.origem === 'estoque' && norm(i.produto) === k).reduce((s, i) => s + +i.qtd, 0)
@@ -95,7 +101,10 @@ export default function Vendas({ db, executar }) {
       .map((k) => ({ nome: estoque.get(k)?.produto, resta: disponivel(k) }))
       .filter((p) => p.nome && p.resta <= 2)
     if (await executar((A) => A.salvarVenda(venda))) {
-      aviso.ok(editando ? t('Venda atualizada.') : t('Venda registrada.'), brl(venda.total))
+      const resultado = lucroVenda(venda)
+      if (resultado.lucro < 0) aviso.alerta(editando ? t('Venda atualizada com prejuízo.') : t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
+      else if (resultado.perda > 0) aviso.alerta(editando ? t('Venda atualizada.') : t('Venda registrada.'), t('Atenção: {n} item(ns) vendido(s) abaixo do custo (perda de {valor}).', { n: resultado.itensComPrejuizo, valor: brl(resultado.perda) }))
+      else aviso.ok(editando ? t('Venda atualizada.') : t('Venda registrada.'), brl(venda.total))
       if (!editando) setDia(hoje())
       cancelar()
       if (db.config?.avisosEstoque !== false) {
@@ -118,6 +127,9 @@ export default function Vendas({ db, executar }) {
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
   const totalDia = vendasDia.reduce((s, v) => s + v.total, 0)
   const custoDia = vendasDia.reduce((s, v) => s + v.itens.reduce((c, i) => c + (i.custo ?? 0) * i.qtd, 0), 0)
+  const lucroDia = Math.round((totalDia - custoDia) * 100) / 100
+  const perdasDia = vendasDia.reduce((s, v) => s + lucroVenda(v).perda, 0)
+  const vendasComPrejuizo = vendasDia.filter((v) => lucroVenda(v).perda > 0).length
   const semCusto = vendasDia.some((v) => v.itens.some((i) => i.custo == null))
   const porPagamento = PAGAMENTOS.map((p) => ({
     p, total: vendasDia.filter((v) => v.pagamento === p).reduce((s, v) => s + v.total, 0),
@@ -156,6 +168,7 @@ export default function Vendas({ db, executar }) {
         {selecionado?.origem === 'estoque' ? (
           <label style={{ flex: '0 1 160px' }}>{t('Preço vendido (R$)')} *
             <input type="number" min="0" step="0.01" required placeholder={selecionado.custo != null ? `${t('custo')}: ${brl(selecionado.custo)}` : ''}
+              className={abaixoDoCusto ? 'campo-erro' : ''}
               value={item.preco} onChange={(e) => setItem({ ...item, preco: e.target.value })} />
           </label>
         ) : (
@@ -178,6 +191,7 @@ export default function Vendas({ db, executar }) {
           ? <small>{t('Preço da aba "Preços de Venda" ({regra}).', { regra: descricaoPreco(selecionado.resolucao) })}</small>
           : <small>{t('Produtos dos fornecedores usam o preço da aba "Preços de Venda".')}</small>}
         {selecionado?.origem === 'fornecedor' && selecionado.resolucao.tipo === 'nenhuma' && <small className="warn"> {t('Este produto está sem regra: o preço de venda é igual ao custo.')}</small>}
+        {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
       </p>
 
       {opcoes.length === 0 && <p className="warn">{t('Registre produtos no Estoque ou cadastre produtos nos fornecedores para poder vender.')}</p>}
@@ -191,11 +205,13 @@ export default function Vendas({ db, executar }) {
           )}
           <div className="tw">
             <table>
-              <thead><tr><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Unit.')}</th><th className="n">{t('Subtotal')}</th><th></th></tr></thead>
+              <thead><tr><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Unit.')}</th><th className="n">{t('Subtotal')}</th><th className="n">{t('Lucro')}</th><th></th></tr></thead>
               <tbody>
-                {carrinho.length === 0 && <tr><td colSpan="5" className="vazio">{t('Nenhum item. Adicione pelo formulário acima.')}</td></tr>}
-                {carrinho.map((i, n) => (
-                  <tr key={n}>
+                {carrinho.length === 0 && <tr><td colSpan="6" className="vazio">{t('Nenhum item. Adicione pelo formulário acima.')}</td></tr>}
+                {carrinho.map((i, n) => {
+                  const l = lucroItem(i, fatorCarrinho)
+                  return (
+                  <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
                     <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}</td>
                     <td className="n">
                       <input className={'cel' + (i.origem === 'estoque' && disponivel(norm(i.produto)) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
@@ -204,13 +220,15 @@ export default function Vendas({ db, executar }) {
                     </td>
                     <td className="n">
                       {i.origem === 'estoque'
-                        ? <input className="cel" type="number" min="0" step="0.01" value={i.preco} onChange={(e) => alterarItem(n, 'preco', e.target.value)} />
+                        ? <input className={'cel' + (i.custo != null && +i.preco < i.custo ? ' campo-erro' : '')} type="number" min="0" step="0.01" value={i.preco} onChange={(e) => alterarItem(n, 'preco', e.target.value)} />
                         : brl(i.preco)}
                     </td>
                     <td className="n">{brl((+i.qtd || 0) * (+i.preco || 0))}</td>
+                    <td className="n"><ValorLucro valor={l} /></td>
                     <td><button className="del" onClick={() => setCarrinho(carrinho.filter((_, x) => x !== n))}>{t('Remover')}</button></td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -227,6 +245,9 @@ export default function Vendas({ db, executar }) {
               {pctDesconto > 0 && <small className="riscado">{brl(subtotalCarrinho)}</small>}
               {pctDesconto > 0 && <small className="bad">− {brl(valorDesconto)} ({t('{p}% de desconto', { p: num(pctDesconto, 2) })})</small>}
               <small>{t('Total')}</small><b>{brl(totalCarrinho)}</b>
+              {temCusto && (lucroCarrinho.lucro < 0
+                ? <small className="bad resultado-venda">{t('Prejuízo')}: − {brl(-lucroCarrinho.lucro)}</small>
+                : <small className="ok resultado-venda">{t('Lucro')}: {brl(lucroCarrinho.lucro)}{lucroCarrinho.perda > 0 ? ` · ${t('perda de {valor} abaixo do custo', { valor: brl(lucroCarrinho.perda) })}` : ''}</small>)}
             </div>
             <button onClick={finalizar} disabled={!carrinho.length}>{editando ? t('Salvar alterações') : t('Finalizar venda')}</button>
             <button className="sec" onClick={cancelar}>{editando ? t('Cancelar edição') : t('Cancelar')}</button>
@@ -243,7 +264,17 @@ export default function Vendas({ db, executar }) {
       <div className="cards">
         <div className="card"><small>{t('Vendas')}</small><b>{vendasDia.length}</b></div>
         <div className="card"><small>{t('Total vendido')}</small><b>{brl(totalDia)}</b></div>
-        <div className="card"><small>{t('Lucro estimado')}{semCusto ? ' *' : ''}</small><b className="ok">{brl(totalDia - custoDia)}</b></div>
+        <div className={'card' + (lucroDia < 0 ? ' card-prejuizo' : '')}>
+          <small>{lucroDia < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}{semCusto ? ' *' : ''}</small>
+          <b className={lucroDia < 0 ? 'bad' : 'ok'}>{lucroDia < 0 ? '− ' + brl(-lucroDia) : brl(lucroDia)}</b>
+        </div>
+        {perdasDia > 0 && (
+          <div className="card card-prejuizo">
+            <small>{t('Perdas (abaixo do custo)')}</small>
+            <b className="bad">− {brl(perdasDia)}</b>
+            <small>{t('{n} venda(s) com item abaixo do custo', { n: vendasComPrejuizo })}</small>
+          </div>
+        )}
         {porPagamento.map(({ p, total }) => (
           <div key={p} className="card"><small>{t(p)}</small><b>{brl(total)}</b></div>
         ))}
@@ -251,11 +282,14 @@ export default function Vendas({ db, executar }) {
 
       <div className="tw">
         <table>
-          <thead><tr><th>{t('Hora')}</th><th>{t('Itens')}</th><th>{t('Pagamento')}</th><th className="n">{t('Total')}</th><th></th></tr></thead>
+          <thead><tr><th>{t('Hora')}</th><th>{t('Itens')}</th><th>{t('Pagamento')}</th><th className="n">{t('Total')}</th><th className="n">{t('Lucro')}</th><th></th></tr></thead>
           <tbody>
-            {vendasDia.length === 0 && <tr><td colSpan="5" className="vazio">{t('Nenhuma venda neste dia.')}</td></tr>}
-            {vendasDia.map((v) => (
-              <tr key={v.id} className={editando?.id === v.id ? 'em-edicao' : ''}>
+            {vendasDia.length === 0 && <tr><td colSpan="6" className="vazio">{t('Nenhuma venda neste dia.')}</td></tr>}
+            {vendasDia.map((v) => {
+              const res = lucroVenda(v)
+              const temCustoV = v.itens.some((i) => i.custo != null)
+              return (
+              <tr key={v.id} className={(editando?.id === v.id ? 'em-edicao' : '') + (res.lucro < 0 ? ' linha-prejuizo' : '')}>
                 <td>{hora(v.data)}</td>
                 <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}</td>
                 <td>{t(v.pagamento)}</td>
@@ -263,16 +297,28 @@ export default function Vendas({ db, executar }) {
                   <b>{brl(v.total)}</b>
                   {v.descontoPct > 0 && <small className="desconto-linha">{t('{p}% de desconto', { p: num(v.descontoPct, 2) })}</small>}
                 </td>
+                <td className="n">
+                  {temCustoV ? <ValorLucro valor={res.lucro} /> : '-'}
+                  {res.perda > 0 && res.lucro >= 0 && <small className="desconto-linha bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
+                </td>
                 <td>
                   <button className="edit" onClick={() => editar(v)}>{t('Editar')}</button>{' '}
                   <button className="del" onClick={() => excluir(v)}>{t('Excluir')}</button>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
       {semCusto && <small>* {t('Algum item vendido não tinha custo informado; o lucro considera custo zero para ele.')}</small>}
     </section>
   )
+}
+
+// Lucro em verde; prejuízo em vermelho, com a palavra "prejuízo"
+function ValorLucro({ valor }) {
+  if (valor == null) return <small>{t('sem custo')}</small>
+  if (valor < 0) return <span className="bad">− {brl(-valor)}<small className="desconto-linha">{t('prejuízo')}</small></span>
+  return <span className="ok">{brl(valor)}</span>
 }

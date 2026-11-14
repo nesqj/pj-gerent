@@ -228,3 +228,20 @@ export function extratoCaixa(db) {
   return { inicio: c.inicio, saldoInicial: +c.saldoInicial || 0, movimentos: movs, saldo: Math.round(saldo * 100) / 100 }
 }
 
+// ---------- Lucro e prejuízo das vendas
+// O desconto da venda vale para todos os itens na mesma proporção (total ÷ subtotal).
+export const fatorDesconto = (v) => (+v.subtotal > 0 ? +v.total / +v.subtotal : 1)
+// Lucro de um item (preço já com desconto − custo). Sem custo informado: null.
+export const lucroItem = (i, fator = 1) => (i.custo == null ? null : (+i.qtd || 0) * ((+i.preco || 0) * fator - +i.custo))
+// { lucro, perda, itensComPrejuizo } de uma venda (ou do carrinho, com o fator do desconto)
+export function lucroDe(itens, fator = 1) {
+  let lucro = 0, perda = 0, itensComPrejuizo = 0
+  for (const i of itens || []) {
+    const l = lucroItem(i, fator)
+    lucro += l ?? (+i.qtd || 0) * (+i.preco || 0) * fator // sem custo: conta como custo zero (igual à Análise)
+    if (l != null && l < -0.004) { perda += -l; itensComPrejuizo++ }
+  }
+  return { lucro: Math.round(lucro * 100) / 100, perda: Math.round(perda * 100) / 100, itensComPrejuizo }
+}
+export const lucroVenda = (v) => lucroDe(v.itens, fatorDesconto(v))
+

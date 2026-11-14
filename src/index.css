@@ -580,3 +580,8 @@ input.campo-erro { border-color: var(--bad) !important; box-shadow: 0 0 0 3px va
 /* notificações (sonner) com a fonte do app */
 .aviso-toast { font-family: inherit !important; font-size: 14px !important }
 
+/* ---------- Prejuízo (venda abaixo do custo) ---------- */
+tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent) }
+.card.card-prejuizo { border-color: var(--bad-borda); background: color-mix(in srgb, var(--bad) 8%, var(--card)) }
+.resultado-venda { display: block; margin-top: 4px; font-weight: 600 }
+

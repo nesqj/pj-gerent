@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda } from '../utils.js'
 
 // ---------- Datas ----------
 const paraDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -33,14 +33,16 @@ const PERIODOS = [
 
 // ---------- Números do período ----------
 function resumo(vendas) {
-  let faturamento = 0, custo = 0, itens = 0
+  let faturamento = 0, custo = 0, itens = 0, perdas = 0, comPrejuizo = 0
   for (const v of vendas) {
     faturamento += v.total
     for (const i of v.itens) { custo += (i.custo ?? 0) * i.qtd; itens += i.qtd }
+    const p = lucroVenda(v).perda
+    if (p > 0) { perdas += p; comPrejuizo++ }
   }
   const lucro = faturamento - custo
   return {
-    faturamento, lucro, itens, vendas: vendas.length,
+    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo,
     ticket: vendas.length ? faturamento / vendas.length : 0,
     margem: faturamento ? (lucro / faturamento) * 100 : 0,
   }
@@ -216,11 +218,17 @@ export default function Analise({ db }) {
       {/* ---------- Indicadores ---------- */}
       <div className="cards indicadores">
         <div className="card destaque"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /></div>
-        <div className="card"><small>{t('Lucro estimado')}</small><b>{brl(r.lucro)}</b><Variacao atual={r.lucro} anterior={ra.lucro} /></div>
-        <div className="card"><small>{t('Margem')}</small><b>{pct(r.margem)}</b><Variacao atual={r.margem} anterior={ra.margem} pontos semAnterior={!ra.vendas} /></div>
+        <div className={'card' + (r.lucro < 0 ? ' card-prejuizo' : '')}><small>{r.lucro < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small><b className={r.lucro < 0 ? 'bad' : ''}>{r.lucro < 0 ? '− ' + brl(-r.lucro) : brl(r.lucro)}</b><Variacao atual={r.lucro} anterior={ra.lucro} /></div>
+        <div className="card"><small>{t('Margem')}</small><b className={r.margem < 0 ? 'bad' : ''}>{pct(r.margem)}</b><Variacao atual={r.margem} anterior={ra.margem} pontos semAnterior={!ra.vendas} /></div>
         <div className="card"><small>{t('Vendas')}</small><b>{r.vendas}</b><Variacao atual={r.vendas} anterior={ra.vendas} /></div>
         <div className="card"><small>{t('Ticket médio')}</small><b>{brl(r.ticket)}</b><Variacao atual={r.ticket} anterior={ra.ticket} /></div>
         <div className="card"><small>{t('Itens vendidos')}</small><b>{r.itens}</b><Variacao atual={r.itens} anterior={ra.itens} /></div>
+        {r.perdas > 0 && (
+          <div className="card card-prejuizo">
+            <small>{t('Perdas (abaixo do custo)')}</small><b className="bad">− {brl(r.perdas)}</b>
+            <small>{t('{n} venda(s) com item abaixo do custo', { n: r.comPrejuizo })}</small>
+          </div>
+        )}
       </div>
 
       {vendas.length === 0 ? (
@@ -272,8 +280,8 @@ export default function Analise({ db }) {
                     <td>{p.marca || '-'}</td>
                     <td className="n">{p.qtd}</td>
                     <td className="n"><b>{brl(p.faturamento)}</b></td>
-                    <td className="n">{brl(p.lucro)}</td>
-                    <td className="n">{pct(p.faturamento ? (p.lucro / p.faturamento) * 100 : 0)}</td>
+                    <td className={'n' + (p.lucro < 0 ? ' bad' : '')}>{p.lucro < 0 ? '− ' + brl(-p.lucro) : brl(p.lucro)}</td>
+                    <td className={'n' + (p.lucro < 0 ? ' bad' : '')}>{pct(p.faturamento ? (p.lucro / p.faturamento) * 100 : 0)}</td>
                     <td className="n">{pct((p.faturamento / r.faturamento) * 100)}</td>
                   </tr>
                 ))}
@@ -294,7 +302,7 @@ export default function Analise({ db }) {
                     <td>{m.nome}</td>
                     <td className="n">{m.qtd}</td>
                     <td className="n"><b>{brl(m.faturamento)}</b></td>
-                    <td className="n">{brl(m.lucro)}</td>
+                    <td className={'n' + (m.lucro < 0 ? ' bad' : '')}>{m.lucro < 0 ? '− ' + brl(-m.lucro) : brl(m.lucro)}</td>
                     <td className="n">{pct((m.faturamento / r.faturamento) * 100)}</td>
                   </tr>
                 ))}
