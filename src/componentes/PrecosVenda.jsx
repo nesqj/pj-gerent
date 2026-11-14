@@ -196,6 +196,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
           <div className="linha-titulo">
             <input className="busca" style={{ marginBottom: 0 }} placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
             <small className="qtd-produtos">{b ? t('{n} de {total} produto(s)', { n: tabela.length, total: itens.length }) : t('{n} produto(s) cadastrado(s)', { n: itens.length })}</small>
+            {tabela.length > 0 && <button className="link pequeno selecionar-todos" onClick={() => setMarcados(todosMarcados ? {} : Object.fromEntries(tabela.map((i) => [i.k, true])))}>{todosMarcados ? t('Desmarcar todos') : t('Selecionar todos')}</button>}
             <div className="chips">
               <button className={'filtro' + (ordem === 'az' ? ' ativo' : '')} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
               <button className={'filtro' + (ordem === 'recentes' ? ' ativo' : '')} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>

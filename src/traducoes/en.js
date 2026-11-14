@@ -1346,4 +1346,5 @@ export default {
   'Fornecedores e custo': 'Suppliers and cost',
   'marca {marca}': 'brand {marca}',
   'preencha o custo ao lado': 'fill in the cost on the left',
+  'Desmarcar todos': 'Deselect all',
 }
