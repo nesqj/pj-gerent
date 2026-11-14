@@ -293,7 +293,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
           <b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b>
         </div>
         <div className="card"><small>{t('Recebido no período')}</small><b>{brl(recebido)}</b></div>
-        <div className="card"><small>{t('Pendências')}</small><b>{brl(pendAberto + pendNaoPago)}</b><small className="var">{t('em aberto {aberto} · não pago {naoPago}', { aberto: brl(pendAberto), naoPago: brl(pendNaoPago) })}</small></div>
+        <div className="card"><small>{t('Pendências')}</small><b>{brl(pendAberto + pendNaoPago)}</b></div>
       </div>
       {lista.length === 0 ? (
         <p className="vazio">{t('Nenhum empréstimo neste período.')}</p>
