@@ -1242,4 +1242,5 @@ export default {
   'Falta receber': 'Left to receive',
   'combinado {valor} · recebido {recebido}': 'agreed {valor} · received {recebido}',
   'combinado {valor}': 'agreed {valor}',
+  'A receber (fiado)': 'Receivable (credit)',
 }

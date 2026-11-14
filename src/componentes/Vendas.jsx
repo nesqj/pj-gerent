@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
+import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado, encargoAtraso } from '../utils.js'
 import PagamentoVenda, { montarPagamento, novoPagamento, pagamentoDaVenda } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
@@ -175,7 +175,11 @@ export default function Vendas({ db, executar, irPara }) {
   const vendasComPrejuizo = vendasDia.filter((v) => lucroVenda(v).perda > 0).length
   const semCusto = vendasDia.some((v) => v.itens.some((i) => i.custo == null))
   const somaForma = (forma) => vendasDia.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === forma).reduce((a, x) => a + x.valor, 0), 0)
-  const porPagamento = [...PAGAMENTOS, 'Fiado'].map((p) => ({ p, total: somaForma(p) })).filter((x) => x.p !== 'Fiado' || x.total > 0)
+  const porPagamento = PAGAMENTOS.map((p) => ({ p, total: somaForma(p) }))
+  // fiado do dia: o que falta receber (parcelas com os juros do fiado + multa e juros de atraso), igual ao dos empréstimos
+  const temFiadoDia = vendasDia.some((v) => v.fiado)
+  const aReceberDia = Math.round(vendasDia.reduce((s, v) => s + (resumoFiado(v)?.aberto || 0)
+    + (v.fiado?.parcelas || []).reduce((a, p) => a + encargoAtraso(p, db.config?.atraso).total, 0), 0) * 100) / 100
   const textoPagamento = (v) => { const l = pagamentosDaVenda(v); return l.length > 1 ? l.map((x) => `${t(x.forma)} ${brl(x.valor)}`).join(' + ') : t(l[0]?.forma || v.pagamento) }
 
   return (
@@ -336,6 +340,7 @@ export default function Vendas({ db, executar, irPara }) {
         {porPagamento.map(({ p, total }) => (
           <div key={p} className="card"><small>{t(p)}</small><b>{brl(total)}</b></div>
         ))}
+        {temFiadoDia && <div className="card"><small>{t('A receber (fiado)')}</small><b>{brl(aReceberDia)}</b></div>}
       </div>
 
       <div className="tw">
