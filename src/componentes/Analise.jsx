@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, faltaReceber } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -259,6 +259,9 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
   const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
   const juros = lista.reduce((s, e) => s + lucroEmprestimo(e).lucro, 0)
   const naoPago = somaPerdas(perdasE, de, ate) // marcado "Não pagou" no período (de qualquer empréstimo)
+  // pendências dos empréstimos feitos no período: o que ainda está em aberto (com atraso) + o que fechou como "Não pagou"
+  const pendAberto = faltaReceber(lista, db.config?.atraso)
+  const pendNaoPago = Math.round(lista.reduce((s, e) => s + (resumoFiado(e)?.naoPago || 0), 0) * 100) / 100
   const lucro = Math.round((juros - naoPago) * 100) / 100
   // dinheiro que voltou no período (de qualquer empréstimo), com multa/juros de atraso
   const recebido = todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
@@ -290,7 +293,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
           <b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b>
         </div>
         <div className="card"><small>{t('Recebido no período')}</small><b>{brl(recebido)}</b></div>
-        <div className="card"><small>{t('Pendências')}</small><b>{brl(naoPago)}</b></div>
+        <div className="card"><small>{t('Pendências')}</small><b>{brl(pendAberto + pendNaoPago)}</b><small className="var">{t('em aberto {aberto} · não pago {naoPago}', { aberto: brl(pendAberto), naoPago: brl(pendNaoPago) })}</small></div>
       </div>
       {lista.length === 0 ? (
         <p className="vazio">{t('Nenhum empréstimo neste período.')}</p>
