@@ -106,7 +106,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
 
       <div className="cards">
         <div className="card destaque-caixa"><small>{t('Saldo em caixa')}</small><b className={ext.saldo < 0 ? 'bad' : ''}>{brl(ext.saldo)}</b></div>
-        <div className="card"><small>{t('Vendas')}</small><b className="ok">+ {brl(soma('venda') + soma('fiado'))}</b>{soma('fiado') > 0 && <small className="var">{t('{valor} de fiado', { valor: brl(soma('fiado')) })}</small>}</div>
+        <div className="card"><small>{t('Vendas')}</small><b className="ok">+ {brl(soma('venda') + soma('fiado'))}</b></div>
         <div className="card"><small>{t('Dinheiro colocado')}</small><b className="ok">+ {brl(soma('colocar'))}</b></div>
         <div className="card"><small>{t('Compras de estoque')}</small><b className="bad">− {brl(soma('compra'))}</b></div>
         <div className="card"><small>{t('Dinheiro retirado')}</small><b className="bad">− {brl(soma('retirar'))}</b></div>
