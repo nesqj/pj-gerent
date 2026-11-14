@@ -40,7 +40,7 @@ function AbrirCaixa({ executar, atual, aoTerminar }) {
   }
   return (
     <section>
-      {!atual && <h2>{t('Caixa')}</h2>}
+      {!atual && <h2>{t('Controle de caixa')}</h2>}
       <div className="painel">
         <p><b>{atual ? t('Ajustar o início do caixa') : t('Comece o controle de caixa')}</b></p>
         <p><small>{t('Informe quanto dinheiro a loja tem para girar agora (em espécie, conta e o que mais usar para comprar mercadoria). A partir daí, as vendas somam, as entradas no estoque descontam o custo, e você registra o que colocar ou retirar.')}</small></p>
@@ -102,7 +102,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
 
   return (
     <section>
-      <h2>{t('Caixa')}</h2>
+      <h2>{t('Controle de caixa')}</h2>
 
       <div className="cards">
         <div className="card destaque-caixa"><small>{t('Saldo em caixa')}</small><b className={ext.saldo < 0 ? 'bad' : ''}>{brl(ext.saldo)}</b></div>

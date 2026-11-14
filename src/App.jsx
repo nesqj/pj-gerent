@@ -36,7 +36,7 @@ const GRUPOS = [
     itens: [
       { id: 'vendas', nome: 'Vendas', icone: IconeCarrinho },
       { id: 'fiado', nome: 'Fiado', icone: IconeFiado },
-      { id: 'caixa', nome: 'Caixa', icone: IconeCaixa },
+      { id: 'caixa', nome: 'Controle de caixa', icone: IconeCaixa },
       { id: 'analise', nome: 'Análise', icone: IconeGrafico },
     ],
   },
