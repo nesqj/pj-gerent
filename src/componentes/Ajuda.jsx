@@ -4,7 +4,7 @@ import { t } from '../i18n.js'
 const TOPICOS = [
   {
     aba: 'vendas', nome: 'Novo Registro',
-    texto: 'Escolha o produto, a quantidade e clique em Adicionar. Produtos do estoque pedem o preço vendido; produtos dos fornecedores já vêm com o preço da aba Preços de Venda. No fim, escolha a forma de pagamento e clique em Finalizar venda. Na lista do dia dá para editar ou excluir uma venda.',
+    texto: 'Escolha o produto, a quantidade e clique em Adicionar. Produtos do estoque pedem o preço vendido; produtos dos fornecedores já vêm com o preço da aba Tabela de Venda. No fim, escolha a forma de pagamento e clique em Finalizar venda. Na lista do dia dá para editar ou excluir uma venda.',
   },
   {
     aba: 'analise', nome: 'Análise',
@@ -19,7 +19,7 @@ const TOPICOS = [
     texto: 'Registre os produtos que chegaram para revenda com quantidade e custo. Cada venda de um produto do estoque diminui a quantidade. As entradas podem ser editadas ou excluídas.',
   },
   {
-    aba: 'venda', nome: 'Preços de Venda',
+    aba: 'venda', nome: 'Tabela de Venda',
     texto: 'Preço de venda de cada produto dos fornecedores. Na coluna Regra você escolhe, produto por produto, qual regra usar, sem regra ou um preço fixo. Dá para marcar vários e aplicar de uma vez.',
   },
   {

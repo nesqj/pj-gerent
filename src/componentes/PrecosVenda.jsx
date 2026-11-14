@@ -78,7 +78,7 @@ export default function PrecosVenda({ db, executar }) {
 
   return (
     <section>
-      <h2>{t('Preços de Venda')}</h2>
+      <h2>{t('Tabela de Venda')}</h2>
       <p><small>{t('Escolha a regra de cada produto na coluna "Regra". Para criar ou mudar regras, use a aba "Regra de Preço".')}</small></p>
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}

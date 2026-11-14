@@ -52,7 +52,7 @@ const GRUPOS = [
   {
     nome: 'Preços',
     itens: [
-      { id: 'venda', nome: 'Preços de Venda', icone: IconeCalculadora },
+      { id: 'venda', nome: 'Tabela de Venda', icone: IconeCalculadora },
       { id: 'regra', nome: 'Regra de Preço', icone: IconeAjustes },
     ],
   },
