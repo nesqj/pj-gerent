@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
-import { marcasDisponiveis, trabalhaCom } from './NovoProduto.jsx'
+import NovoProduto, { marcasDisponiveis, trabalhaCom } from './NovoProduto.jsx'
 import { t } from '../i18n.js'
 import {
   brl, calcularVenda, chave, dataTs, descricaoPreco, escolhaProduto, formulaRegra, gravarPrecoFornecedor, lerValor, nomeFornecedor, norm,
@@ -81,6 +81,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const [marcados, setMarcados] = useState({}) // produtos marcados para aplicar uma regra de uma vez
   const [aplicar, setAplicar] = useState('padrao')
   const [nomeEd, setNomeEd] = useState(null) // { produto, marca } em edição
+  const [cadastrando, setCadastrando] = useState(false)
   const [ordem, setOrdem] = useState('az') // 'az' (alfabética) ou 'recentes' (ordem de cadastro, mais novos primeiro)
 
   const regras = regrasDe(db)
@@ -131,7 +132,13 @@ export default function PrecosVenda({ db, executar, embutido }) {
 
   return (
     <section>
-      {embutido ? <h3 className="titulo-produtos">{t('Produtos e preços de venda')}</h3> : <h2>{t('Tabela de Venda')}</h2>}
+      {embutido ? (
+        <div className="linha-titulo titulo-produtos">
+          <h3>{t('Produtos e preços de venda')}</h3>
+          {(db.fornecedores || []).length > 0 && !cadastrando && <button onClick={() => setCadastrando(true)}>+ {t('Cadastrar produto')}</button>}
+        </div>
+      ) : <h2>{t('Tabela de Venda')}</h2>}
+      {cadastrando && <NovoProduto db={db} executar={executar} aoTerminar={(k) => { setCadastrando(false); if (k) setSel(k) }} />}
       <p><small>{t('Escolha a regra de cada produto na coluna "Regra". Para criar ou mudar regras, use a aba "Regra de Preço".')}</small></p>
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}
