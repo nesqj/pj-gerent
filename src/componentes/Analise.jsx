@@ -129,6 +129,10 @@ export default function Analise({ db }) {
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
   ra.margem = ra.faturamento ? (ra.lucro / ra.faturamento) * 100 : 0
   const lucroTotal = Math.round(r.lucro * 100) / 100
+  // despesas com estoque: compras (quantidade × custo) feitas no período
+  const despesasEstoque = (a, b) => Math.round((db.entradas || []).filter((e) => e.dia >= a && e.dia <= b && e.custo != null)
+    .reduce((s, e) => s + (+e.qtd || 0) * (+e.custo || 0), 0) * 100) / 100
+  const despesas = despesasEstoque(de, ate), despesasAnt = despesasEstoque(antDe, antAte)
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
@@ -172,11 +176,12 @@ export default function Analise({ db }) {
     <section>
       <h2>{t('Análise')}</h2>
 
-      <div className="chips modo-registro">
-        <button className={'filtro' + (aba === 'vendas' ? ' ativo' : '')} onClick={() => setAba('vendas')}>{t('Vendas')}</button>
-        {comEmprestimos && <button className={'filtro' + (aba === 'emprestimos' ? ' ativo' : '')} onClick={() => setAba('emprestimos')}>{t('Empréstimos')}</button>}
-        <button className={'filtro' + (aba === 'despesas' ? ' ativo' : '')} onClick={() => setAba('despesas')}>{t('Despesas')}</button>
-      </div>
+      {comEmprestimos && (
+        <div className="chips modo-registro">
+          <button className={'filtro' + (aba === 'vendas' ? ' ativo' : '')} onClick={() => setAba('vendas')}>{t('Vendas')}</button>
+          <button className={'filtro' + (aba === 'emprestimos' ? ' ativo' : '')} onClick={() => setAba('emprestimos')}>{t('Empréstimos')}</button>
+        </div>
+      )}
 
       {/* ---------- Período ---------- */}
       <div className="filtros">
@@ -195,9 +200,7 @@ export default function Analise({ db }) {
         <small>{de === ate ? dataBR(de) : t('{de} a {ate}', { de: dataBR(de), ate: dataBR(ate) })} · {t('comparado com')} {antDe === antAte ? dataBR(antDe) : t('{de} a {ate}', { de: dataBR(antDe), ate: dataBR(antAte) })}</small>
       </div>
 
-      {aba === 'despesas' ? (
-        <AnaliseDespesas db={db} de={de} ate={ate} antDe={antDe} antAte={antAte} />
-      ) : aba === 'emprestimos' && comEmprestimos ? (
+      {aba === 'emprestimos' && comEmprestimos ? (
         <AnaliseEmprestimos db={db} de={de} ate={ate} perdasE={perdasE} />
       ) : (<>
       {/* ---------- Indicadores ---------- */}
@@ -211,6 +214,10 @@ export default function Analise({ db }) {
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>
           <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
+        </div>
+        <div className="card">
+          <small>{t('Despesas com estoque')}</small><b className={despesas > 0 ? 'bad' : ''}>{despesas > 0 ? '− ' + brl(despesas) : brl(0)}</b>
+          {despesasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(despesasAnt) })}</small>}
         </div>
       </div>
 
@@ -371,62 +378,3 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
     </>
   )
 }
-
-// ---------- Despesas da parte de vendas: compras de estoque (quantidade × custo) no período ----------
-function AnaliseDespesas({ db, de, ate, antDe, antAte }) {
-  const doPeriodo = (a, b) => (db.entradas || []).filter((e) => e.dia >= a && e.dia <= b && e.custo != null)
-  const valor = (e) => (+e.qtd || 0) * (+e.custo || 0)
-  const lista = doPeriodo(de, ate).sort((a, b) => (b.data || 0) - (a.data || 0))
-  const total = Math.round(lista.reduce((s, e) => s + valor(e), 0) * 100) / 100
-  const anterior = Math.round(doPeriodo(antDe, antAte).reduce((s, e) => s + valor(e), 0) * 100) / 100
-  const itens = lista.reduce((s, e) => s + (+e.qtd || 0), 0)
-  // por produto
-  const mapa = new Map()
-  for (const e of lista) {
-    const k = String(e.produto || '').trim().toLowerCase()
-    const c = mapa.get(k) || { produto: e.produto, qtd: 0, total: 0 }
-    c.qtd += +e.qtd || 0; c.total += valor(e)
-    mapa.set(k, c)
-  }
-  const porProduto = [...mapa.values()].sort((a, b) => b.total - a.total)
-  return (
-    <>
-      <div className="cards indicadores">
-        <div className="card destaque"><small>{t('Despesas com estoque')}</small><b className={total > 0 ? 'bad' : ''}>{total > 0 ? '− ' + brl(total) : brl(0)}</b>
-          {anterior > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(anterior) })}</small>}</div>
-        <div className="card"><small>{t('Entradas no estoque')}</small><b>{lista.length}</b></div>
-        <div className="card"><small>{t('Itens comprados')}</small><b>{itens}</b></div>
-      </div>
-      {lista.length === 0 ? (
-        <p className="vazio">{t('Nenhuma compra de estoque neste período.')}</p>
-      ) : (
-        <>
-          <div className="tw">
-            <table>
-              <thead><tr><th>{t('Data')}</th><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Custo unit.')}</th><th className="n">{t('Total')}</th></tr></thead>
-              <tbody>
-                {lista.map((e) => (
-                  <tr key={e.id}>
-                    <td>{dataBR(e.dia)}</td>
-                    <td className="quebra">{e.produto}{(e.obs || e.foraDoCaixa) && <small className="sub-linha">{[e.obs, e.foraDoCaixa && t('fora do caixa')].filter(Boolean).join(' · ')}</small>}</td>
-                    <td className="n">{e.qtd}</td>
-                    <td className="n">{brl(+e.custo || 0)}</td>
-                    <td className="n"><b>{brl(valor(e))}</b></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {porProduto.length > 1 && (
-            <div className="painel">
-              <h3 className="painel-titulo">{t('Por produto')}</h3>
-              <Participacao linhas={porProduto.map((c) => ({ nome: c.produto, valor: Math.round(c.total * 100) / 100 }))} total={total} />
-            </div>
-          )}
-        </>
-      )}
-      <small>{t('Despesas com estoque = quantidade × custo de cada entrada no estoque feita no período (inclusive as pagas fora do caixa).')}</small>
-    </>
-  )
-}
-
