@@ -1239,4 +1239,7 @@ export default {
   'Multa e juros por atraso salvos.': 'Late fee and interest saved.',
   'A receber (com juros)': 'Receivable (with interest)',
   'Nenhum empréstimo neste dia.': 'No loans on this day.',
+  'Falta receber': 'Left to receive',
+  'combinado {valor} · recebido {recebido}': 'agreed {valor} · received {recebido}',
+  'combinado {valor}': 'agreed {valor}',
 }
