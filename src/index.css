@@ -728,4 +728,10 @@ small.aguarda { color: var(--mut); font-size: 12px }
 .form-atraso label { flex: 0 1 170px }
 .inline-form .perdoar { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap }
 .inline-form { flex-wrap: wrap }
+/* Tabela de Venda: cadastrar produto com vários fornecedores */
+.form-produto { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 14px }
+.linhas-forn { flex: 1 1 100%; display: flex; flex-direction: column; gap: 6px; max-width: 460px }
+.linhas-forn > small { color: var(--mut) }
+.adicionar-forn { margin: 10px 0 4px; flex-wrap: wrap; gap: 8px }
+.adicionar-forn small { color: var(--mut) }
 
