@@ -46,52 +46,70 @@ export default function NovoProduto({ db, executar, aoTerminar }) {
   if (!todos.length) return <p className="warn">{t('Cadastre os fornecedores primeiro, na aba Fornecedores.')}</p>
   if (!marcas.length) return <p className="warn">{t('Cadastre as marcas nos fornecedores primeiro, na aba Fornecedores.')}</p>
   return (
-    <form onSubmit={salvar} className="painel form-produto">
-      <label style={{ flex: '2 1 240px' }}>{t('Produto')} *<input required maxLength={80} value={f.produto} onChange={(e) => setF({ ...f, produto: e.target.value })} /></label>
-      <label style={{ flex: '1 1 160px' }}>{t('Marca')} *
-        <select value={f.marca} onChange={(e) => trocarMarca(e.target.value)}>
-          {marcas.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-      </label>
-      <div className="linhas-forn">
-        <div className="lf-titulo">
-          <b>{t('Fornecedores')}</b>
-          <small>{t('só os que trabalham com a marca {marca}', { marca: f.marca })}</small>
-        </div>
-        {fornecedores.length === 0 && <small className="warn">{t('Nenhum fornecedor trabalha com esta marca.')}</small>}
-        {f.linhas.map((l, i) => (
-          <div key={i} className="lf-linha">
-            <select value={l.fornecedorId} onChange={(e) => mudarLinha(i, { fornecedorId: e.target.value })}>
-              {fornecedores.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
-            </select>
-            <div className="lf-preco">
-              <span>R$</span>
-              <input inputMode="decimal" placeholder="0,00" value={l.preco} onChange={(e) => mudarLinha(i, { preco: e.target.value })} />
-            </div>
-            {f.linhas.length > 1
-              ? <button type="button" className="lf-tirar" title={t('Remover')} onClick={() => setF({ ...f, linhas: f.linhas.filter((_, k) => k !== i) })}>×</button>
-              : <span className="lf-tirar-vazio" />}
+    <form onSubmit={salvar} className="painel form-produto np">
+      <div className="np-titulo"><b>{t('Novo produto')}</b></div>
+      {/* linha 1: nome e marca */}
+      <div className="np-linha">
+        <label>{t('Produto')} *<input required maxLength={80} placeholder={t('Ex: Capinha iPhone 13')} value={f.produto} onChange={(e) => setF({ ...f, produto: e.target.value })} /></label>
+        <label>{t('Marca')} *
+          <select value={f.marca} onChange={(e) => trocarMarca(e.target.value)}>
+            {marcas.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </label>
+      </div>
+      {/* linha 2: fornecedores (custo) e preço de venda, lado a lado */}
+      <div className="np-blocos">
+        <div className="np-bloco">
+          <div className="lf-titulo">
+            <b>{t('Fornecedores e custo')}</b>
+            <small>{t('marca {marca}', { marca: f.marca })}</small>
           </div>
-        ))}
-        {f.linhas.length < fornecedores.length && (
-          <button type="button" className="lf-mais" onClick={() => setF({ ...f, linhas: [...f.linhas, { fornecedorId: fornecedores.find((x) => !f.linhas.some((l) => l.fornecedorId === x.id))?.id || '', preco: '' }] })}>+ {t('Outro fornecedor')}</button>
-        )}
-      </div>
-      <div className="linhas-forn bloco-venda">
-        <div className="lf-titulo">
-          <b>{t('Preço de venda')}</b>
-          <small>{menorCusto != null ? t('sobre o menor custo: {valor}', { valor: brl(menorCusto) }) : t('preencha o custo do fornecedor acima')}</small>
+          {fornecedores.length === 0 && <small className="warn">{t('Nenhum fornecedor trabalha com esta marca.')}</small>}
+          {f.linhas.map((l, i) => (
+            <div key={i} className="lf-linha">
+              <select value={l.fornecedorId} onChange={(e) => mudarLinha(i, { fornecedorId: e.target.value })}>
+                {fornecedores.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+              </select>
+              <div className="lf-preco">
+                <span>R$</span>
+                <input inputMode="decimal" placeholder="0,00" value={l.preco} onChange={(e) => mudarLinha(i, { preco: e.target.value })} />
+              </div>
+              {f.linhas.length > 1
+                ? <button type="button" className="lf-tirar" title={t('Remover')} onClick={() => setF({ ...f, linhas: f.linhas.filter((_, k) => k !== i) })}>×</button>
+                : <span className="lf-tirar-vazio" />}
+            </div>
+          ))}
+          {f.linhas.length < fornecedores.length && (
+            <button type="button" className="lf-mais" onClick={() => setF({ ...f, linhas: [...f.linhas, { fornecedorId: fornecedores.find((x) => !f.linhas.some((l) => l.fornecedorId === x.id))?.id || '', preco: '' }] })}>+ {t('Outro fornecedor')}</button>
+          )}
         </div>
-        <div className="lf-linha venda-linha">
-          <span className="lf-preco"><input inputMode="decimal" placeholder={t('Aumento')} value={pctVenda} onChange={(e) => setVenda({ campo: 'pct', valor: e.target.value })} /><span style={{ paddingRight: 10 }}>%</span></span>
-          <span className="lf-preco"><span>R$</span><input inputMode="decimal" placeholder="0,00"
-            value={venda.campo === 'preco' ? venda.valor : precoVenda != null ? String(precoVenda.toFixed(2)).replace('.', ',') : ''}
-            onChange={(e) => setVenda({ campo: 'preco', valor: e.target.value })} /></span>
-          <small className={lucro != null && lucro < 0 ? 'bad' : 'ok'}>{lucro != null ? t('lucro {valor} · margem {p}', { valor: brl(lucro), p: precoVenda > 0 ? pct((lucro / precoVenda) * 100) : '-' }) : ''}</small>
+        <div className="np-bloco">
+          <div className="lf-titulo">
+            <b>{t('Preço de venda')}</b>
+            <small>{menorCusto != null ? t('sobre o menor custo: {valor}', { valor: brl(menorCusto) }) : t('preencha o custo ao lado')}</small>
+          </div>
+          <div className="np-venda">
+            <label>{t('Aumento')}
+              <span className="lf-preco"><input inputMode="decimal" placeholder="0" value={pctVenda} onChange={(e) => setVenda({ campo: 'pct', valor: e.target.value })} /><span className="sufixo">%</span></span>
+            </label>
+            <span className="np-igual">=</span>
+            <label>{t('Preço de venda')}
+              <span className="lf-preco"><span>R$</span><input inputMode="decimal" placeholder="0,00"
+                value={venda.campo === 'preco' ? venda.valor : precoVenda != null ? String(precoVenda.toFixed(2)).replace('.', ',') : ''}
+                onChange={(e) => setVenda({ campo: 'preco', valor: e.target.value })} /></span>
+            </label>
+          </div>
+          <div className="np-resumo">
+            <div><small>{t('Lucro')}</small><b className={lucro != null && lucro < 0 ? 'bad' : 'ok'}>{lucro != null ? brl(lucro) : '—'}</b></div>
+            <div><small>{t('Margem')}</small><b>{lucro != null && precoVenda > 0 ? pct((lucro / precoVenda) * 100) : '—'}</b></div>
+          </div>
         </div>
       </div>
-      <button type="submit">{t('Cadastrar produto')}</button>
-      <button type="button" className="sec" onClick={() => aoTerminar(null)}>{t('Cancelar')}</button>
+      {/* linha 3: botões */}
+      <div className="np-botoes">
+        <button type="button" className="sec" onClick={() => aoTerminar(null)}>{t('Cancelar')}</button>
+        <button type="submit">{t('Cadastrar produto')}</button>
+      </div>
     </form>
   )
 }

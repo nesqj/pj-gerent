@@ -1341,4 +1341,9 @@ export default {
   'preencha o custo do fornecedor acima': 'fill in the supplier cost above',
   'Aumento': 'Markup',
   'lucro {valor} · margem {p}': 'profit {valor} · margin {p}',
+  'Novo produto': 'New product',
+  'Ex: Capinha iPhone 13': 'E.g.: iPhone 13 case',
+  'Fornecedores e custo': 'Suppliers and cost',
+  'marca {marca}': 'brand {marca}',
+  'preencha o custo ao lado': 'fill in the cost on the left',
 }

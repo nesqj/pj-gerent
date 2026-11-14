@@ -771,4 +771,24 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 .bloco-venda .venda-linha { grid-template-columns: 120px 140px 1fr }
 .bloco-venda .venda-linha small { font-size: 12px }
 @media (max-width: 767px) { .bloco-venda .venda-linha { grid-template-columns: 1fr 1fr } .bloco-venda .venda-linha small { grid-column: 1 / -1 } }
+/* Cadastrar produto: layout em blocos */
+.form-produto.np { display: flex; flex-direction: column; gap: 14px; align-items: stretch }
+.np-titulo b { font-size: 15px }
+.np-linha { display: grid; grid-template-columns: 2fr 1fr; gap: 12px }
+.np-linha label { flex: none }
+.np-blocos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start }
+.np-bloco { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1px solid var(--bd); border-radius: 10px;
+  background: color-mix(in srgb, var(--txt) 3%, transparent); min-height: 100% }
+.np-venda { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end }
+.np-venda label { flex: none }
+.np-igual { color: var(--mut); padding-bottom: 9px }
+.np-resumo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 4px; border-top: 1px dashed var(--bd) }
+.np-resumo div { display: flex; flex-direction: column; gap: 2px }
+.np-resumo small { color: var(--mut); font-size: 12px }
+.np-resumo b { font-size: 16px }
+.np-botoes { display: flex; justify-content: flex-end; gap: 10px }
+.lf-preco:focus-within { border-color: var(--pri) }
+.lf-preco input:focus { outline: none; box-shadow: none }
+.lf-preco .sufixo { color: var(--mut); font-size: 13px; padding-right: 10px }
+@media (max-width: 767px) { .np-linha, .np-blocos { grid-template-columns: 1fr } .np-botoes button { flex: 1 } }
 
