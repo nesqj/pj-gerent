@@ -715,4 +715,6 @@ a.botao-whats:hover { background: color-mix(in srgb, #25d366 12%, transparent) }
 /* ---------- Clientes ---------- */
 .aviso-cliente { flex: 1 1 100%; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px solid currentColor;
   background: color-mix(in srgb, currentColor 8%, transparent) }
+.pg-resumo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px }
+.pg-resumo small { color: var(--mut) }
 

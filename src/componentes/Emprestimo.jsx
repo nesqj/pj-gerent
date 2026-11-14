@@ -105,7 +105,7 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
             {t('Empresta')} <b>{brl(calc.valor)}</b> → {t('recebe')} <b>{n}× {brl(calc.parcelas[0])}</b>{n > 1 && calc.parcelas[n - 1] !== calc.parcelas[0] ? <small> ({t('última {valor}', { valor: brl(calc.parcelas[n - 1]) })})</small> : null}
             {' = '}<b>{brl(calc.total)}</b> · {t('juros')} <b className="ok">{brl(calc.juros)}</b>
           </div>
-          {datas.length > 0 && <small className="pg-parcelas">{datas.map((d, k) => `${k + 1}ª ${dataBR(d)}: ${brl(calc.parcelas[k])}`).join(' · ')}</small>}
+          {datas.length > 0 && <small>{n > 1 ? t('de {inicio} a {fim}', { inicio: dataBR(datas[0]), fim: dataBR(datas[n - 1]) }) : t('em {data}', { data: dataBR(datas[0]) })}</small>}
         </div>
       )}
       <button type="submit">{t('Registrar empréstimo')}</button>

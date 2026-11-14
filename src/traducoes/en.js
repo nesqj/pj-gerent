@@ -1198,4 +1198,6 @@ export default {
   'Com juros': 'With interest',
   'juros {p}% ao mês': 'interest {p}% per month',
   '+ {valor} de juros': '+ {valor} interest',
+  'de {inicio} a {fim}': 'from {inicio} to {fim}',
+  'em {data}': 'on {data}',
 }

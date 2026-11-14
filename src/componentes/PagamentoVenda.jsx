@@ -18,6 +18,7 @@ export const novoPagamento = () => ({
   fiado: { clienteId: '', nome: '', cpf: '', telefone: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', juros: '' },
 })
 const r2 = (x) => Math.round(x * 100) / 100
+const dataCurta = (d) => d.split('-').reverse().join('/')
 
 // Datas das parcelas
 export function vencimentos(primeira, n, intervalo) {
@@ -178,13 +179,14 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
             )}
             <label className="pg-curto">{t('Juros (% ao mês)')}<input inputMode="decimal" placeholder="0" value={pg.fiado.juros ?? ''} onChange={(e) => mudarFiado({ juros: e.target.value })} /></label>
           </div>
-          {calc?.juros > 0 && <div className="pg-restante">{t('Com juros')}: <b>{brl(calc.total)}</b> · {t('juros')} <b className="ok">{brl(calc.juros)}</b></div>}
           {!(jurosPct >= 0) && <small className="bad">{t('Confira os juros.')}</small>}
           {db && pg.fiado.clienteId && <AvisoCliente db={db} clienteId={pg.fiado.clienteId} />}
           {datas.length > 0 && (
-            <small className="pg-parcelas">
-              {datas.map((d, k) => `${k + 1}ª ${d.split('-').reverse().join('/')}: ${brl(calc.valores[k])}`).join(' · ')}
-            </small>
+            <div className="pg-resumo">
+              <b>{n}× {brl(calc.valores[0])}</b>
+              {calc.juros > 0 && <> = {brl(calc.total)} <span className="ok">({t('juros')} {brl(calc.juros)})</span></>}
+              <small>{n > 1 ? t('de {inicio} a {fim}', { inicio: dataCurta(datas[0]), fim: dataCurta(datas[n - 1]) }) : t('em {data}', { data: dataCurta(datas[0]) })}</small>
+            </div>
           )}
           <small>{t('O lucro desta venda só conta quando você confirmar na aba Cobranças se o cliente pagou.')}</small>
         </div>
