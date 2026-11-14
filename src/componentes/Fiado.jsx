@@ -144,10 +144,10 @@ export default function Fiado({ db, executar, irPara }) {
       ? t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro do empréstimo e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
       : t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro da venda e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
     if (!(await confirmar(texto, { botao: t('Não pagou'), perigo: true }))) return
-    gravar(x, (p) => ({ ...p, naoPaga: true }), acao(x, 'nao-pago'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago (perda).'))
+    gravar(x, (p) => ({ ...p, naoPaga: true, naoPagaEm: { data: Date.now(), dia: hoje() } }), acao(x, 'nao-pago'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago (perda).'))
   }
   function reabrir(x) {
-    gravar(x, (p) => ({ ...p, naoPaga: false }), acao(x, 'reaberto'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
+    gravar(x, (p) => { const { naoPagaEm, ...resto } = p; return { ...resto, naoPaga: false } }, acao(x, 'reaberto'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
   }
   async function estornar(x) {
     const ultimo = (x.p.recebimentos || []).at(-1)

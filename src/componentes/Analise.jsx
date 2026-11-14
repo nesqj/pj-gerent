@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda, pagamentosDaVenda, lucroEmprestimo } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas } from '../utils.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
 // ---------- Datas ----------
@@ -38,9 +38,8 @@ function resumo(vendas) {
   for (const v of vendas) {
     faturamento += v.total
     for (const i of v.itens) itens += i.qtd
-    const l = lucroVenda(v) // lucro estimado (o fiado conta na hora; o não pago sai)
+    const l = lucroVenda(v) // lucro estimado (o fiado conta na hora; o não pago é perda no dia em que foi marcado)
     lucro += l.lucro
-    naoPago += l.naoPago || 0
     if (l.perda > 0) { perdas += l.perda; comPrejuizo++ }
   }
   return {
@@ -96,9 +95,16 @@ export default function Analise({ db }) {
   const vendas = db.vendas.filter((v) => v.dia >= de && v.dia <= ate)
   const anteriores = db.vendas.filter((v) => v.dia >= antDe && v.dia <= antAte)
   const r = resumo(vendas), ra = resumo(anteriores)
+  // "Não pagou" (fiado e empréstimo): perda no dia em que foi marcado
+  const perdasV = perdasNaoPago(db.vendas), perdasE = perdasNaoPago(db.emprestimos || [])
+  r.naoPago = somaPerdas(perdasV, de, ate); r.lucro -= r.naoPago
+  ra.naoPago = somaPerdas(perdasV, antDe, antAte); ra.lucro -= ra.naoPago
+  r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
+  ra.margem = ra.faturamento ? (ra.lucro / ra.faturamento) * 100 : 0
+  const naoPagoEmp = somaPerdas(perdasE, de, ate)
   // empréstimos feitos no período: o lucro é o juro
   const emps = (db.emprestimos || []).filter((e) => e.dia >= de && e.dia <= ate).map(lucroEmprestimo)
-  const juros = Math.round(emps.reduce((s, l) => s + l.lucro, 0) * 100) / 100
+  const juros = Math.round((emps.reduce((s, l) => s + l.lucro, 0) - naoPagoEmp) * 100) / 100
   const lucroTotal = Math.round((r.lucro + juros) * 100) / 100
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
@@ -106,10 +112,12 @@ export default function Analise({ db }) {
   if (n === 1) {
     serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, hora: h, valor: 0, lucro: 0, vendas: 0 }))
     for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].lucro += lucroVenda(v).lucro; serie[h].vendas++ }
+    for (const x of perdasV) if (x.dia === de) serie[new Date(x.data).getHours()].lucro -= x.valor
   } else {
     const porDia = new Map()
     for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, lucro: 0, vendas: 0 }) }
     for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.lucro += lucroVenda(v).lucro; p.vendas++ } }
+    for (const x of perdasV) { const p = porDia.get(x.dia); if (p) p.lucro -= x.valor }
     serie = [...porDia.values()]
   }
   const melhorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
@@ -125,7 +133,7 @@ export default function Analise({ db }) {
     // fiado: em aberto não entra no lucro; o que não foi pago sai do lucro proporcionalmente
     const lv = lucroVenda(v)
     const ajusteLucro = 1
-    const calotePorReal = v.total > 0 ? (lv.naoPago || 0) / v.total : 0
+    const calotePorReal = 0 // o não pago é perda do dia em que foi marcado, não do produto
     for (const i of v.itens) {
       const k = (i.produto + '|' + (i.marca || '')).toLowerCase()
       const p = prod.get(k) || { produto: i.produto, marca: i.marca, qtd: 0, faturamento: 0, lucro: 0 }

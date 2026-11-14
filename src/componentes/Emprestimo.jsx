@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
-import { brl, calcularEmprestimo, dataBR, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
+import { brl, calcularEmprestimo, dataBR, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, perdasNaoPago, resumoFiado, somaPerdas, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
 import { AvisoCliente } from './Clientes.jsx'
 
@@ -118,7 +118,8 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
   const lista = (db.emprestimos || []).filter((e) => e.dia === dia).sort((a, b) => b.data - a.data)
   const lucros = lista.map(lucroEmprestimo)
   const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
-  const jurosConfirmados = lucros.reduce((s, l) => s + l.lucro, 0)
+  const naoPagoDia = somaPerdas(perdasNaoPago(db.emprestimos), dia) // parcelas marcadas "Não pagou" neste dia
+  const jurosConfirmados = Math.round((lucros.reduce((s, l) => s + l.lucro, 0) - naoPagoDia) * 100) / 100
 
   async function excluir(e) {
     const f = resumoFiado(e)
@@ -140,6 +141,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
         <div className={'card' + (jurosConfirmados < 0 ? ' card-prejuizo' : '')}>
           <small>{t('Lucro (juros)')}</small>
           <b className={jurosConfirmados < 0 ? 'bad' : 'ok'}>{jurosConfirmados < 0 ? '− ' + brl(-jurosConfirmados) : brl(jurosConfirmados)}</b>
+          {naoPagoDia > 0 && <small className="var bad">{t('inclui − {valor} não pago', { valor: brl(naoPagoDia) })}</small>}
         </div>
       </div>
       <div className="tw">

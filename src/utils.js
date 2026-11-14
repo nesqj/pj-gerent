@@ -335,6 +335,7 @@ export const pagoNaHora = (v) => (Array.isArray(v.pagamentos) ? v.pagamentos.red
 
 // Lucro de uma venda. Com fiado:
 //  - o lucro (com os juros do fiado) conta no dia da venda, mesmo com parcelas em aberto (é estimado)
+//  - o que o cliente não pagar vira perda no dia em que você marcou "Não pagou" (ver perdasNaoPago)
 //  - resolvido: lucro = lucro da venda − o que o cliente não pagou (o calote vira perda)
 export function lucroVenda(v) {
   const base = lucroDe(v.itens, fatorDesconto(v))
@@ -342,7 +343,7 @@ export function lucroVenda(v) {
   if (!f) return { ...base, pendente: false, lucroPrevisto: base.lucro, naoPago: 0 }
   const juros = +v.fiado.juros || 0 // juros do fiado: lucro a mais, também só quando o cliente paga
   const previsto = Math.round((base.lucro + juros + encargosRecebidos(v)) * 100) / 100 // + multa/juros de atraso já recebidos
-  return { ...base, lucro: Math.round((previsto - f.naoPago) * 100) / 100, pendente: f.pendente, lucroPrevisto: previsto, aReceber: f.aberto, naoPago: f.naoPago, juros }
+  return { ...base, lucro: previsto, pendente: f.pendente, lucroPrevisto: previsto, aReceber: f.aberto, naoPago: f.naoPago, juros }
 }
 
 // ---------- Empréstimo (crediário de dinheiro) com juros simples
@@ -357,11 +358,11 @@ export function calcularEmprestimo(valor, jurosPct, n) {
   const parcelas = Array.from({ length: n }, (_, k) => (k === n - 1 ? Math.round((total - base * (n - 1)) * 100) / 100 : base))
   return { valor: v, total, juros: Math.round((total - v) * 100) / 100, parcelas }
 }
-// Lucro do empréstimo = juros (estimado, conta no dia do empréstimo) − o que não foi pago (pode virar prejuízo).
+// Lucro do empréstimo = juros (estimado, conta no dia do empréstimo). O não pago é perda no dia em que foi marcado.
 export function lucroEmprestimo(e) {
   const juros = Math.round(((+e.total || 0) - (+e.valor || 0) + encargosRecebidos(e)) * 100) / 100
   const f = resumoFiado(e) || { recebido: 0, naoPago: 0, aberto: 0, pendente: false }
-  return { lucro: Math.round((juros - f.naoPago) * 100) / 100, pendente: f.pendente, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: f.aberto }
+  return { lucro: juros, pendente: f.pendente, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: f.aberto }
 }
 
 // ---------- Clientes
@@ -460,3 +461,17 @@ export function faltaReceber(lista, cfgAtraso) {
   return Math.round((lista || []).reduce((s, v) => s + (resumoFiado(v)?.aberto || 0)
     + (v.fiado?.parcelas || []).reduce((a, p) => a + encargoAtraso(p, cfgAtraso).total, 0), 0) * 100) / 100
 }
+
+// Perdas por "Não pagou" (fiado ou empréstimo): contam no dia em que você marcou.
+// Parcelas marcadas antes desta regra (sem a data) contam no dia da venda/empréstimo.
+// Devolve [{ dia, data, valor, ref }] — filtre pelo período.
+export function perdasNaoPago(lista) {
+  const l = []
+  for (const v of lista || []) for (const p of v.fiado?.parcelas || []) {
+    if (!p.naoPaga) continue
+    const falta = Math.round(((+p.valor || 0) - recebidoDaParcela(p)) * 100) / 100
+    if (falta > 0.004) l.push({ dia: p.naoPagaEm?.dia || v.dia, data: p.naoPagaEm?.data || v.data, valor: falta, ref: v })
+  }
+  return l
+}
+export const somaPerdas = (perdas, de, ate = de) => Math.round(perdas.filter((x) => x.dia >= de && x.dia <= ate).reduce((s, x) => s + x.valor, 0) * 100) / 100

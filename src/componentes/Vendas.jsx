@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
+import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado, perdasNaoPago, somaPerdas } from '../utils.js'
 import PagamentoVenda, { montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
@@ -155,7 +155,8 @@ export default function Vendas({ db, executar, irPara }) {
   const totalDia = vendasDia.reduce((s, v) => s + v.total, 0)
   const custoDia = vendasDia.reduce((s, v) => s + v.itens.reduce((c, i) => c + (i.custo ?? 0) * i.qtd, 0), 0)
   // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
-  const lucroDia = Math.round(vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) * 100) / 100
+  const naoPagoDia = somaPerdas(perdasNaoPago(db.vendas), dia) // fiado marcado "Não pagou" neste dia
+  const lucroDia = Math.round((vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) - naoPagoDia) * 100) / 100
   const perdasDia = vendasDia.reduce((s, v) => s + lucroVenda(v).perda, 0)
   const vendasComPrejuizo = vendasDia.filter((v) => lucroVenda(v).perda > 0).length
   const semCusto = vendasDia.some((v) => v.itens.some((i) => i.custo == null))
@@ -309,6 +310,7 @@ export default function Vendas({ db, executar, irPara }) {
         <div className={'card' + (lucroDia < 0 ? ' card-prejuizo' : '')}>
           <small>{lucroDia < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}{semCusto ? ' *' : ''}</small>
           <b className={lucroDia < 0 ? 'bad' : 'ok'}>{lucroDia < 0 ? '− ' + brl(-lucroDia) : brl(lucroDia)}</b>
+          {naoPagoDia > 0 && <small className="var bad">{t('inclui − {valor} de fiado não pago', { valor: brl(naoPagoDia) })}</small>}
         </div>
         {perdasDia > 0 && (
           <div className="card card-prejuizo">
