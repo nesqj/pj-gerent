@@ -186,7 +186,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
         </div>
       ) : <h2>{t('Tabela de Venda')}</h2>}
       {cadastrando && <NovoProduto db={db} executar={executar} aoTerminar={(k) => { setCadastrando(false); if (k) setSel(k) }} />}
-      <p><small>{t('Digite o preço ou a % sobre o custo e aperte Enter. Em "Editar", mude nome, marca e fornecedores.')}</small></p>
+      <p><small>{t('Cadastre aqui os produtos e defina o preço de venda de cada um, digitando o valor ou a % sobre o custo. Clique em "Editar" para mudar o nome, a marca ou os fornecedores.')}</small></p>
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}
 

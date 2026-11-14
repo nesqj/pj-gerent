@@ -1348,5 +1348,5 @@ export default {
   'preencha o custo ao lado': 'fill in the cost on the left',
   'Desmarcar todos': 'Deselect all',
   'Cadastre aqui de quem você compra, com o contato e as marcas que cada um trabalha. Clique no cartão do fornecedor para ver os produtos dele e atualizar os preços de custo.': 'Register here who you buy from, with the contact and the brands each one works with. Click the supplier card to see their products and update cost prices.',
-  'Digite o preço ou a % sobre o custo e aperte Enter. Em "Editar", mude nome, marca e fornecedores.': 'Type the price or the % on cost and press Enter. In "Edit", change name, brand and suppliers.',
+  'Cadastre aqui os produtos e defina o preço de venda de cada um, digitando o valor ou a % sobre o custo. Clique em "Editar" para mudar o nome, a marca ou os fornecedores.': 'Register your products here and set each one\'s selling price by typing the amount or the % on cost. Click "Edit" to change the name, brand or suppliers.',
 }
