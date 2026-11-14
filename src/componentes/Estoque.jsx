@@ -4,7 +4,7 @@ import { brl, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, uid } fr
 
 // Estoque próprio da loja: não tem fornecedor nem marca, e não se mistura com os preços dos fornecedores.
 // O preço de venda é digitado na aba Vendas, na hora de vender.
-const novo = { produto: '', qtd: '1', custo: '', obs: '' }
+const novo = { produto: '', qtd: '1', custo: '', obs: '', doCaixa: true }
 
 export default function Estoque({ db, executar }) {
   const [form, setForm] = useState(novo)
@@ -24,9 +24,11 @@ export default function Estoque({ db, executar }) {
       qtd: +form.qtd,
       custo: +form.custo,
       obs: form.obs.trim(),
+      foraDoCaixa: !form.doCaixa || undefined, // não desconta do caixa (comprado com outro dinheiro)
     }
     // editando: mantém id, data e dia originais
     const entrada = editando ? { ...editando, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
+    if (!entrada.foraDoCaixa) delete entrada.foraDoCaixa
     if (await executar((A) => A.salvarEntrada(entrada))) {
       cancelarEdicao()
       refProduto.current?.focus()
@@ -35,7 +37,7 @@ export default function Estoque({ db, executar }) {
 
   function editarEntrada(en) {
     setEditando(en)
-    setForm({ produto: en.produto, qtd: String(en.qtd), custo: en.custo != null ? String(en.custo) : '', obs: en.obs || '' })
+    setForm({ produto: en.produto, qtd: String(en.qtd), custo: en.custo != null ? String(en.custo) : '', obs: en.obs || '', doCaixa: !en.foraDoCaixa })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -79,6 +81,13 @@ export default function Estoque({ db, executar }) {
             placeholder={existente?.custo != null ? `${t('último')}: ${brl(existente.custo)}` : ''} {...campo('custo')} />
         </label>
         <label style={{ flex: '1 1 100%' }}>{t('Observação')}<input placeholder={t('Ex: nota fiscal 123, IMEI, de quem comprou...')} {...campo('obs')} /></label>
+        {db.caixa && (
+          <label className="check">
+            <input type="checkbox" checked={form.doCaixa} onChange={(e) => setForm({ ...form, doCaixa: e.target.checked })} />
+            {t('Pago com o dinheiro do caixa')}
+            {form.doCaixa && +form.qtd > 0 && +form.custo > 0 && <small> ({t('desconta {valor}', { valor: brl(+form.qtd * +form.custo) })})</small>}
+          </label>
+        )}
         <button type="submit">{editando ? t('Salvar alterações') : t('Registrar entrada')}</button>
         {editando && <button type="button" className="sec" onClick={cancelarEdicao}>{t('Cancelar edição')}</button>}
       </form>
@@ -141,7 +150,7 @@ export default function Estoque({ db, executar }) {
                 <td className="n">{en.qtd}</td>
                 <td className="n">{en.custo != null ? brl(en.custo) : '-'}</td>
                 <td className="n">{en.custo != null ? brl(en.qtd * en.custo) : '-'}</td>
-                <td className="quebra">{en.obs || '-'}</td>
+                <td className="quebra">{en.obs || '-'}{en.foraDoCaixa && <span className="tag">{t('fora do caixa')}</span>}</td>
                 <td>
                   <button className="edit" onClick={() => editarEntrada(en)}>{t('Editar')}</button>{' '}
                   <button className="del" onClick={() => excluirEntrada(en)}>{t('Excluir')}</button>

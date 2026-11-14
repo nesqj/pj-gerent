@@ -89,3 +89,6 @@ export const IconeVoltar = () => (
 export const IconeCobranca = () => (
   <Svg><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="M3 9.5h18" /><path d="M7 15h4" /></Svg>
 )
+export const IconeCaixa = () => (
+  <Svg><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M3 11h18" /><circle cx="12" cy="15" r="1.6" /><path d="M7 7V5h10v2" /></Svg>
+)

@@ -554,3 +554,9 @@ button.login-botao.sec { margin-top: 8px }
   dl.ficha dd { margin-bottom: 8px }
   label.data-filtro input { font-size: 16px }
 }
+
+/* ---------- Caixa ---------- */
+.card.destaque-caixa { border-color: var(--pri-borda); background: var(--pri-suave) }
+.card.destaque-caixa b { font-size: 22px }
+tr.linha-inicial td { color: var(--mut); font-style: italic }
+

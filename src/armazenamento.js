@@ -10,7 +10,7 @@ import { t } from './i18n.js'
 import { supabase } from './supabase.js'
 
 const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
-const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [] })
+const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [] })
 
 let org = null          // loja ativa: { id, nome, papel, suspensa, criada_por_mim }
 let db = vazio()
@@ -146,6 +146,7 @@ function resumo(lista, x) {
   if (lista === 'precosForn') return [x.produto, x.marca].filter(Boolean).join(' — ')
   if (lista === 'vendas') return (x.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + ` = ${x.total}`
   if (lista === 'entradas') return `${x.qtd}× ${x.produto}`
+  if (lista === 'movCaixa') return `${x.tipo === 'retirar' ? '−' : '+'}${x.valor}${x.descricao ? ' · ' + x.descricao : ''}`
   return null
 }
 
@@ -212,6 +213,12 @@ export const excluirVenda = (id) => remover('vendas', 'venda.excluida', id)
 // Entradas de estoque: { id, data, dia, produto, qtd, custo, obs }
 export const salvarEntrada = (e) => upsert('entradas', 'entrada.salva', e, resumo('entradas', e))
 export const excluirEntrada = (id) => remover('entradas', 'entrada.excluida', id)
+
+// Caixa: início do controle { inicio, saldoInicial } e movimentos de dinheiro colocado/retirado
+// { id, data, dia, tipo: 'colocar' | 'retirar', valor, descricao }
+export const salvarCaixa = (c) => mudar('caixa.config', (d) => { d.caixa = c; return c }, `saldo inicial ${c.saldoInicial}`)
+export const salvarMovCaixa = (m) => upsert('movCaixa', 'caixa.mov-salvo', m, resumo('movCaixa', m))
+export const excluirMovCaixa = (id) => remover('movCaixa', 'caixa.mov-excluido', id)
 
 // Substitui todos os dados da loja (restaurar backup ou trazer os dados do navegador)
 export const substituirTudo = (dados) => mudar('tudo.substituido', (d) => {

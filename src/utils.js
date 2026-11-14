@@ -198,3 +198,33 @@ export function calcularEstoque(db) {
 
 // Cor do estoque: zerado/negativo = vermelho, até 2 = amarelo, resto = verde
 export const classeEstoque = (saldo) => (saldo <= 0 ? 'bad' : saldo <= 2 ? 'warn' : 'ok')
+
+// ---------- Caixa (capital de giro)
+// db.caixa = { inicio (momento em que o controle começou), saldoInicial }
+// db.movCaixa = [{ id, data, dia, tipo: 'colocar' | 'retirar', valor, descricao }]
+// Saldo = saldo inicial + vendas + dinheiro colocado − dinheiro retirado − compras do estoque (custo × qtd),
+// contando só o que aconteceu a partir do início. Entrada de estoque com "foraDoCaixa" não desconta.
+// É sempre recalculado: editar ou excluir uma venda, uma entrada de estoque ou um movimento já corrige o saldo.
+export function extratoCaixa(db) {
+  const c = db?.caixa
+  if (!c?.inicio) return null
+  const depois = (x) => (x.data || 0) >= c.inicio
+  const movs = [
+    ...(db.vendas || []).filter(depois).map((v) => ({
+      id: 'v-' + v.id, ref: v, origem: 'venda', data: v.data, dia: v.dia, valor: +v.total || 0,
+      descricao: (v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', '), pagamento: v.pagamento,
+    })),
+    ...(db.entradas || []).filter((e) => depois(e) && !e.foraDoCaixa && e.custo != null).map((e) => ({
+      id: 'e-' + e.id, ref: e, origem: 'compra', data: e.data, dia: e.dia, valor: -(+e.qtd || 0) * (+e.custo || 0),
+      descricao: `${e.qtd}× ${e.produto}`,
+    })),
+    ...(db.movCaixa || []).filter(depois).map((m) => ({
+      id: 'm-' + m.id, ref: m, origem: m.tipo, data: m.data, dia: m.dia, valor: m.tipo === 'retirar' ? -(+m.valor || 0) : +m.valor || 0,
+      descricao: m.descricao || '',
+    })),
+  ].sort((a, b) => a.data - b.data)
+  let saldo = +c.saldoInicial || 0
+  for (const m of movs) { saldo += m.valor; m.saldo = Math.round(saldo * 100) / 100 }
+  return { inicio: c.inicio, saldoInicial: +c.saldoInicial || 0, movimentos: movs, saldo: Math.round(saldo * 100) / 100 }
+}
+

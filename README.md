@@ -1,6 +1,6 @@
 # PJ GERENT
 
-Sistema para lojas: fornecedores e seus preços, regras de preço por produto, estoque, vendas (com desconto) e análise de faturamento. Várias lojas, cada uma com a própria equipe e os próprios dados, e um painel de administração da plataforma. Tema claro/escuro e português/inglês.
+Sistema para lojas: fornecedores e seus preços, regras de preço por produto, estoque, vendas (com desconto), caixa (capital de giro) e análise de faturamento. Várias lojas, cada uma com a própria equipe e os próprios dados, e um painel de administração da plataforma. Tema claro/escuro e português/inglês.
 
 ## Rodar no computador
 

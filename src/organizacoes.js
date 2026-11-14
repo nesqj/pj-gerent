@@ -112,6 +112,7 @@ const ACOES = {
   'config.salva': 'Configurações da loja salvas', 'regras.salvas': 'Regras de preço salvas',
   'preco-venda.salvo': 'Preço de venda alterado', 'venda.salva': 'Venda salva', 'venda.excluida': 'Venda excluída',
   'entrada.salva': 'Entrada no estoque salva', 'entrada.excluida': 'Entrada no estoque excluída',
+  'caixa.config': 'Controle de caixa iniciado/ajustado', 'caixa.mov-salvo': 'Movimento de caixa salvo', 'caixa.mov-excluido': 'Movimento de caixa excluído',
   'tudo.substituido': 'Dados restaurados de arquivo',
   'org.criada': 'Loja criada', 'org.renomeada': 'Loja renomeada', 'org.suspensa': 'Loja suspensa',
   'org.reativada': 'Loja reativada', 'org.excluida': 'Loja excluída',
