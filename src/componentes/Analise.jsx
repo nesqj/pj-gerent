@@ -126,7 +126,7 @@ export default function Analise({ db }) {
   }
   const produtos = [...prod.values()].sort((a, b) => b.faturamento - a.faturamento)
   const visiveis = todosProdutos ? produtos : produtos.slice(0, PRODUTOS_INICIO)
-  const valorLucro = (v) => <span className={v < 0 ? 'bad' : ''}>{v < 0 ? '− ' + brl(-v) : brl(v)}</span>
+  const valorLucro = (v) => <span className={v < 0 ? 'bad' : 'ok'}>{v < 0 ? '− ' + brl(-v) : brl(v)}</span>
 
   return (
     <section>
@@ -154,7 +154,7 @@ export default function Analise({ db }) {
         <div className="card destaque"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /></div>
         <div className={'card' + (r.lucro < 0 ? ' card-prejuizo' : '')}>
           <small>{r.lucro < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small>
-          <b className={r.lucro < 0 ? 'bad' : ''}>{r.lucro < 0 ? '− ' + brl(-r.lucro) : brl(r.lucro)}</b>
+          <b className={r.lucro < 0 ? 'bad' : 'ok'}>{r.lucro < 0 ? '− ' + brl(-r.lucro) : brl(r.lucro)}</b>
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
         </div>
         <div className="card">
