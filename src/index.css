@@ -585,21 +585,9 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 .card.card-prejuizo { border-color: var(--bad-borda); background: color-mix(in srgb, var(--bad) 8%, var(--card)) }
 .resultado-venda { display: block; margin-top: 4px; font-weight: 600 }
 
-/* ---------- Análise: painel no estilo "dashboard" ---------- */
+/* ---------- Análise ---------- */
 :root { --neon: #22d3ee }
 :root[data-theme="light"] { --neon: #0891b2 }
-.dash-grade { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 18px }
-.dash-grade .painel { margin-bottom: 0; position: relative; overflow: hidden }
-.painel.neon {
-  background: linear-gradient(160deg, color-mix(in srgb, var(--pri) 9%, var(--card)) 0%, var(--card) 55%, color-mix(in srgb, var(--neon) 5%, var(--card)) 100%);
-  border-color: color-mix(in srgb, var(--pri) 28%, var(--bd));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pri) 6%, transparent) inset, 0 10px 30px -18px color-mix(in srgb, var(--pri) 60%, transparent);
-}
-.titulo-neon { text-transform: uppercase; letter-spacing: .08em; font-size: 12px !important; color: var(--mut); font-weight: 600 }
-.destaque-numero { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 6px }
-.destaque-numero b { font-size: 26px; letter-spacing: -.01em }
-.destaque-numero small { color: var(--mut) }
-:root:not([data-theme="light"]) .brilho { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--neon) 55%, transparent)) }
 .grafico .grade.zero { stroke: var(--bd-forte) }
 .grafico .guia line { stroke: var(--mut); stroke-dasharray: 3 3; opacity: .6 }
 .grafico .ponto-pri { fill: var(--card); stroke: var(--pri); stroke-width: 2.5 }
@@ -607,57 +595,14 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 .grafico .legenda { display: flex; gap: 16px; justify-content: flex-end; font-size: 12px; color: var(--mut); margin-top: 2px }
 .grafico .legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px }
 .dica small.neon { color: var(--neon) }
-/* minigráfico nos cards */
-.card.card-neon { position: relative; overflow: hidden; padding-bottom: 38px }
-.card .sparkline { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 34px; opacity: .9 }
-/* anéis */
-.aneis { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 14px 10px; padding-top: 4px }
-.anel { position: relative; width: 104px; display: flex; flex-direction: column; align-items: center; text-align: center }
-.anel svg { width: 96px; height: 96px }
-.anel-trilho { fill: none; stroke: color-mix(in srgb, var(--pri) 14%, var(--bd)); stroke-width: 8 }
-.anel-centro { position: absolute; top: 0; left: 0; right: 0; height: 96px; display: flex; align-items: center; justify-content: center }
-.anel-centro b { font-size: 19px }
-.anel-rotulo { margin-top: 4px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--txt) }
-.anel-sub { color: var(--mut); font-size: 12px }
-.anel.pontilhado .ponto-aceso { fill: var(--neon) }
-.anel.pontilhado .ponto-apagado { fill: color-mix(in srgb, var(--neon) 25%, var(--bd)) }
-:root:not([data-theme="light"]) .anel.pontilhado .ponto-aceso { filter: drop-shadow(0 0 2px var(--neon)) }
-/* colunas em degradê */
-.colunas-degrade { display: flex; align-items: flex-end; gap: 10px; height: 200px; padding-top: 6px }
-.colunas-degrade .col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; gap: 4px; min-width: 0 }
-.colunas-degrade .col-trilho { flex: 1; width: 100%; max-width: 34px; background: color-mix(in srgb, var(--pri) 8%, transparent); border-radius: 6px; overflow: hidden }
-.colunas-degrade .col-trilho svg { width: 100%; height: 100% }
-.colunas-degrade .col-valor { font-size: 11px; color: var(--mut); min-height: 14px }
-.colunas-degrade .col-nome { font-size: 12px; color: var(--mut); text-transform: uppercase }
-.colunas-degrade .col.destaque .col-nome, .colunas-degrade .col.destaque .col-valor { color: var(--neon); font-weight: 700 }
-/* barras segmentadas */
-.segmentadas { display: flex; flex-direction: column; gap: 12px; padding-top: 4px }
-.seg-linha { display: grid; grid-template-columns: minmax(80px, 1.2fr) 2fr 52px; align-items: center; gap: 10px }
-.seg-nome { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.seg-blocos { display: flex; gap: 3px }
-.seg-blocos i { flex: 1; height: 16px; border-radius: 2px; background: color-mix(in srgb, var(--pri) 14%, var(--bd)) }
-.seg-blocos i.aceso { background: linear-gradient(180deg, var(--neon), var(--pri)) }
-:root:not([data-theme="light"]) .seg-blocos i.aceso { box-shadow: 0 0 6px color-mix(in srgb, var(--neon) 45%, transparent) }
-.seg-pct { text-align: right; font-weight: 700; font-size: 13px }
-/* calendário de calor */
-.calendarios { display: flex; flex-direction: column; gap: 14px }
-.cal-mes { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mut); margin-bottom: 6px; font-weight: 600 }
-.cal-grade { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center }
-.cal-sem { font-size: 11px; font-weight: 700; color: var(--mut); padding-bottom: 2px }
-.cal-dia { font-size: 12px; padding: 6px 0; border-radius: 6px; color: var(--mut) }
-.cal-dia.fora { opacity: .35 }
-.cal-dia.com-venda { color: var(--txt); font-weight: 600; background: color-mix(in srgb, var(--neon) calc(var(--int) * 70%), transparent) }
-.cal-dia.melhor { outline: 2px solid var(--neon); outline-offset: -2px }
-:root:not([data-theme="light"]) .cal-dia.melhor { box-shadow: 0 0 10px color-mix(in srgb, var(--neon) 60%, transparent) }
-.cal-legenda { display: flex; align-items: center; gap: 4px; justify-content: flex-end; color: var(--mut) }
-.cal-legenda i { width: 14px; height: 10px; border-radius: 3px; background: color-mix(in srgb, var(--neon) calc(var(--int) * 70%), transparent); border: 1px solid var(--bd) }
-@media (max-width: 1000px) { .dash-grade { grid-template-columns: 1fr } }
-@media (max-width: 767px) {
-  .anel { width: 92px } .anel svg { width: 84px; height: 84px } .anel-centro { height: 84px } .anel-centro b { font-size: 17px }
-  .colunas-degrade { height: 170px; gap: 6px }
-  .seg-linha { grid-template-columns: 1fr 52px; } .seg-blocos { grid-column: 1 / -1; grid-row: 2 }
-  .destaque-numero b { font-size: 22px }
-}
+.lista-produtos { display: flex; flex-direction: column }
+.lp-linha { display: grid; grid-template-columns: minmax(0, 2fr) 50px minmax(90px, 1fr) minmax(90px, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bd); font-size: 14px; align-items: center }
+.lp-linha > span:not(:first-child) { text-align: right }
+.lp-linha:last-child { border-bottom: none }
+.lp-cabecalho { color: var(--mut); font-size: 12px; padding-top: 0 }
+.lp-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.lp-nome small { color: var(--mut) }
+@media (max-width: 767px) { .lp-linha { grid-template-columns: minmax(0, 1fr) 36px 84px 84px; font-size: 13px; gap: 6px } }
 
 /* ---------- Tendência por semana ---------- */
 .grafico.tendencia .marcador { fill: var(--card); stroke: var(--pri); stroke-width: 2.5 }

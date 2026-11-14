@@ -1,9 +1,8 @@
-// Gráficos do painel de Análise (SVG puro, sem biblioteca), no estilo "dashboard":
-// área com degradê e linha brilhante, minigráficos, anéis, colunas em degradê, barras segmentadas e calendário de calor.
-// As cores vêm do tema: --pri (cor da marca) e --neon (ciano de destaque).
+// Gráficos da Análise (SVG puro, sem biblioteca): faturamento/lucro e tendência por semana.
+// As cores vêm do tema: --pri (cor da marca) e --neon (destaque).
 import { useId, useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, num, pct } from '../utils.js'
+import { brl, num } from '../utils.js'
 
 export const compacto = (n) => (Math.abs(n) >= 1000 ? t('{n} mil', { n: num(n / 1000, 1) }) : num(Math.round(n)))
 
@@ -40,27 +39,6 @@ function escala(min, max) {
   const ticks = []
   for (let v = lo; v <= hi + 1e-9; v += passo) ticks.push(Math.round(v * 100) / 100)
   return { lo, hi, ticks }
-}
-
-// ---------- Minigráfico (dentro dos cards)
-export function Sparkline({ valores, cor = 'var(--neon)' }) {
-  const id = useId().replace(/:/g, '')
-  if (!valores?.length || valores.every((v) => !v)) return null
-  const L = 120, A = 32
-  const min = Math.min(0, ...valores), max = Math.max(...valores, 1)
-  const pts = valores.map((v, i) => [valores.length === 1 ? L / 2 : (i / (valores.length - 1)) * L, A - 2 - ((v - min) / (max - min || 1)) * (A - 6)])
-  const linha = caminhoSuave(pts)
-  return (
-    <svg className="sparkline" viewBox={`0 0 ${L} ${A}`} preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <linearGradient id={'sg' + id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={cor} stopOpacity=".45" /><stop offset="100%" stopColor={cor} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${linha} L${L},${A} L0,${A} Z`} fill={`url(#sg${id})`} />
-      <path d={linha} fill="none" stroke={cor} strokeWidth="1.6" className="brilho" />
-    </svg>
-  )
 }
 
 // ---------- Área com duas séries (faturamento e lucro)
@@ -101,8 +79,8 @@ export function GraficoArea({ serie, rotuloDica }) {
         ))}
         <path d={`${linhaFat} L${x(serie.length - 1)},${y(Math.max(lo, 0))} L${x(0)},${y(Math.max(lo, 0))} Z`} fill={`url(#fat${id})`} />
         <path d={`${linhaLuc} L${x(serie.length - 1)},${y(Math.max(lo, 0))} L${x(0)},${y(Math.max(lo, 0))} Z`} fill={`url(#luc${id})`} />
-        <path d={linhaFat} fill="none" stroke="var(--pri)" strokeWidth="2.4" className="brilho" />
-        <path d={linhaLuc} fill="none" stroke="var(--neon)" strokeWidth="2" strokeDasharray="0" className="brilho" />
+        <path d={linhaFat} fill="none" stroke="var(--pri)" strokeWidth="2.4" />
+        <path d={linhaLuc} fill="none" stroke="var(--neon)" strokeWidth="2" strokeDasharray="0" />
         {serie.map((d, i) => i % cadaRotulo === 0 && (
           <text key={'r' + i} x={x(i)} y={A - 8} textAnchor="middle" className="eixo">{d.rotulo}</text>
         ))}
@@ -129,147 +107,6 @@ export function GraficoArea({ serie, rotuloDica }) {
           <small>{serie[hover].vendas === 1 ? t('1 venda') : t('{n} vendas', { n: serie[hover].vendas })}</small>
         </div>
       )}
-    </div>
-  )
-}
-
-// ---------- Anel (percentual) com degradê
-export function Anel({ fracao, centro, rotulo, sub, cor = 'var(--pri)', cor2 = 'var(--neon)' }) {
-  const id = useId().replace(/:/g, '')
-  const R = 42, C = 2 * Math.PI * R
-  const f = Math.max(0, Math.min(1, fracao || 0))
-  return (
-    <div className="anel">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id={'an' + id} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={cor2} /><stop offset="100%" stopColor={cor} />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r={R} className="anel-trilho" />
-        <circle cx="50" cy="50" r={R} fill="none" stroke={`url(#an${id})`} strokeWidth="8" strokeLinecap="round"
-          strokeDasharray={`${C * f} ${C}`} transform="rotate(-90 50 50)" className="brilho" />
-      </svg>
-      <div className="anel-centro"><b>{centro}</b></div>
-      <span className="anel-rotulo">{rotulo}</span>
-      {sub && <small className="anel-sub">{sub}</small>}
-    </div>
-  )
-}
-
-// ---------- Contador com anel pontilhado
-export function AnelPontilhado({ centro, rotulo, sub, fracao = 1 }) {
-  const pontos = 36
-  const acesos = Math.round(pontos * Math.max(0, Math.min(1, fracao)))
-  return (
-    <div className="anel pontilhado">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        {Array.from({ length: pontos }, (_, i) => {
-          const a = (i / pontos) * Math.PI * 2 - Math.PI / 2
-          return <circle key={i} cx={50 + Math.cos(a) * 43} cy={50 + Math.sin(a) * 43} r={i < acesos ? 2.6 : 1.8} className={i < acesos ? 'ponto-aceso' : 'ponto-apagado'} />
-        })}
-      </svg>
-      <div className="anel-centro"><b>{centro}</b></div>
-      <span className="anel-rotulo">{rotulo}</span>
-      {sub && <small className="anel-sub">{sub}</small>}
-    </div>
-  )
-}
-
-// ---------- Colunas em degradê (dia da semana)
-export function ColunasDegrade({ linhas, destaque }) {
-  const id = useId().replace(/:/g, '')
-  const max = Math.max(...linhas.map((l) => l.valor), 1)
-  return (
-    <div className="colunas-degrade">
-      <svg width="0" height="0" aria-hidden="true" style={{ position: 'absolute' }}>
-        <defs>
-          <linearGradient id={'cd' + id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--neon)" /><stop offset="100%" stopColor="var(--pri)" stopOpacity=".35" />
-          </linearGradient>
-        </defs>
-      </svg>
-      {linhas.map((l, i) => {
-        const h = (l.valor / max) * 100
-        return (
-          <div key={l.nome} className={'col' + (i === destaque ? ' destaque' : '')} title={`${t(l.nome)}: ${brl(l.valor)}`}>
-            <small className="col-valor">{l.valor ? compacto(l.valor) : ''}</small>
-            <div className="col-trilho">
-              <svg viewBox="0 0 10 100" preserveAspectRatio="none">
-                <rect x="0" y={100 - h} width="10" height={h} rx="2" fill={`url(#cd${id})`} className="brilho" />
-              </svg>
-            </div>
-            <span className="col-nome">{t(l.nome)}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ---------- Barras segmentadas (participação)
-export function BarrasSegmentadas({ linhas, total, segmentos = 12 }) {
-  return (
-    <div className="segmentadas">
-      {linhas.map((l) => {
-        const p = total ? (l.valor / total) * 100 : 0
-        const acesos = Math.round((p / 100) * segmentos)
-        return (
-          <div key={l.nome} className="seg-linha" title={`${l.nome}: ${brl(l.valor)}`}>
-            <span className="seg-nome">{l.nome}</span>
-            <div className="seg-blocos">
-              {Array.from({ length: segmentos }, (_, i) => <i key={i} className={i < acesos ? 'aceso' : ''} style={i < acesos ? { opacity: 0.45 + (0.55 * (i + 1)) / Math.max(1, acesos) } : undefined} />)}
-            </div>
-            <span className="seg-pct">{pct(p)}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ---------- Calendário de calor (faturamento por dia)
-const NOMES_DIAS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
-export function CalendarioCalor({ porDia, de, ate, melhor }) {
-  const deDia = (s) => { const [a, m, d] = s.split('-').map(Number); return new Date(a, m - 1, d) }
-  const paraDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const max = Math.max(...porDia.values(), 1)
-  // mostra o mês do fim do período (e o anterior, se o período começar nele)
-  const meses = []
-  const fim = deDia(ate)
-  const ini = deDia(de)
-  let cursor = new Date(fim.getFullYear(), fim.getMonth(), 1)
-  while (meses.length < 2 && cursor >= new Date(ini.getFullYear(), ini.getMonth(), 1)) {
-    meses.unshift(new Date(cursor))
-    cursor = new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1)
-  }
-  const nomeMes = (d) => d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-  return (
-    <div className="calendarios">
-      {meses.map((m) => {
-        const primeiro = new Date(m.getFullYear(), m.getMonth(), 1).getDay()
-        const dias = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate()
-        return (
-          <div key={m.toISOString()} className="calendario">
-            <div className="cal-mes">{nomeMes(m)}</div>
-            <div className="cal-grade">
-              {NOMES_DIAS.map((n, i) => <span key={'n' + i} className="cal-sem">{n}</span>)}
-              {Array.from({ length: primeiro }, (_, i) => <span key={'v' + i} />)}
-              {Array.from({ length: dias }, (_, i) => {
-                const dia = paraDia(new Date(m.getFullYear(), m.getMonth(), i + 1))
-                const dentro = dia >= de && dia <= ate
-                const v = porDia.get(dia) || 0
-                const intensidade = v ? 0.18 + 0.82 * (v / max) : 0
-                return (
-                  <span key={dia} className={'cal-dia' + (dentro ? '' : ' fora') + (v ? ' com-venda' : '') + (dia === melhor ? ' melhor' : '')}
-                    style={v ? { '--int': intensidade } : undefined} title={v ? `${i + 1}: ${brl(v)}` : undefined}>{i + 1}</span>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
-      <div className="cal-legenda"><small>{t('menos')}</small>{[0.2, 0.45, 0.7, 1].map((x) => <i key={x} style={{ '--int': x }} />)}<small>{t('mais')}</small></div>
     </div>
   )
 }

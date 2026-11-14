@@ -1012,4 +1012,7 @@ export default {
   'Previsão das próximas {n} semanas, pelo ritmo das últimas semanas fechadas.': 'Forecast for the next {n} weeks, based on the pace of the last completed weeks.',
   'A previsão aparece com pelo menos 3 semanas fechadas de vendas.': 'The forecast appears after at least 3 completed weeks of sales.',
   'Semana de {de} a {ate}': 'Week of {de} to {ate}',
+  'Produtos': 'Products',
+  'Mostrar menos': 'Show less',
+  'Ver todos ({n})': 'See all ({n})',
 }
