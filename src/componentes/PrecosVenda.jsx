@@ -31,7 +31,7 @@ function FornecedoresDoProduto({ db, executar, item, ofertas }) {
 }
 
 // Valor do <select> a partir da escolha salva, e o contrário
-const paraSelect = (e) => (e.tipo === 'regra' ? 'r:' + e.regraId : e.tipo)
+const paraSelect = (e) => (e.tipo === 'regra' ? 'r:' + e.regraId : e.tipo === 'nenhuma' ? 'padrao' : e.tipo) // "sem regra" saiu: vale a padrão
 const deSelect = (v, valorFixo) =>
   v.startsWith('r:') ? { tipo: 'regra', regraId: v.slice(2) } : v === 'fixo' ? { tipo: 'fixo', valor: valorFixo } : { tipo: v }
 
@@ -63,7 +63,6 @@ function SeletorPreco({ db, executar, k, custo }) {
       <select value={paraSelect(escolha)} onChange={(e) => mudar(e.target.value)}>
         <option value="padrao">{padrao ? t('Padrão: {nome}', { nome: padrao.nome }) : t('Padrão: sem regra')}</option>
         {regras.map((r) => <option key={r.id} value={'r:' + r.id}>{r.nome} ({formulaRegra(r)})</option>)}
-        <option value="nenhuma">{t('Sem regra (preço = custo)')}</option>
         <option value="fixo">{t('Preço fixo')}</option>
       </select>
       {escolha.tipo === 'fixo' && (
@@ -171,7 +170,6 @@ export default function PrecosVenda({ db, executar, embutido }) {
                 <select value={aplicar} onChange={(e) => setAplicar(e.target.value)}>
                   <option value="padrao">{t('Usar a regra padrão')}</option>
                   {regras.map((r) => <option key={r.id} value={'r:' + r.id}>{r.nome} ({formulaRegra(r)})</option>)}
-                  <option value="nenhuma">{t('Sem regra (preço = custo)')}</option>
                 </select>
                 <button onClick={aplicarNosMarcados}>{t('Aplicar')}</button>
                 <button className="del" onClick={excluirMarcados}>{t('Excluir selecionados')}</button>

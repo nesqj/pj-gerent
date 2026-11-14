@@ -12,7 +12,7 @@ const TOPICOS = [
   },
   {
     aba: 'forn', nome: 'Fornecedores',
-    texto: 'Cadastre o fornecedor, de onde ele é, contato e as marcas que ele trabalha. Clique no cartão para abrir a página dele, onde ficam os produtos e preços só daquele fornecedor. Embaixo fica a tabela de produtos com o preço de venda: na coluna Regra você escolhe a regra de cada produto, sem regra ou um preço fixo.',
+    texto: 'Cadastre o fornecedor, de onde ele é, contato e as marcas que ele trabalha. Clique no cartão para abrir a página dele, onde ficam os produtos e preços só daquele fornecedor. Embaixo fica a tabela de produtos com o preço de venda: na coluna Regra você escolhe a regra de cada produto ou um preço fixo.',
   },
   {
     aba: 'estoque', nome: 'Estoque',

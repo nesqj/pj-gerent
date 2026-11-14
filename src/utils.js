@@ -131,7 +131,7 @@ export const escolhaProduto = (db, k) => db?.precoProduto?.[k] || { tipo: 'padra
 export function resolverPreco(db, k, custo) {
   const e = escolhaProduto(db, k)
   if (e.tipo === 'fixo' && e.valor !== '' && e.valor != null) return { preco: +e.valor, tipo: 'fixo', regra: null, padrao: false }
-  if (e.tipo === 'nenhuma') return { preco: +custo, tipo: 'nenhuma', regra: null, padrao: false }
+  // "sem regra" não é mais uma opção: quem estava assim passa a usar a regra padrão
   const regra = e.tipo === 'regra' ? regrasDe(db).find((r) => r.id === e.regraId) : regraPadraoDe(db)
   const padrao = e.tipo !== 'regra' || !regra
   if (!regra) return { preco: +custo, tipo: 'nenhuma', regra: null, padrao: true }
