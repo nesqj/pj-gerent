@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { chave } from '../utils.js'
+import { chave, resolverPreco } from '../utils.js'
 import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
 import PagamentoVenda, { montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
@@ -75,6 +75,10 @@ export default function Vendas({ db, executar, irPara }) {
     .map((x) => ({ id: x.fornecedorId, nome: (db.fornecedores || []).find((f) => f.id === x.fornecedorId)?.nome || t('Fornecedor'), custo: +x.preco }))
     .sort((a, b) => a.custo - b.custo))
 
+  const fornEscolhido = (o) => (o?.origem === 'fornecedor' ? (fornecedoresDo(o).find((f) => f.id === item.forn) || fornecedoresDo(o)[0]) : null)
+  // preço de venda de um produto de fornecedor: a regra do produto aplicada sobre o custo do fornecedor escolhido
+  const precoDoForn = (o) => { const f = fornEscolhido(o); return f ? resolverPreco(db, o.k, f.custo).preco : o?.preco }
+
   function escolherProduto(k) {
     setItem({ ...item, k, preco: '', forn: '' })
   }
@@ -88,9 +92,9 @@ export default function Vendas({ db, executar, irPara }) {
       if (disp <= 0) return aviso.alerta(t('"{produto}" está sem estoque. Registre uma entrada no Estoque para vender.', { produto: p.produto }))
       if (+item.qtd > disp) return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: p.produto, n: disp }), p.detalhe)
     }
-    const preco = p.origem === 'estoque' ? +item.preco : p.preco
+    const preco = p.origem === 'estoque' ? +item.preco : precoDoForn(p)
     // produto de fornecedor: o custo é o do fornecedor escolhido (o mais barato, se não escolher)
-    const forn = p.origem === 'fornecedor' ? (fornecedoresDo(p).find((f) => f.id === item.forn) || fornecedoresDo(p)[0]) : null
+    const forn = fornEscolhido(p)
     setCarrinho([...carrinho, { produto: p.produto, marca: p.marca, qtd: +item.qtd, preco, custo: forn ? forn.custo : p.custo, origem: p.origem,
       ...(p.origem === 'estoque' ? { entradaId: p.entradaId, lote: p.detalhe } : {}),
       ...(forn ? { fornecedorId: forn.id, fornecedor: forn.nome } : {}) }])
@@ -231,7 +235,7 @@ export default function Vendas({ db, executar, irPara }) {
           </label>
         ) : (
           <label style={{ flex: '0 1 160px' }}>{t('Preço de venda')}
-            <input readOnly tabIndex={-1} className="somente-leitura" value={selecionado ? brl(selecionado.preco) : ''} placeholder="—" />
+            <input readOnly tabIndex={-1} className="somente-leitura" value={selecionado ? brl(precoDoForn(selecionado)) : ''} placeholder="—" />
           </label>
         )}
         {selecionado?.origem === 'estoque' && (
