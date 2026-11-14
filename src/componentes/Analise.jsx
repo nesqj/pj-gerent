@@ -49,6 +49,7 @@ function lucrosPagos(todas) {
     if (naHora > 0) ev.push({ dia: v.dia, data: v.data, lucro: naHora * porReal })
     for (const p of v.fiado?.parcelas || []) for (const r of p.recebimentos || []) {
       if (+r.valor > 0) ev.push({ dia: r.dia, data: r.data || v.data, lucro: +r.valor * porReal })
+      if (+r.encargo > 0) ev.push({ dia: r.dia, data: r.data || v.data, lucro: +r.encargo }) // multa e juros de atraso: lucro inteiro
     }
   }
   return ev
@@ -255,7 +256,7 @@ export default function Analise({ db }) {
               <Participacao linhas={pagamentos} total={r.faturamento} />
             </div>
           </div>
-          <small>{t('Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro de cada parcela quando ela é paga.')}</small>
+          <small>{t('Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos.')}</small>
         </>
       )}
       </>)}
