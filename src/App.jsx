@@ -335,20 +335,16 @@ export default function App() {
   const grupos = noAdmin
     ? GRUPOS_ADMIN
     : GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => podeVer(papel, i.id)) })).filter((g) => g.itens.length)
-  const contagem = db && {
-    vendas: db.vendas.filter((v) => v.dia === hoje()).length, // vendas de hoje
-    forn: db.fornecedores.length }
   const atual = noAdmin ? telaAdmin : aba
   const titulo = [...grupos.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === atual)?.nome
   const tituloT = titulo && t(titulo)
   const perfil = db?.perfil || {}
   const nomeUsuario = perfil.nome || sessao?.usuario?.nome || sessao?.usuario?.email || ''
 
-  const Item = ({ id, nome, icone: Icone, badge }) => (
+  const Item = ({ id, nome, icone: Icone }) => (
     <button className={'item' + (atual === id ? ' ativo' : '')} onClick={() => (noAdmin ? irParaAdmin(id) : irPara(id))} title={t(nome)}>
       <Icone />
       <span className="rotulo">{t(nome)}</span>
-      {badge > 0 && <span className="badge">{badge}</span>}
     </button>
   )
 
@@ -458,7 +454,7 @@ export default function App() {
                 <span className="rotulo">{t(g.nome)}</span>
                 <IconeSeta aberto={!fechados[g.nome]} />
               </button>
-              {!fechados[g.nome] && g.itens.map((i) => <Item key={i.id} {...i} badge={noAdmin ? 0 : contagem?.[i.id]} />)}
+              {!fechados[g.nome] && g.itens.map((i) => <Item key={i.id} {...i} />)}
             </div>
           ))}
         </nav>
