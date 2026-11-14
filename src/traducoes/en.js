@@ -1212,4 +1212,12 @@ export default {
   '+{n} item(ns)': '+{n} item(s)',
   'Compra': 'Purchase',
   'Buscar cliente, telefone ou produto...': 'Search customer, phone or product...',
+  // Ordem das parcelas
+  'O valor passa do que falta nesta compra ({valor}).': 'The amount is more than what is left on this purchase ({valor}).',
+  'Recebido. Quitou {n} parcelas.': 'Received. Paid off {n} installments.',
+  'Pagamento parcial registrado.': 'Partial payment recorded.',
+  'Ainda falta {valor} desta compra.': '{valor} still left on this purchase.',
+  'Compra quitada.': 'Purchase paid off.',
+  'depois da {n}ª': 'after #{n}',
+  'O valor que passar desta parcela quita as próximas': 'Any amount beyond this installment pays off the next ones',
 }

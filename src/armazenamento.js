@@ -278,6 +278,15 @@ export const salvarParcela = (lista, id, parcelaId, alterar, acao, detalhe) => m
   return d[lista][i]
 }, detalhe)
 export const salvarFiado = (...a) => salvarParcela('vendas', ...a)
+// alterar(parcelas) devolve a lista nova de parcelas (para recebimentos que pagam mais de uma)
+export const alterarParcelas = (lista, id, alterar, acao, detalhe) => mudar(acao, (d) => {
+  d[lista] = d[lista] || []
+  const i = d[lista].findIndex((x) => x.id === id)
+  const v = d[lista][i]
+  if (i < 0 || !v?.fiado?.parcelas) throw new Error(lista === 'vendas' ? t('Venda não encontrada.') : t('Empréstimo não encontrado.'))
+  d[lista][i] = { ...v, fiado: { ...v.fiado, parcelas: alterar([...v.fiado.parcelas]) } }
+  return d[lista][i]
+}, detalhe)
 
 // Empréstimos (crediário de dinheiro): ver calcularEmprestimo em utils.js
 export const salvarEmprestimo = (e) => mudar('emprestimo.salvo', (d) => {

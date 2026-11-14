@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
+import { distribuirRecebimento } from '../utils.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
@@ -96,23 +97,29 @@ export default function Fiado({ db, executar, irPara }) {
   const gravar = (x, alterar, acao, detalhe, msgOk) => executar((A) => A.salvarParcela(x.emp ? 'emprestimos' : 'vendas', x.v.id, x.p.id, alterar, acao, detalhe), msgOk)
   const acao = (x, s) => (x.emp ? 'emprestimo.' : 'venda.fiado-') + s
 
+  // Recebeu: paga sempre a parcela mais antiga; o que passar dela quita as próximas, em ordem
   async function confirmarRecebimento(e) {
     e.preventDefault()
-    const x = parcelas.find((y) => y.v.id === recebendo.vendaId && y.p.id === recebendo.parcelaId)
+    const g = grupos.find((y) => y.v.id === recebendo.vendaId)
+    const x = g?.abertas[0]
     if (!x) return setRecebendo(null)
     const valor = r2(numero(recebendo.valor))
     if (!(valor > 0)) return aviso.alerta(t('Informe um valor maior que zero.'))
-    if (valor > x.falta + 0.004) return aviso.alerta(t('O valor passa do que falta nesta parcela ({valor}).', { valor: brl(x.falta) }))
-    const rec = { id: uid(), data: Date.now(), dia: hoje(), valor, forma: recebendo.forma }
-    const ok = await gravar(x, (p) => {
-      // confere de novo com os dados mais novos (outra pessoa pode ter recebido antes)
-      const falta = r2(Math.max(0, p.valor - recebidoDaParcela(p)))
-      if (valor > falta + 0.004) throw new Error(t('O valor passa do que falta nesta parcela ({valor}).', { valor: brl(falta) }))
-      return { ...p, naoPaga: false, recebimentos: [...(p.recebimentos || []), rec] }
-    },
-      acao(x, 'recebido'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${valor} (${recebendo.forma})`,
-      valor >= x.falta - 0.004 ? t('Parcela recebida. Entrou no caixa.') : t('Pagamento parcial registrado. Falta {valor}.', { valor: brl(x.falta - valor) }))
-    if (ok) setRecebendo(null)
+    if (valor > g.falta + 0.004) return aviso.alerta(t('O valor passa do que falta nesta compra ({valor}).', { valor: brl(g.falta) }))
+    const rec = { id: uid(), data: Date.now(), dia: hoje(), forma: recebendo.forma }
+    let quitadas = 0
+    const ok = await executar((A) => A.alterarParcelas(x.emp ? 'emprestimos' : 'vendas', x.v.id, (ps) => {
+      // refeito sobre os dados mais novos (outra pessoa pode ter recebido antes)
+      const r = distribuirRecebimento(ps, valor, rec)
+      if (r.sobra > 0.004) throw new Error(t('O valor passa do que falta nesta compra ({valor}).', { valor: brl(valor - r.sobra) }))
+      quitadas = r.quitadas
+      return r.parcelas
+    }, acao(x, 'recebido'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${valor} (${recebendo.forma})`))
+    if (!ok) return
+    const resta = r2(g.falta - valor)
+    aviso.ok(quitadas > 1 ? t('Recebido. Quitou {n} parcelas.', { n: quitadas }) : quitadas === 1 ? t('Parcela recebida. Entrou no caixa.') : t('Pagamento parcial registrado.'),
+      resta > 0.004 ? t('Ainda falta {valor} desta compra.', { valor: brl(resta) }) : t('Compra quitada.'))
+    setRecebendo(null)
   }
 
   async function naoPagou(x) {
@@ -128,11 +135,16 @@ export default function Fiado({ db, executar, irPara }) {
   async function estornar(x) {
     const ultimo = (x.p.recebimentos || []).at(-1)
     if (!ultimo) return
-    if (!(await confirmar(t('Estornar o último recebimento de {valor} ({data})? Ele sai do caixa e a parcela volta a ficar em aberto.', { valor: brl(ultimo.valor), data: dataBR(ultimo.dia) })))) return
-    gravar(x, (p) => {
-      if ((p.recebimentos || []).at(-1)?.id !== ultimo.id) throw new Error(t('Os recebimentos desta parcela mudaram. Confira e tente de novo.'))
-      return { ...p, recebimentos: p.recebimentos.slice(0, -1) }
-    }, acao(x, 'estorno'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${ultimo.valor}`, t('Recebimento estornado.'))
+    // um recebimento que quitou várias parcelas foi dividido em partes ("id-1", "id-2"...): o estorno desfaz todas
+    const base = /-\d+$/.test(ultimo.id) ? ultimo.id.replace(/-\d+$/, '') : null
+    const doMesmo = (r) => r.id === ultimo.id || (base && r.id.startsWith(base + '-'))
+    const total = r2(x.v.fiado.parcelas.reduce((s, p) => s + (p.recebimentos || []).filter(doMesmo).reduce((a, r) => a + (+r.valor || 0), 0), 0))
+    if (!(await confirmar(t('Estornar o último recebimento de {valor} ({data})? Ele sai do caixa e a parcela volta a ficar em aberto.', { valor: brl(total), data: dataBR(ultimo.dia) })))) return
+    executar((A) => A.alterarParcelas(x.emp ? 'emprestimos' : 'vendas', x.v.id, (ps) => {
+      const p = ps.find((y) => y.id === x.p.id)
+      if ((p?.recebimentos || []).at(-1)?.id !== ultimo.id) throw new Error(t('Os recebimentos desta parcela mudaram. Confira e tente de novo.'))
+      return ps.map((y) => ({ ...y, recebimentos: (y.recebimentos || []).filter((r) => !doMesmo(r)) }))
+    }, acao(x, 'estorno'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${total}`), t('Recebimento estornado.'))
   }
   async function salvarData(e) {
     e.preventDefault()
@@ -234,6 +246,8 @@ export default function Fiado({ db, executar, irPara }) {
   // botões de uma parcela
   function acoes(x) {
     const whats = ['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao) && linkWhats(x.v.fiado.telefone, mensagem(x))
+    const primeira = grupos.find((g) => g.v.id === x.v.id)?.abertas[0]
+    const daVez = primeira?.p.id === x.p.id // as outras esperam: não dá para pagar a de março com a de fevereiro em aberto
     return (
       <>
                     {recebendo?.vendaId === x.v.id && recebendo.parcelaId === x.p.id ? (
@@ -247,9 +261,13 @@ export default function Fiado({ db, executar, irPara }) {
                       </form>
                     ) : (
                       <>
-                        {['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao) && (
+                        {['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao) && !daVez && (
+                          <><small className="aguarda">{t('depois da {n}ª', { n: primeira?.p.n })}</small>{' '}
+                            <button className="sec mini" title={t('Mudar data')} onClick={() => setMudandoData({ vendaId: x.v.id, parcelaId: x.p.id, data: x.p.vencimento })}>📅</button></>
+                        )}
+                        {['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao) && daVez && (
                           <>
-                            <button className="edit" onClick={() => setRecebendo({ vendaId: x.v.id, parcelaId: x.p.id, valor: String(x.falta).replace('.', ','), forma: 'PIX' })}>{t('Recebeu')}</button>{' '}
+                            <button className="edit" title={t('O valor que passar desta parcela quita as próximas')} onClick={() => setRecebendo({ vendaId: x.v.id, parcelaId: x.p.id, valor: String(x.falta).replace('.', ','), forma: 'PIX' })}>{t('Recebeu')}</button>{' '}
                             <button className="del" onClick={() => naoPagou(x)}>{t('Não pagou')}</button>{' '}
                             <button className="sec mini" title={t('Mudar data')} onClick={() => setMudandoData({ vendaId: x.v.id, parcelaId: x.p.id, data: x.p.vencimento })}>📅</button>{' '}
                             {whats && <a className="botao-whats" href={whats} target="_blank" rel="noreferrer" title={t('Lembrar no WhatsApp')}>WhatsApp</a>}

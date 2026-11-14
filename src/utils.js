@@ -411,3 +411,23 @@ export function lerCPF(s) {
   if (!cpfValido(s)) return { erro: t('CPF inválido. Confira os números.') }
   return formatarCPF(s)
 }
+
+// Recebimento de fiado/empréstimo: paga primeiro a parcela mais antiga; o que sobrar vai para as próximas.
+// Devolve { parcelas, quitadas, sobra } (sobra > 0 = valor maior do que tudo o que falta).
+const parcelaAberta = (p) => !p.naoPaga && (+p.valor || 0) - recebidoDaParcela(p) > 0.004
+export function distribuirRecebimento(parcelas, valor, rec) {
+  const ordem = parcelas.map((p, i) => ({ p, i })).filter((x) => parcelaAberta(x.p))
+    .sort((a, b) => String(a.p.vencimento).localeCompare(String(b.p.vencimento)) || a.p.n - b.p.n)
+  const novas = [...parcelas]
+  let resta = Math.round(valor * 100) / 100
+  let quitadas = 0
+  for (const { p, i } of ordem) {
+    if (resta <= 0.004) break
+    const falta = Math.round(((+p.valor || 0) - recebidoDaParcela(p)) * 100) / 100
+    const parte = Math.min(falta, resta)
+    novas[i] = { ...p, recebimentos: [...(p.recebimentos || []), { ...rec, id: rec.id + '-' + p.n, valor: parte }] }
+    resta = Math.round((resta - parte) * 100) / 100
+    if (parte >= falta - 0.004) quitadas++
+  }
+  return { parcelas: novas, quitadas, sobra: resta }
+}
