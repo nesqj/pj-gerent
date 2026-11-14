@@ -1293,4 +1293,6 @@ export default {
   '+ {n} fornecedor(es)': '+ {n} supplier(s)',
   'Cadastre as marcas nos fornecedores primeiro, na aba Fornecedores.': 'Add the brands to the suppliers first, in the Suppliers tab.',
   'só os que trabalham com a marca {marca}': 'only those that work with the {marca} brand',
+  'Cadastrar produto em vários fornecedores': 'Add product to several suppliers',
+  'Cadastre o produto uma vez e marque todos os fornecedores que têm ele, com o preço de cada um.': 'Add the product once and pick every supplier that has it, with each one\'s price.',
 }

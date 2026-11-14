@@ -3,6 +3,7 @@ import { t } from '../i18n.js'
 import { norm, uid } from '../utils.js'
 import FornecedorDetalhe from './FornecedorDetalhe.jsx'
 import { EditorMarcas } from './Marcas.jsx'
+import NovoProduto from './NovoProduto.jsx'
 
 export const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ')
 
@@ -58,6 +59,7 @@ export default function Fornecedores({ db, executar }) {
   const [form, setForm] = useState(fornecedorVazio)
   const [busca, setBusca] = useState('')
   const [aberto, setAberto] = useState(null) // id do fornecedor com a página aberta
+  const [cadastrandoProduto, setCadastrandoProduto] = useState(false)
 
   const fornAberto = db.fornecedores.find((f) => f.id === aberto)
   if (fornAberto) return <FornecedorDetalhe db={db} executar={executar} forn={fornAberto} voltar={() => setAberto(null)} />
@@ -84,6 +86,10 @@ export default function Fornecedores({ db, executar }) {
         <button type="submit">{t('Cadastrar fornecedor')}</button>
         <button type="button" className="sec" onClick={() => setForm(fornecedorVazio)}>{t('Limpar')}</button>
       </form>
+
+      {db.fornecedores.length > 0 && (cadastrandoProduto
+        ? <NovoProduto db={db} executar={executar} aoTerminar={() => setCadastrandoProduto(false)} />
+        : <p><button className="sec" onClick={() => setCadastrandoProduto(true)}>+ {t('Cadastrar produto em vários fornecedores')}</button> <small>{t('Cadastre o produto uma vez e marque todos os fornecedores que têm ele, com o preço de cada um.')}</small></p>)}
 
       <input className="busca" placeholder={t('Buscar por nome, cidade ou marca...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
 
