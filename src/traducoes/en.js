@@ -1304,4 +1304,9 @@ export default {
   'Produto excluído.': 'Product deleted.',
   'A–Z': 'A–Z',
   'Mais recentes': 'Newest',
+  'Já existe "{produto}" com essa marca. Juntar os dois em um só?': '"{produto}" already exists with this brand. Merge both into one?',
+  'Nome do produto atualizado.': 'Product name updated.',
+  'Nome do produto': 'Product name',
+  '(sem marca)': '(no brand)',
+  'Salvar nome': 'Save name',
 }

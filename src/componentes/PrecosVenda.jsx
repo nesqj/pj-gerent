@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
-import { trabalhaCom } from './NovoProduto.jsx'
+import { marcasDisponiveis, trabalhaCom } from './NovoProduto.jsx'
 import { t } from '../i18n.js'
 import {
   brl, calcularVenda, chave, dataTs, descricaoPreco, escolhaProduto, formulaRegra, gravarPrecoFornecedor, lerValor, nomeFornecedor, norm,
@@ -80,6 +80,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const [busca, setBusca] = useState('')
   const [marcados, setMarcados] = useState({}) // produtos marcados para aplicar uma regra de uma vez
   const [aplicar, setAplicar] = useState('padrao')
+  const [nomeEd, setNomeEd] = useState(null) // { produto, marca } em edição
   const [ordem, setOrdem] = useState('az') // 'az' (alfabética) ou 'recentes' (ordem de cadastro, mais novos primeiro)
 
   const regras = regrasDe(db)
@@ -98,6 +99,16 @@ export default function PrecosVenda({ db, executar, embutido }) {
   if (ordem === 'recentes') tabela.sort((x, y) => cadastro(y.k) - cadastro(x.k))
   const qtdMarcados = tabela.filter((i) => marcados[i.k]).length
   const todosMarcados = tabela.length > 0 && qtdMarcados === tabela.length
+
+  async function salvarNome(i) {
+    const produto = (nomeEd?.produto || '').trim()
+    const marca = (nomeEd?.marca || '').trim()
+    if (!produto) return aviso.alerta(t('Informe o nome do produto.'))
+    if (chave(produto, marca) === i.k && produto === i.produto && marca === (i.marca || '')) return
+    const existe = itens.some((x) => x.k === chave(produto, marca) && x.k !== i.k)
+    if (existe && !(await confirmar(t('Já existe "{produto}" com essa marca. Juntar os dois em um só?', { produto: produto + (marca ? ' — ' + marca : '') })))) return
+    if (await executar((A) => A.renomearProduto(i.k, produto, marca), t('Nome do produto atualizado.'))) setSel(chave(produto, marca))
+  }
 
   async function excluirProduto(i) {
     const lista = fornecedoresDe(i.k)
@@ -172,7 +183,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
                       <td className="n"><b className="ok">{brl(i.preco)}</b></td>
                       <td className="n"><span className={i.preco - i.custo < 0 ? 'bad' : ''}>{brl(i.preco - i.custo)}</span></td>
                       <td className="n acoes-fiado">
-                        <button className="edit" onClick={() => { ff.setEditando(null); setSel(sel === i.k ? '' : i.k) }}>{sel === i.k ? t('Fechar') : t('Editar')}</button>{' '}
+                        <button className="edit" onClick={() => { ff.setEditando(null); setNomeEd({ produto: i.produto, marca: i.marca || '' }); setSel(sel === i.k ? '' : i.k) }}>{sel === i.k ? t('Fechar') : t('Editar')}</button>{' '}
                         <button className="del" onClick={() => excluirProduto(i)}>{t('Excluir')}</button>
                       </td>
                     </tr>
@@ -180,6 +191,17 @@ export default function PrecosVenda({ db, executar, embutido }) {
                       <tr className="linha-edicao-produto">
                         <td colSpan="9">
                           <div className="edicao-produto">
+                            {nomeEd && (
+                              <form className="ep-nome-form" onSubmit={(e) => { e.preventDefault(); salvarNome(i) }}>
+                                <label>{t('Nome do produto')}<input maxLength={80} value={nomeEd.produto} onChange={(e) => setNomeEd({ ...nomeEd, produto: e.target.value })} /></label>
+                                <label>{t('Marca')}
+                                  <select value={nomeEd.marca} onChange={(e) => setNomeEd({ ...nomeEd, marca: e.target.value })}>
+                                    {[...new Set([i.marca || '', ...marcasDisponiveis(db)])].map((m) => <option key={m} value={m}>{m || t('(sem marca)')}</option>)}
+                                  </select>
+                                </label>
+                                <button type="submit" className="edit" disabled={nomeEd.produto.trim() === i.produto && nomeEd.marca === (i.marca || '')}>{t('Salvar nome')}</button>
+                              </form>
+                            )}
                             <b>{t('Fornecedores de {produto}', { produto: i.produto + (i.marca ? ' — ' + i.marca : '') })}</b>
                             {ofertas.map((o, n) => (
                               <div key={o.id} className={'ep-linha' + (n === 0 ? ' best' : '')}>

@@ -8,7 +8,7 @@
 
 import { t } from './i18n.js'
 import { supabase } from './supabase.js'
-import { norm, resumoFiado } from './utils.js'
+import { chave, norm, resumoFiado } from './utils.js'
 
 const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
 const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [], emprestimos: [] })
@@ -178,6 +178,22 @@ export const excluirFornecedor = (id) => mudar('fornecedor.excluido', (d) => {
 
 export const salvarPrecoFornecedor = (p) => upsert('precosForn', 'preco-fornecedor.salvo', p, resumo('precosForn', p))
 export const excluirPrecoFornecedor = (id) => remover('precosForn', 'preco-fornecedor.excluido', id)
+// Muda o nome/marca de um produto em todos os fornecedores. Se o fornecedor já tinha o produto com o nome novo,
+// fica só um (o renomeado). A regra de preço do produto vai junto para o nome novo.
+export const renomearProduto = (k, produto, marca) => mudar('preco-fornecedor.salvo', (d) => {
+  const nk = chave(produto, marca)
+  const doProduto = d.precosForn.filter((p) => chave(p.produto, p.marca) === k)
+  const fornecedores = new Set(doProduto.map((p) => p.fornecedorId))
+  d.precosForn = d.precosForn
+    .filter((p) => !(nk !== k && chave(p.produto, p.marca) === nk && fornecedores.has(p.fornecedorId)))
+    .map((p) => (chave(p.produto, p.marca) === k ? { ...p, produto, marca, atualizado: Date.now() } : p))
+  if (nk !== k && d.precoProduto?.[k]) {
+    d.precoProduto = { ...d.precoProduto }
+    if (!d.precoProduto[nk]) d.precoProduto[nk] = d.precoProduto[k]
+    delete d.precoProduto[k]
+  }
+  return nk
+}, `${k.replace('|', ' — ')} → ${produto}${marca ? ' — ' + marca : ''}`)
 
 // Perfil de quem usa: { nome, idioma, tema, fuso, avatar } — fica na conta da pessoa
 export async function salvarPerfil(p) {
