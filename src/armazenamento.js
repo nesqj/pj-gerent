@@ -34,7 +34,6 @@ export function definirOrg(o) {
   if (o?.id !== carregadoDe) { db = vazio(); versao = 0; carregadoDe = null }
   org = o
 }
-export const orgAtiva = () => org
 
 // ---------- leitura
 
@@ -206,16 +205,6 @@ export async function salvarPerfil(p) {
 // Configurações da loja: { nomeLoja, cor, corEscuro, logo, logoEscuro, avisosEstoque }
 export const salvarConfig = (c) => mudar('config.salva', (d) => { d.config = c; return c }, c.nomeLoja || null)
 
-// Regras de preço: lista [{ id, nome, percentual }] e qual é a padrão (id ou null)
-export const salvarRegras = (regras, regraPadraoId) => mudar('regras.salvas', (d) => {
-  d.regras = regras
-  d.regraPadraoId = regraPadraoId ?? null
-  delete d.regra // a regra única antiga vira parte da lista
-  // escolhas de produtos que apontavam para regras excluídas voltam para a padrão
-  for (const [k, e] of Object.entries(d.precoProduto || {})) {
-    if (e.tipo === 'regra' && !regras.some((r) => r.id === e.regraId)) delete d.precoProduto[k]
-  }
-}, regras.map((r) => `${r.nome} ${r.percentual}%`).join(', '))
 
 // Escolha de preço de um produto (chave produto|marca); null volta para a regra padrão
 // vários preços fixos de uma vez: { chave: valor }
@@ -299,7 +288,6 @@ export const salvarParcela = (lista, id, parcelaId, alterar, acao, detalhe) => m
   d[lista][i] = { ...v, fiado: { ...v.fiado, parcelas } }
   return d[lista][i]
 }, detalhe)
-export const salvarFiado = (...a) => salvarParcela('vendas', ...a)
 // alterar(parcelas) devolve a lista nova de parcelas (para recebimentos que pagam mais de uma)
 export const alterarParcelas = (lista, id, alterar, acao, detalhe) => mudar(acao, (d) => {
   d[lista] = d[lista] || []

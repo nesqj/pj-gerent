@@ -17,7 +17,6 @@ export function definirIdioma(id) {
 }
 
 export const idioma = () => IDIOMA
-export const emIngles = () => IDIOMA === 'en-US'
 
 export function t(texto, vars) {
   let s = texto

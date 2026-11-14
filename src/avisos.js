@@ -1,6 +1,6 @@
 // Avisos do sistema (notificações do navegador / do app instalado).
 
-export const avisosSuportados = () => typeof window !== 'undefined' && 'Notification' in window
+const avisosSuportados = () => typeof window !== 'undefined' && 'Notification' in window
 
 export const permissaoAvisos = () => (avisosSuportados() ? Notification.permission : 'indisponivel')
 

@@ -4,6 +4,3 @@ dist
 .env
 .env.local
 
-
-# arquivo de teste antigo (não faz parte do app)
-teste.txt

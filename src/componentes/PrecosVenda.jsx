@@ -3,10 +3,7 @@ import { podeFazer } from '../armazenamento.js'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import NovoProduto, { marcasDisponiveis, trabalhaCom } from './NovoProduto.jsx'
 import { t } from '../i18n.js'
-import {
-  brl, pct, calcularVenda, chave, dataTs, descricaoPreco, escolhaProduto, formulaRegra, gravarPrecoFornecedor, lerValor, nomeFornecedor, norm,
-  produtosAVenda, regraPadraoDe, regrasDe, resolverPreco,
-} from '../utils.js'
+import { brl, pct, chave, descricaoPreco, escolhaProduto, gravarPrecoFornecedor, lerValor, nomeFornecedor, norm, produtosAVenda } from '../utils.js'
 
 // ---------- Na tela do produto: adicionar um fornecedor ou mudar/remover o preço de um
 function FornecedoresDoProduto({ db, executar, item, ofertas }) {
@@ -31,50 +28,6 @@ function FornecedoresDoProduto({ db, executar, item, ofertas }) {
   return { semEste, novo, setNovo, adicionar, editando, setEditando, salvarPreco, remover }
 }
 
-// Valor do <select> a partir da escolha salva, e o contrário
-const paraSelect = (e) => (e.tipo === 'regra' ? 'r:' + e.regraId : e.tipo === 'nenhuma' ? 'padrao' : e.tipo) // "sem regra" saiu: vale a padrão
-const deSelect = (v, valorFixo) =>
-  v.startsWith('r:') ? { tipo: 'regra', regraId: v.slice(2) } : v === 'fixo' ? { tipo: 'fixo', valor: valorFixo } : { tipo: v }
-
-// Escolha do preço de UM produto: regra padrão, uma regra, sem regra ou preço fixo
-function SeletorPreco({ db, executar, k, custo }) {
-  const regras = regrasDe(db)
-  const padrao = regraPadraoDe(db)
-  const escolha = escolhaProduto(db, k)
-  const [fixo, setFixo] = useState(escolha.tipo === 'fixo' ? String(escolha.valor) : '')
-  useEffect(() => { if (escolha.tipo === 'fixo') setFixo(String(escolha.valor)) }, [escolha.tipo, escolha.valor])
-
-  function mudar(v) {
-    if (v === 'fixo') {
-      // começa com o preço que o produto tem hoje, para só ajustar
-      const atual = String(resolverPreco(db, k, custo).preco)
-      setFixo(atual)
-      return executar((A) => A.salvarPrecoProduto(k, { tipo: 'fixo', valor: +atual }))
-    }
-    executar((A) => A.salvarPrecoProduto(k, deSelect(v)))
-  }
-
-  function salvarFixo() {
-    if (fixo === '' || +fixo < 0 || +fixo === +escolha.valor) return
-    executar((A) => A.salvarPrecoProduto(k, { tipo: 'fixo', valor: +fixo }))
-  }
-
-  return (
-    <span className="seletor-preco" onClick={(e) => e.stopPropagation()}>
-      <select value={paraSelect(escolha)} onChange={(e) => mudar(e.target.value)}>
-        <option value="padrao">{padrao ? t('Padrão: {nome}', { nome: padrao.nome }) : t('Padrão: Sem regra')}</option>
-        {regras.map((r) => <option key={r.id} value={'r:' + r.id}>{r.nome} ({formulaRegra(r)})</option>)}
-        <option value="fixo">{t('Preço fixo')}</option>
-      </select>
-      {escolha.tipo === 'fixo' && (
-        <input className="cel" type="number" min="0" step="0.01" value={fixo} title={t('Preço fixo')}
-          onChange={(e) => setFixo(e.target.value)} onBlur={salvarFixo}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }} />
-      )}
-    </span>
-  )
-}
-
 export default function PrecosVenda({ db, executar, embutido }) {
   const [sel, setSel] = useState('')
   const [busca, setBusca] = useState('')
@@ -82,12 +35,10 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const [rascunho, setRascunho] = useState({}) // k → { campo: 'pct' | 'preco', valor } enquanto digita
   const [pctLote, setPctLote] = useState('')
   const podeEditarPreco = podeFazer('preco-venda.salvo')
-  const [aplicar, setAplicar] = useState('padrao')
   const [nomeEd, setNomeEd] = useState(null) // { produto, marca } em edição
   const [cadastrando, setCadastrando] = useState(false)
   const [ordem, setOrdem] = useState('az') // 'az' (alfabética) ou 'recentes' (ordem de cadastro, mais novos primeiro)
 
-  const regras = regrasDe(db)
   const itens = produtosAVenda(db)
   const item = itens.find((i) => i.k === sel)
   const ofertas = item
@@ -169,13 +120,6 @@ export default function PrecosVenda({ db, executar, embutido }) {
     }
   }
 
-  async function aplicarNosMarcados() {
-    const ks = tabela.filter((i) => marcados[i.k]).map((i) => i.k)
-    if (!ks.length) return
-    if (aplicar === 'fixo') return
-    const ok = await executar(async (A) => { for (const k of ks) await A.salvarPrecoProduto(k, deSelect(aplicar)) })
-    if (ok) setMarcados({})
-  }
 
   return (
     <section>

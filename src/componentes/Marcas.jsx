@@ -55,17 +55,3 @@ export function EditorMarcas({ marcas, onChange, onRenomear, emUso = {} }) {
   )
 }
 
-// Caixa de seleção com as marcas do fornecedor escolhido
-export function SelectMarca({ fornecedor, value, onChange }) {
-  const marcas = fornecedor?.marcas || []
-  // ao editar um preço antigo, mantém a marca dele mesmo que não esteja mais na lista
-  const opcoes = value && !marcas.includes(value) ? [value, ...marcas] : marcas
-  return (
-    <select required value={value} onChange={onChange} disabled={!fornecedor || opcoes.length === 0}>
-      <option value="">
-        {!fornecedor ? t('Escolha o fornecedor primeiro') : opcoes.length ? t('Selecione a marca...') : t('Fornecedor sem marcas')}
-      </option>
-      {opcoes.map((m) => <option key={m} value={m}>{m}</option>)}
-    </select>
-  )
-}

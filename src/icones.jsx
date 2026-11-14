@@ -9,9 +9,6 @@ const Svg = ({ children, size = 18 }) => (
 export const IconeCaminhao = () => (
   <Svg><path d="M3 6h11v10H3z" /><path d="M14 9h4l3 3v4h-7" /><circle cx="7" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></Svg>
 )
-export const IconeCalculadora = () => (
-  <Svg><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 7h8" /><path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" /></Svg>
-)
 export const IconePerfil = () => (
   <Svg><circle cx="12" cy="12" r="9" /><circle cx="12" cy="10" r="3" /><path d="M6.5 18.5a6.5 6.5 0 0 1 11 0" /></Svg>
 )
@@ -39,9 +36,6 @@ export const IconeConfig = () => (
 export const IconeAjuda = () => (
   <Svg><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H10a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 1 3 17z" /><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H14a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5h6A1.5 1.5 0 0 0 21 17z" /></Svg>
 )
-export const IconeAjustes = () => (
-  <Svg><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></Svg>
-)
 export const IconeCarrinho = () => (
   <Svg><circle cx="9" cy="20" r="1.4" /><circle cx="18" cy="20" r="1.4" /><path d="M2 3h3l2.6 12.2a1.5 1.5 0 0 0 1.5 1.2h8.8a1.5 1.5 0 0 0 1.5-1.1L21 8H6" /></Svg>
 )
@@ -50,12 +44,6 @@ export const IconeCaixaProduto = () => (
 )
 export const IconeGrafico = () => (
   <Svg><path d="M4 20V4" /><path d="M4 20h16" /><path d="M8 16v-4" /><path d="M12 16V8" /><path d="M16 16v-6" /><path d="M20 16V6" /></Svg>
-)
-export const IconeBaixar = () => (
-  <Svg><path d="M12 4v11" /><path d="M7 10l5 5 5-5" /><path d="M5 20h14" /></Svg>
-)
-export const IconeSubir = () => (
-  <Svg><path d="M12 15V4" /><path d="M7 9l5-5 5 5" /><path d="M5 20h14" /></Svg>
 )
 export const IconeSeta = ({ aberto }) => (
   <Svg size={16}><path d={aberto ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} /></Svg>

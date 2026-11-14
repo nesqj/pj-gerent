@@ -110,7 +110,6 @@ export function calcularVenda(custo, regra = REGRA_ZERADA) {
   const p = +regra.percentual || 0
   return Math.round(+custo * (1 + p / 100) * 100) / 100
 }
-export const numBR = (n) => num(n, 4)
 
 // Regra em texto, ex.: "+ 30%" (vazio quando a regra está zerada)
 function partesRegra(regra) {
@@ -118,11 +117,6 @@ function partesRegra(regra) {
   return p > 0 ? `+ ${num(p, 2)}%` : ''
 }
 export const formulaRegra = (regra) => partesRegra(regra) || t('+ 0% (preço = custo)')
-// Margem sobre o preço de venda, em % (ex.: custo 100, venda 130 → 23,1%)
-export const margemDe = (custo, preco) => (+preco > 0 ? ((+preco - +custo) / +preco) * 100 : 0)
-export const textoRegra = (regra) =>
-  partesRegra(regra) ? `${t('menor preço do fornecedor')} ${partesRegra(regra)}` : t('menor preço do fornecedor')
-export const textoCalculo = (custo, regra) => `${brl(custo)} ${partesRegra(regra)}`.trim()
 
 export const escolhaProduto = (db, k) => db?.precoProduto?.[k] || { tipo: 'padrao' }
 
@@ -462,12 +456,6 @@ export const textoAtraso = (cfg) => cfg && (+cfg.multaPct > 0 || +cfg.jurosMesPc
   ? [+cfg.multaPct > 0 && t('multa {p}%', { p: String(cfg.multaPct).replace('.', ',') }), +cfg.jurosMesPct > 0 && t('juros {p}% ao mês', { p: String(cfg.jurosMesPct).replace('.', ',') })].filter(Boolean).join(' + ')
     + (+cfg.carenciaDias > 0 ? ' ' + t('(depois de {n} dia(s) de atraso)', { n: cfg.carenciaDias }) : '')
   : ''
-
-// Quanto falta receber de uma lista (vendas fiado ou empréstimos): parcelas em aberto + multa e juros de atraso de hoje
-export function faltaReceber(lista, cfgAtraso) {
-  return Math.round((lista || []).reduce((s, v) => s + (resumoFiado(v)?.aberto || 0)
-    + (v.fiado?.parcelas || []).reduce((a, p) => a + encargoAtraso(p, cfgAtraso).total, 0), 0) * 100) / 100
-}
 
 // Perdas por "Não pagou" (fiado ou empréstimo): contam no dia em que você marcou.
 // Parcelas marcadas antes desta regra (sem a data) contam no dia da venda/empréstimo.
