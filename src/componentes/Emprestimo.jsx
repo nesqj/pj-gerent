@@ -114,9 +114,13 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
 }
 
 // Empréstimos feitos no dia (na aba Novo Registro)
-export function EmprestimosDoDia({ db, dia, executar, irPara }) {
+export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
   const lista = (db.emprestimos || []).filter((e) => e.dia === dia).sort((a, b) => b.data - a.data)
-  if (!lista.length) return null
+  const lucros = lista.map(lucroEmprestimo)
+  const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
+  const aReceber = lista.reduce((s, e) => s + (+e.total || 0), 0)
+  const jurosConfirmados = lucros.reduce((s, l) => s + l.lucro, 0)
+  const jurosAConfirmar = lucros.reduce((s, l) => s + (l.pendente ? l.lucroPrevisto : 0), 0)
 
   async function excluir(e) {
     const f = resumoFiado(e)
@@ -128,11 +132,25 @@ export function EmprestimosDoDia({ db, dia, executar, irPara }) {
 
   return (
     <>
-      <div className="linha-titulo"><h3>{t('Empréstimos de {data}', { data: dataBR(dia) })}</h3></div>
+      <div className="linha-titulo">
+        <h3>{t('Empréstimos de {data}', { data: dataBR(dia) })}</h3>
+        {setDia && <input type="date" value={dia} onChange={(e) => setDia(e.target.value || hoje())} />}
+      </div>
+      <div className="cards">
+        <div className="card"><small>{t('Empréstimos')}</small><b>{lista.length}</b></div>
+        <div className="card"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b></div>
+        <div className="card"><small>{t('A receber (com juros)')}</small><b>{brl(aReceber)}</b></div>
+        <div className={'card' + (jurosConfirmados < 0 ? ' card-prejuizo' : '')}>
+          <small>{t('Lucro (juros)')}</small>
+          <b className={jurosConfirmados < 0 ? 'bad' : 'ok'}>{jurosConfirmados < 0 ? '− ' + brl(-jurosConfirmados) : brl(jurosConfirmados)}</b>
+          {jurosAConfirmar > 0 && <small className="var">+ {brl(jurosAConfirmar)} {t('a confirmar')}</small>}
+        </div>
+      </div>
       <div className="tw">
         <table>
           <thead><tr><th>{t('Hora')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('A receber')}</th><th className="n">{t('Recebido')}</th><th className="n">{t('Lucro (juros)')}</th><th></th></tr></thead>
           <tbody>
+            {lista.length === 0 && <tr><td colSpan="7" className="vazio">{t('Nenhum empréstimo neste dia.')}</td></tr>}
             {lista.map((e) => {
               const l = lucroEmprestimo(e)
               const n = e.fiado?.parcelas?.length || 1

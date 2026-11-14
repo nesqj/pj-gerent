@@ -1237,4 +1237,6 @@ export default {
   'Confira os valores.': 'Check the values.',
   'Multa de {p}% passa dos 2% que o Código de Defesa do Consumidor costuma permitir. Salvar mesmo assim?': 'A {p}% fee is above the 2% the Consumer Protection Code usually allows. Save anyway?',
   'Multa e juros por atraso salvos.': 'Late fee and interest saved.',
+  'A receber (com juros)': 'Receivable (with interest)',
+  'Nenhum empréstimo neste dia.': 'No loans on this day.',
 }

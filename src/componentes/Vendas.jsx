@@ -309,6 +309,9 @@ export default function Vendas({ db, executar, irPara }) {
 
       </>)}
 
+      {modo === 'emprestimo' && podeEmprestar ? (
+        <EmprestimosDoDia db={db} dia={dia} setDia={setDia} executar={executar} irPara={irPara} />
+      ) : (<>
       {/* ---------- Vendas do dia ---------- */}
       <div className="linha-titulo">
         <h3>{t('Vendas de {data}', { data: dataBR(dia) })}</h3>
@@ -369,7 +372,7 @@ export default function Vendas({ db, executar, irPara }) {
         </table>
       </div>
       {semCusto && <small>* {t('Algum item vendido não tinha custo informado; o lucro considera custo zero para ele.')}</small>}
-      {podeEmprestar && <EmprestimosDoDia db={db} dia={dia} executar={executar} irPara={irPara} />}
+      </>)}
     </section>
   )
 }
