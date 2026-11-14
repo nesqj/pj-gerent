@@ -112,7 +112,7 @@ const ACOES = {
   'config.salva': 'Configurações da loja salvas', 'regras.salvas': 'Regras de preço salvas',
   'preco-venda.salvo': 'Preço de venda alterado', 'venda.salva': 'Venda salva', 'venda.excluida': 'Venda excluída',
   'venda.fiado-recebido': 'Fiado recebido', 'venda.fiado-nao-pago': 'Fiado marcado como não pago', 'venda.fiado-reaberto': 'Fiado reaberto',
-  'venda.fiado-data': 'Data do fiado alterada', 'venda.fiado-estorno': 'Recebimento de fiado estornado', 'cliente.salvo': 'Cliente salvo',
+  'venda.fiado-data': 'Data do fiado alterada', 'venda.fiado-estorno': 'Recebimento de fiado estornado', 'cliente.salvo': 'Cliente salvo', 'cliente.excluido': 'Cliente excluído',
   'emprestimo.salvo': 'Empréstimo registrado', 'emprestimo.excluido': 'Empréstimo excluído', 'emprestimo.recebido': 'Parcela de empréstimo recebida',
   'emprestimo.nao-pago': 'Empréstimo marcado como não pago', 'emprestimo.reaberto': 'Parcela de empréstimo reaberta', 'emprestimo.data': 'Data do empréstimo alterada',
   'emprestimo.estorno': 'Recebimento de empréstimo estornado',

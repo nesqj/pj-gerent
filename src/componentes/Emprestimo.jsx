@@ -3,6 +3,7 @@ import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, calcularEmprestimo, dataBR, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
+import { AvisoCliente } from './Clientes.jsx'
 
 // Empréstimo de dinheiro (crediário) com juros simples ao mês.
 // O dinheiro sai do caixa (se marcado) e as parcelas vão para a aba Cobranças.
@@ -61,6 +62,7 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
           {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => <option key={c.id} value={c.id}>{c.nome}{c.telefone ? ` · ${c.telefone}` : ''}</option>)}
         </select>
       </label>
+      {f.clienteId && <AvisoCliente db={db} clienteId={f.clienteId} />}
       {!f.clienteId && (
         <>
           <label style={{ flex: '2 1 200px' }}>{t('Nome do cliente')} *<input maxLength={60} {...campo('nome')} /></label>

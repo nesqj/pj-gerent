@@ -363,3 +363,32 @@ export function lucroEmprestimo(e) {
   if (f.pendente) return { lucro: 0, pendente: true, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: f.aberto }
   return { lucro: Math.round((juros - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: juros, naoPago: f.naoPago, recebido: f.recebido, aberto: 0 }
 }
+
+// ---------- Clientes
+// Tudo o que um cliente pegou (vendas fiado e, se permitido, empréstimos) e a situação das parcelas.
+export function resumoCliente(db, clienteId, comEmprestimos = true, dia = hoje()) {
+  const registros = [
+    ...(db.vendas || []).filter((v) => v.fiado?.clienteId === clienteId && v.fiado.parcelas?.length).map((v) => ({ tipo: 'venda', r: v })),
+    ...(comEmprestimos ? (db.emprestimos || []) : []).filter((e) => e.fiado?.clienteId === clienteId && e.fiado.parcelas?.length).map((e) => ({ tipo: 'emprestimo', r: e })),
+  ].sort((a, b) => b.r.data - a.r.data)
+  let total = 0, recebido = 0, aberto = 0, atrasado = 0, naoPago = 0, nAtrasadas = 0
+  for (const x of registros) {
+    let falta = 0, pagas = 0, sit = 'pago'
+    for (const p of x.r.fiado.parcelas) {
+      const rec = recebidoDaParcela(p)
+      const f = Math.max(0, (+p.valor || 0) - rec)
+      const s = situacaoParcela(p, dia)
+      total += +p.valor || 0
+      recebido += rec
+      if (s === 'paga') pagas++
+      else if (s === 'nao_paga') { naoPago += f; if (sit === 'pago') sit = 'nao_pago' }
+      else { aberto += f; falta += f; if (s === 'atrasada') { atrasado += f; nAtrasadas++; sit = 'atrasado' } else if (sit !== 'atrasado') sit = 'aberto' }
+    }
+    x.falta = Math.round(falta * 100) / 100
+    x.pagas = pagas
+    x.situacao = sit
+  }
+  const r = (v) => Math.round(v * 100) / 100
+  return { registros, total: r(total), recebido: r(recebido), aberto: r(aberto), atrasado: r(atrasado), naoPago: r(naoPago), nAtrasadas,
+    ultima: registros[0]?.r.data || null }
+}

@@ -288,7 +288,7 @@ export default function Vendas({ db, executar, irPara }) {
               </tbody>
             </table>
           </div>
-          <PagamentoVenda pg={pg} setPg={setPg} total={totalCarrinho} clientes={db.clientes || []} />
+          <PagamentoVenda pg={pg} setPg={setPg} total={totalCarrinho} clientes={db.clientes || []} db={db} />
           <div className="finalizar">
             <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
               <input type="number" min="0" max="100" step="0.01" placeholder={t('Opcional')} value={desconto} onChange={(e) => setDesconto(e.target.value)} />

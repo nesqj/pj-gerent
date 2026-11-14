@@ -10,6 +10,7 @@ import Analise from './componentes/Analise.jsx'
 import Estoque from './componentes/Estoque.jsx'
 import Caixa from './componentes/Caixa.jsx'
 import Fiado from './componentes/Fiado.jsx'
+import Clientes from './componentes/Clientes.jsx'
 import Configuracoes from './componentes/Configuracoes.jsx'
 import Ajuda from './componentes/Ajuda.jsx'
 import Login from './componentes/Login.jsx'
@@ -36,6 +37,7 @@ const GRUPOS = [
     itens: [
       { id: 'vendas', nome: 'Novo Registro', icone: IconeCarrinho },
       { id: 'fiado', nome: 'Cobranças', icone: IconeFiado },
+      { id: 'clientes', nome: 'Clientes', icone: IconeUsuarios },
       { id: 'caixa', nome: 'Controle de caixa', icone: IconeCaixa },
       { id: 'analise', nome: 'Análise', icone: IconeGrafico },
     ],
@@ -91,7 +93,7 @@ const RODAPE = [
 ]
 
 // Abas que o vendedor vê (o banco também confere o que cada papel pode gravar)
-const ABAS_DO_VENDEDOR = ['vendas', 'fiado', 'estoque', 'venda', 'config', 'ajuda']
+const ABAS_DO_VENDEDOR = ['vendas', 'fiado', 'clientes', 'estoque', 'venda', 'config', 'ajuda']
 const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.includes(aba)
 
 const chaveLoja = (uid) => 'pjgerent-loja-' + uid
@@ -510,6 +512,7 @@ export default function App() {
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
+          {!noAdmin && aba === 'clientes' && <Clientes db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'caixa' && <Caixa db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'analise' && <Analise db={db} />}
           {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} irPara={irPara} />}

@@ -690,3 +690,10 @@ a.botao-whats:hover { background: color-mix(in srgb, #25d366 12%, transparent) }
 .resumo-emprestimo { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: 10px;
   border: 1px dashed var(--borda, #444); font-size: 14px }
 
+/* ---------- Clientes ---------- */
+.aviso-cliente { flex: 1 1 100%; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 8%, transparent) }
+.ficha-cliente .cabecalho-ficha { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 12px }
+.ficha-cliente .cabecalho-ficha h2 { margin: 0 }
+.tag-sit { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap }
+

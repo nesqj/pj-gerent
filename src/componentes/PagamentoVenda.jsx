@@ -1,4 +1,5 @@
 import { t } from '../i18n.js'
+import { AvisoCliente } from './Clientes.jsx'
 import { brl, hoje, lerValor as numero, norm, PAGAMENTOS, uid } from '../utils.js'
 
 // Pagamento da venda:
@@ -80,7 +81,7 @@ export function montarPagamento(pg, total, clientes) {
   }
 }
 
-export default function PagamentoVenda({ pg, setPg, total, clientes }) {
+export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
   const mudar = (campos) => setPg({ ...pg, ...campos })
   const mudarFiado = (campos) => setPg({ ...pg, fiado: { ...pg.fiado, ...campos } })
   const pago = pg.dividir ? pg.linhas.reduce((s, l) => s + (numero(l.valor) || 0), 0) : pg.forma === 'Fiado' ? 0 : total
@@ -159,6 +160,7 @@ export default function PagamentoVenda({ pg, setPg, total, clientes }) {
               </label>
             )}
           </div>
+          {db && pg.fiado.clienteId && <AvisoCliente db={db} clienteId={pg.fiado.clienteId} />}
           {datas.length > 0 && (
             <small className="pg-parcelas">
               {datas.map((d, k) => `${k + 1}ª ${d.split('-').reverse().join('/')}: ${brl(k === n - 1 ? r2(restante - valorParcela * (n - 1)) : valorParcela)}`).join(' · ')}

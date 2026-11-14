@@ -299,6 +299,26 @@ export const excluirEmprestimo = (id) => mudar('emprestimo.excluido', (d) => {
 
 // Clientes (para o fiado): { id, nome, telefone, obs }
 export const salvarCliente = (c) => upsert('clientes', 'cliente.salvo', c, c.nome)
+// Editar: o nome e o telefone também mudam no fiado e nos empréstimos dele (usados no WhatsApp)
+export const atualizarCliente = (c) => mudar('cliente.salvo', (d) => {
+  d.clientes = d.clientes || []
+  const i = d.clientes.findIndex((x) => x.id === c.id)
+  if (i >= 0) d.clientes[i] = c
+  else d.clientes.push(c)
+  for (const lista of ['vendas', 'emprestimos']) {
+    d[lista] = (d[lista] || []).map((v) => (v.fiado?.clienteId === c.id ? { ...v, fiado: { ...v.fiado, cliente: c.nome, telefone: c.telefone || '' } } : v))
+  }
+  return c
+}, c.nome)
+// Excluir: só sem nada em aberto (as vendas e empréstimos antigos continuam com o nome)
+export const excluirCliente = (id) => mudar('cliente.excluido', (d) => {
+  d.clientes = d.clientes || []
+  const c = d.clientes.find((x) => x.id === id)
+  const emAberto = ['vendas', 'emprestimos'].some((l) => (d[l] || []).some((v) => v.fiado?.clienteId === id && resumoFiado(v)?.pendente))
+  if (emAberto) throw new Error(t('Este cliente ainda tem parcelas em aberto. Receba ou marque como não pagas antes de excluir.'))
+  d.clientes = d.clientes.filter((x) => x.id !== id)
+  return c
+}, (c) => c?.nome)
 
 // Entradas de estoque: { id, data, dia, produto, qtd, custo, obs }
 export const salvarEntrada = (e) => mudar('entrada.salva', (d) => {
