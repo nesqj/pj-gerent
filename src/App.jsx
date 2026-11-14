@@ -32,7 +32,7 @@ import {
 // Grupos e itens da barra lateral (dentro de uma loja)
 const GRUPOS = [
   {
-    nome: 'Vendas',
+    nome: 'Negociações',
     itens: [
       { id: 'vendas', nome: 'Vendas', icone: IconeCarrinho },
       { id: 'fiado', nome: 'Fiado', icone: IconeFiado },
