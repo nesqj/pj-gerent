@@ -759,4 +759,9 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 @media (max-width: 767px) { .ep-linha { grid-template-columns: 1fr 100px; } .ep-venda { display: none } }
 .ep-nome-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; background: none; border: none; padding: 0 0 6px; margin: 0 }
 .ep-nome-form label { flex: 0 1 260px }
+.ep-adicionar { display: grid; grid-template-columns: auto 1fr 120px auto; gap: 10px; align-items: center; margin: 0; padding: 8px 10px;
+  border: 1px dashed var(--bd); border-radius: 8px; background: transparent }
+.ep-adicionar-titulo { color: var(--link); font-size: 13px; font-weight: 600; white-space: nowrap }
+.ep-adicionar select { min-width: 0 }
+@media (max-width: 767px) { .ep-adicionar { grid-template-columns: 1fr 100px; } .ep-adicionar-titulo { grid-column: 1 / -1 } .ep-adicionar button { grid-column: 1 / -1 } }
 

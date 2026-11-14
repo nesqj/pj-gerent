@@ -1309,4 +1309,5 @@ export default {
   'Nome do produto': 'Product name',
   '(sem marca)': '(no brand)',
   'Salvar nome': 'Save name',
+  'Adicionar fornecedor': 'Add supplier',
 }

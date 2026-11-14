@@ -219,13 +219,13 @@ export default function PrecosVenda({ db, executar, embutido }) {
                               </div>
                             ))}
                             {ff.semEste.length > 0 && (
-                              <form className="inline-form adicionar-forn" onSubmit={ff.adicionar}>
-                                <small>{t('Outro fornecedor também tem este produto?')}</small>
+                              <form className="ep-adicionar" onSubmit={ff.adicionar}>
+                                <span className="ep-adicionar-titulo">+ {t('Adicionar fornecedor')}</span>
                                 <select value={ff.novo.fornecedorId || ff.semEste[0].id} onChange={(e) => ff.setNovo({ ...ff.novo, fornecedorId: e.target.value })}>
                                   {ff.semEste.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
                                 </select>
-                                <input inputMode="decimal" placeholder={t('Preço (R$)')} style={{ width: 110 }} value={ff.novo.preco} onChange={(e) => ff.setNovo({ ...ff.novo, preco: e.target.value })} />
-                                <button type="submit">+ {t('Adicionar')}</button>
+                                <span className="lf-preco"><span>R$</span><input inputMode="decimal" placeholder="0,00" value={ff.novo.preco} onChange={(e) => ff.setNovo({ ...ff.novo, preco: e.target.value })} /></span>
+                                <button type="submit" className="edit">{t('Adicionar')}</button>
                               </form>
                             )}
                           </div>
