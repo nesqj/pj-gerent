@@ -8,6 +8,7 @@
 
 import { t } from './i18n.js'
 import { supabase } from './supabase.js'
+import { norm } from './utils.js'
 
 const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
 const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [] })
@@ -207,12 +208,63 @@ export const salvarPrecoProduto = (k, escolha) => mudar('preco-venda.salvo', (d)
 }, k.replace('|', ' — ') + ': ' + (escolha?.tipo === 'fixo' ? escolha.valor : escolha?.tipo || 'padrao'))
 
 // Vendas: { id, data, dia 'AAAA-MM-DD', itens: [{ produto, marca, qtd, preco, custo, origem }], pagamento, subtotal, descontoPct, descontoValor, total }
-export const salvarVenda = (v) => upsert('vendas', 'venda.salva', v, resumo('vendas', v))
+// ---------- estoque nunca negativo
+// Saldo de um produto do estoque (nome normalizado): entradas − vendas
+function saldoDe(d, k) {
+  const entrou = (d.entradas || []).filter((e) => norm(e.produto) === k).reduce((s, e) => s + (+e.qtd || 0), 0)
+  const saiu = (d.vendas || []).reduce((s, v) => s + (v.itens || []).filter((i) => i.origem === 'estoque' && norm(i.produto) === k)
+    .reduce((x, i) => x + (+i.qtd || 0), 0), 0)
+  return entrou - saiu
+}
+// Produto que ficaria negativo (e pior do que já estava) depois da alteração, ou null.
+// Roda dentro da gravação: se outro aparelho vendeu antes, a conta é refeita com os dados novos.
+function ficaNegativo(antes, depois, produtos) {
+  for (const [k, nome] of produtos) {
+    const novo = saldoDe(depois, k)
+    if (novo < 0 && novo < saldoDe(antes, k)) return { k, nome, novo }
+  }
+  return null
+}
+function conferirEstoque(antes, depois, produtos) {
+  const r = ficaNegativo(antes, depois, produtos)
+  if (r) throw new Error(t('Não dá para fazer isso: "{produto}" já tem vendas que usam essas unidades e o estoque ficaria em {n}.', { produto: r.nome, n: r.novo }))
+}
+const doEstoque = (itens) => (itens || []).filter((i) => i.origem === 'estoque').map((i) => [norm(i.produto), i.produto])
+const copiaListas = (d) => ({ entradas: [...(d.entradas || [])], vendas: [...(d.vendas || [])] })
+
+export const salvarVenda = (v) => mudar('venda.salva', (d) => {
+  const antes = copiaListas(d)
+  const i = d.vendas.findIndex((x) => x.id === v.id)
+  if (i >= 0) d.vendas[i] = v
+  else d.vendas.push(v)
+  const r = ficaNegativo(antes, d, doEstoque(v.itens))
+  if (r) {
+    // quanto havia para esta venda = saldo sem contar esta venda (nem a versão antiga dela, se for edição)
+    const n = Math.max(0, saldoDe({ entradas: antes.entradas, vendas: antes.vendas.filter((x) => x.id !== v.id) }, r.k))
+    throw new Error(t('Estoque insuficiente de "{produto}": só há {n} unidade(s). A venda não foi salva.', { produto: r.nome, n }))
+  }
+  return v
+}, resumo('vendas', v))
 export const excluirVenda = (id) => remover('vendas', 'venda.excluida', id)
 
 // Entradas de estoque: { id, data, dia, produto, qtd, custo, obs }
-export const salvarEntrada = (e) => upsert('entradas', 'entrada.salva', e, resumo('entradas', e))
-export const excluirEntrada = (id) => remover('entradas', 'entrada.excluida', id)
+export const salvarEntrada = (e) => mudar('entrada.salva', (d) => {
+  const antes = copiaListas(d)
+  const i = d.entradas.findIndex((x) => x.id === e.id)
+  const velha = i >= 0 ? d.entradas[i] : null
+  if (i >= 0) d.entradas[i] = e
+  else d.entradas.push(e)
+  // editar pode diminuir a quantidade ou trocar o nome do produto: confere os dois
+  conferirEstoque(antes, d, [[norm(e.produto), e.produto], ...(velha ? [[norm(velha.produto), velha.produto]] : [])])
+  return e
+}, resumo('entradas', e))
+export const excluirEntrada = (id) => mudar('entrada.excluida', (d) => {
+  const antes = copiaListas(d)
+  const e = d.entradas.find((x) => x.id === id)
+  d.entradas = d.entradas.filter((x) => x.id !== id)
+  if (e) conferirEstoque(antes, d, [[norm(e.produto), e.produto]])
+  return e
+}, (e) => resumo('entradas', e))
 
 // Caixa: início do controle { inicio, saldoInicial } e movimentos de dinheiro colocado/retirado
 // { id, data, dia, tipo: 'colocar' | 'retirar', valor, descricao }

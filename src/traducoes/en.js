@@ -948,4 +948,10 @@ export default {
   'Venda': 'Sale',
   'Compra de estoque': 'Stock purchase',
   'Tudo': 'All',
+  'Estoque insuficiente de "{produto}": só há {n} unidade(s). A venda não foi salva.': 'Not enough stock of "{produto}": only {n} unit(s). The sale was not saved.',
+  'Não dá para fazer isso: "{produto}" já tem vendas que usam essas unidades e o estoque ficaria em {n}.': 'You can\'t do that: "{produto}" already has sales using those units and the stock would be {n}.',
+  '"{produto}" está sem estoque. Registre uma entrada no Estoque para vender.': '"{produto}" is out of stock. Record a stock entry to sell it.',
+  'Estoque insuficiente de "{produto}": só há {n} unidade(s).': 'Not enough stock of "{produto}": only {n} unit(s).',
+  'sem estoque': 'out of stock',
+  'Vendeu {n} a mais do que entrou (antes do bloqueio). Registre uma entrada para acertar.': 'Sold {n} more than came in (before the block). Record an entry to fix it.',
 }

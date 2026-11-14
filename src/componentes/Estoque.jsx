@@ -126,7 +126,7 @@ export default function Estoque({ db, executar }) {
                 <td className="n">{p.custo != null ? brl(p.custo) : '-'}</td>
                 <td className="n">{p.entradas}</td>
                 <td className="n">{p.vendidos}</td>
-                <td className="n"><b className={classeEstoque(p.saldo)}>{p.saldo}</b></td>
+                <td className="n"><b className={classeEstoque(p.saldo)}>{Math.max(0, p.saldo)}</b>{p.saldo < 0 && <small className="bad" title={t('Vendeu {n} a mais do que entrou (antes do bloqueio). Registre uma entrada para acertar.', { n: -p.saldo })}> ({p.saldo})</small>}</td>
                 <td className="n">{p.saldo > 0 && p.custo != null ? brl(p.saldo * p.custo) : '-'}</td>
               </tr>
             ))}

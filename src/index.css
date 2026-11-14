@@ -559,4 +559,5 @@ button.login-botao.sec { margin-top: 8px }
 .card.destaque-caixa { border-color: var(--pri-borda); background: var(--pri-suave) }
 .card.destaque-caixa b { font-size: 22px }
 tr.linha-inicial td { color: var(--mut); font-style: italic }
+input.campo-erro { border-color: var(--bad) !important; box-shadow: 0 0 0 3px var(--bad-borda) }
 

@@ -62,9 +62,8 @@ export default function Vendas({ db, executar }) {
     if (!p) return
     if (p.origem === 'estoque') {
       const disp = disponivel(p.k)
-      if (+item.qtd > disp && !confirm(
-        t('Estoque insuficiente de "{produto}": {disp} disponível(is).\nVender {qtd} mesmo assim? O estoque ficará negativo.', { produto: p.produto, disp: Math.max(disp, 0), qtd: item.qtd }),
-      )) return
+      if (disp <= 0) return alert(t('"{produto}" está sem estoque. Registre uma entrada no Estoque para vender.', { produto: p.produto }))
+      if (+item.qtd > disp) return alert(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: p.produto, n: disp }))
     }
     const preco = p.origem === 'estoque' ? +item.preco : p.preco
     setCarrinho([...carrinho, { produto: p.produto, marca: p.marca, qtd: +item.qtd, preco, custo: p.custo, origem: p.origem }])
@@ -73,6 +72,12 @@ export default function Vendas({ db, executar }) {
 
   async function finalizar() {
     if (!carrinho.length) return
+    // nenhum produto do estoque pode passar do que há (o carrinho pode ter sido alterado na tabela)
+    const passou = [...new Set(carrinho.filter((i) => i.origem === 'estoque').map((i) => norm(i.produto)))].find((k) => disponivel(k) < 0)
+    if (passou) {
+      const nome = estoque.get(passou)?.produto || passou
+      return alert(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: nome, n: disponivel(passou) + doEstoqueEm(carrinho, passou) }))
+    }
     if (carrinho.some((i) => !(+i.qtd > 0) || i.preco === '' || +i.preco < 0)) return alert(t('Confira a quantidade e o preço de todos os itens.'))
     const itens = carrinho.map((i) => ({ ...i, qtd: +i.qtd, preco: +i.preco }))
     if (desconto !== '' && (+desconto < 0 || +desconto > 100)) return alert(t('O desconto precisa ser entre 0% e 100%.'))
@@ -123,9 +128,10 @@ export default function Vendas({ db, executar }) {
             <option value="">{t('Selecione um produto...')}</option>
             {doEstoque.length > 0 && (
               <optgroup label={t('Estoque')}>
-                {doEstoque.map((p) => (
-                  <option key={p.id} value={p.id}>{p.produto} · {t('estoque')}: {disponivel(p.k)}</option>
-                ))}
+                {doEstoque.map((p) => {
+                  const d = disponivel(p.k)
+                  return <option key={p.id} value={p.id} disabled={d <= 0}>{p.produto} · {d <= 0 ? t('sem estoque') : `${t('estoque')}: ${d}`}</option>
+                })}
               </optgroup>
             )}
             {dosFornecedores.length > 0 && (
@@ -138,7 +144,8 @@ export default function Vendas({ db, executar }) {
           </select>
         </label>
         <label style={{ flex: '0 1 100px' }}>{t('Qtd.')}
-          <input type="number" min="1" step="1" required value={item.qtd} onChange={(e) => setItem({ ...item, qtd: e.target.value })} />
+          <input type="number" min="1" step="1" required max={selecionado?.origem === 'estoque' ? Math.max(1, disponivel(selecionado.k)) : undefined}
+            value={item.qtd} onChange={(e) => setItem({ ...item, qtd: e.target.value })} />
         </label>
         {selecionado?.origem === 'estoque' ? (
           <label style={{ flex: '0 1 160px' }}>{t('Preço vendido (R$)')} *
@@ -185,7 +192,9 @@ export default function Vendas({ db, executar }) {
                   <tr key={n}>
                     <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}</td>
                     <td className="n">
-                      <input className="cel" type="number" min="1" step="1" value={i.qtd} onChange={(e) => alterarItem(n, 'qtd', e.target.value)} />
+                      <input className={'cel' + (i.origem === 'estoque' && disponivel(norm(i.produto)) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
+                        max={i.origem === 'estoque' ? disponivel(norm(i.produto)) + +i.qtd : undefined}
+                        value={i.qtd} onChange={(e) => alterarItem(n, 'qtd', e.target.value)} />
                     </td>
                     <td className="n">
                       {i.origem === 'estoque'
