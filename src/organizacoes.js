@@ -13,6 +13,7 @@ export const nomePapel = (id) => t(PAPEIS.find((p) => p.id === id)?.nome || id)
 
 const MENSAGENS = {
   'sem-permissao': 'Você não tem permissão para fazer isso.',
+  'admin-principal': 'O administrador principal não pode ser removido.',
   'ultimo-admin-plataforma': 'A plataforma precisa de pelo menos um administrador.',
   'ultimo-admin': 'A loja precisa de pelo menos um administrador.',
   'email-invalido': 'E-mail inválido.',

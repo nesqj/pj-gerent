@@ -57,6 +57,9 @@ create table if not exists public.admins_plataforma (
   user_id uuid primary key references auth.users (id) on delete cascade,
   criado_em timestamptz not null default now()
 );
+-- Administrador principal (o dono do sistema): ninguém tira, nem ele mesmo. Só existe um.
+alter table public.admins_plataforma add column if not exists principal boolean not null default false;
+create unique index if not exists admins_plataforma_um_principal on public.admins_plataforma (principal) where principal;
 
 -- Configuração da plataforma (uma linha só) — quem pode criar conta:
 --   somente_convite = true   só entra quem foi colocado numa loja; sem convite, vê um aviso
@@ -210,7 +213,7 @@ begin
     into meu_email, meu_nome from auth.users where id = eu;
 
   if not exists (select 1 from public.admins_plataforma) then
-    insert into public.admins_plataforma (user_id) values (eu);
+    insert into public.admins_plataforma (user_id, principal) values (eu, true);
     virou_admin := true;
     perform public.auditar(null, 'admin.primeiro', meu_email);
   end if;
@@ -441,15 +444,16 @@ begin
     order by u.created_at;
 end $$;
 
-create or replace function public.listar_admins()
-returns table (user_id uuid, email text, nome text, criado_em timestamptz)
+drop function if exists public.listar_admins(); -- ganhou a coluna "principal"
+create function public.listar_admins()
+returns table (user_id uuid, email text, nome text, criado_em timestamptz, principal boolean)
 language plpgsql stable security definer set search_path = '' as $$
 begin
   perform public.exigir_admin_plataforma();
   return query
-    select a.user_id, u.email::text, coalesce(u.raw_user_meta_data->'perfil'->>'nome', u.raw_user_meta_data->>'nome', '')::text, a.criado_em
+    select a.user_id, u.email::text, coalesce(u.raw_user_meta_data->'perfil'->>'nome', u.raw_user_meta_data->>'nome', '')::text, a.criado_em, a.principal
     from public.admins_plataforma a join auth.users u on u.id = a.user_id
-    order by a.criado_em;
+    order by a.principal desc, a.criado_em;
 end $$;
 
 -- Só para quem já tem conta
@@ -468,6 +472,8 @@ create or replace function public.remover_admin(pessoa uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   perform public.exigir_admin_plataforma();
+  -- o administrador principal não sai: nem por outro administrador, nem por ele mesmo
+  if exists (select 1 from public.admins_plataforma where user_id = pessoa and principal) then raise exception 'admin-principal'; end if;
   if not exists (select 1 from public.admins_plataforma where user_id <> pessoa) then raise exception 'ultimo-admin-plataforma'; end if;
   delete from public.admins_plataforma where user_id = pessoa;
   perform public.auditar(null, 'admin.removido', (select email from auth.users where id = pessoa));
@@ -577,6 +583,12 @@ begin
   if not exists (select 1 from public.admins_plataforma) then
     insert into public.admins_plataforma (user_id)
     select id from auth.users order by created_at limit 1;
+  end if;
+
+  -- sem administrador principal ainda: o mais antigo vira o principal
+  if not exists (select 1 from public.admins_plataforma where principal) then
+    update public.admins_plataforma set principal = true
+    where user_id = (select user_id from public.admins_plataforma order by criado_em, user_id limit 1);
   end if;
 end $$;
 

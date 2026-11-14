@@ -391,6 +391,7 @@ function Administradores({ meuId }) {
     <section>
       <div className="painel">
         <p><small>{t('Administradores da plataforma veem e administram todas as lojas, todos os usuários e este painel. Dê este poder só a quem precisa.')}</small></p>
+        <p><small>{t('O administrador principal (o dono do sistema) não pode ser removido: nem por outro administrador, nem por ele mesmo.')}</small></p>
       </div>
       <form onSubmit={async (e) => { e.preventDefault(); if (await fazer(() => Org.adicionarAdmin(email))) setEmail('') }}>
         <label>{t('E-mail de quem já tem conta')}<input type="email" required placeholder={t('voce@empresa.com')} value={email} onChange={(e) => setEmail(e.target.value)} /></label>
@@ -402,14 +403,15 @@ function Administradores({ meuId }) {
           <tbody>
             {admins.map((a) => (
               <tr key={a.user_id}>
-                <td>{a.nome || '-'}{a.user_id === meuId && <span className="tag">{t('você')}</span>}</td>
+                <td>{a.nome || '-'}{a.principal && <span className="tag">{t('Principal')}</span>}{a.user_id === meuId && <span className="tag">{t('você')}</span>}</td>
                 <td>{a.email}</td>
                 <td>{dataTs(a.criado_em)}</td>
                 <td className="n">
+                  {a.principal ? <small>{t('Não pode ser removido')}</small> : (
                   <button className="del" onClick={() => confirm(a.user_id === meuId
                     ? t('Tirar o SEU acesso de administrador da plataforma? Você deixa de ver este painel.')
                     : t('Tirar o acesso de administrador da plataforma de {email}?', { email: a.email }))
-                    && fazer(async () => { await Org.removerAdmin(a.user_id); if (a.user_id === meuId) window.location.reload() })}>{t('Remover')}</button>
+                    && fazer(async () => { await Org.removerAdmin(a.user_id); if (a.user_id === meuId) window.location.reload() })}>{t('Remover')}</button>)}
                 </td>
               </tr>
             ))}

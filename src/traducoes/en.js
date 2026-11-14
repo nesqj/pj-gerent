@@ -897,4 +897,8 @@ export default {
   'Pix, boleto ou cartão, escolhido na fatura a cada cobrança. Bom para pequenas lojas no Brasil. Pede o CPF ou CNPJ de quem paga.': 'Pix, boleto or card, chosen on the invoice for each charge. Good for small stores in Brazil. Asks for the payer\'s CPF or CNPJ.',
   'Cartão cobrado sozinho todo mês (sem Pix). Quem paga troca o cartão pelo portal da Stripe.': 'Card charged automatically every month (no Pix). The payer changes the card through Stripe\'s portal.',
   'Cor da marca no tema escuro (opcional)': 'Brand color in the dark theme (optional)',
+  'O administrador principal não pode ser removido.': 'The main administrator cannot be removed.',
+  'Principal': 'Main',
+  'Não pode ser removido': 'Cannot be removed',
+  'O administrador principal (o dono do sistema) não pode ser removido: nem por outro administrador, nem por ele mesmo.': 'The main administrator (the system owner) cannot be removed: not by another administrator, nor by themselves.',
 }
