@@ -328,7 +328,7 @@ export function resumoFiado(v) {
 export function pagamentosDaVenda(v) {
   if (!Array.isArray(v.pagamentos)) return [{ forma: v.pagamento, valor: +v.total || 0 }]
   const l = v.pagamentos.filter((p) => +p.valor > 0).map((p) => ({ forma: p.forma, valor: +p.valor }))
-  if (v.fiado) l.push({ forma: 'Fiado', valor: totalFiado(v) })
+  if (v.fiado) l.push({ forma: 'Fiado', valor: Math.round(((+v.total || 0) - l.reduce((s, x) => s + x.valor, 0)) * 100) / 100 }) // sem os juros
   return l
 }
 export const pagoNaHora = (v) => (Array.isArray(v.pagamentos) ? v.pagamentos.reduce((s, p) => s + (+p.valor || 0), 0) : +v.total || 0)
@@ -340,8 +340,10 @@ export function lucroVenda(v) {
   const base = lucroDe(v.itens, fatorDesconto(v))
   const f = resumoFiado(v)
   if (!f) return { ...base, pendente: false, lucroPrevisto: base.lucro, naoPago: 0 }
-  if (f.pendente) return { ...base, lucro: 0, pendente: true, lucroPrevisto: base.lucro, aReceber: f.aberto, naoPago: f.naoPago }
-  return { ...base, lucro: Math.round((base.lucro - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: base.lucro, naoPago: f.naoPago }
+  const juros = +v.fiado.juros || 0 // juros do fiado: lucro a mais, também só quando o cliente paga
+  const previsto = Math.round((base.lucro + juros) * 100) / 100
+  if (f.pendente) return { ...base, lucro: 0, pendente: true, lucroPrevisto: previsto, aReceber: f.aberto, naoPago: f.naoPago, juros }
+  return { ...base, lucro: Math.round((previsto - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: previsto, naoPago: f.naoPago, juros }
 }
 
 // ---------- Empréstimo (crediário de dinheiro) com juros simples

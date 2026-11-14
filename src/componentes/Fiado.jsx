@@ -166,7 +166,7 @@ export default function Fiado({ db, executar, irPara }) {
                   <td>{x.v.fiado.cliente}{x.v.fiado.telefone && <small className="sub-linha">{x.v.fiado.telefone}</small>}</td>
                   <td className="quebra">
                     <button className="link pequeno" onClick={() => { try { sessionStorage.setItem('vendas-dia', x.v.dia) } catch { /* sem acesso */ } irPara?.('vendas') }}>{dataBR(x.v.dia)}</button>
-                    <small className="sub-linha">{x.emp ? t('Empréstimo de {valor} · {p}% ao mês', { valor: brl(x.v.valor), p: String(x.v.jurosPct || 0).replace('.', ',') }) : (x.v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ')}</small>
+                    <small className="sub-linha">{x.emp ? t('Empréstimo de {valor} · {p}% ao mês', { valor: brl(x.v.valor), p: String(x.v.jurosPct || 0).replace('.', ',') }) : (x.v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + (x.v.fiado.jurosPct ? ' · ' + t('juros {p}% ao mês', { p: String(x.v.fiado.jurosPct).replace('.', ',') }) : '')}</small>
                   </td>
                   <td className="n">{x.p.n}/{x.total}</td>
                   <td className="n">{brl(x.p.valor)}{x.recebido > 0 && <small className="sub-linha ok">{t('recebido {valor}', { valor: brl(x.recebido) })}</small>}</td>

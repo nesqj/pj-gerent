@@ -1194,4 +1194,8 @@ export default {
   'Este CPF já é do cliente {nome}.': 'This CPF already belongs to the customer {nome}.',
   'CPF {cpf}': 'CPF {cpf}',
   'Buscar nome, CPF ou telefone...': 'Search name, CPF or phone...',
+  // Juros no fiado
+  'Com juros': 'With interest',
+  'juros {p}% ao mês': 'interest {p}% per month',
+  '+ {valor} de juros': '+ {valor} interest',
 }

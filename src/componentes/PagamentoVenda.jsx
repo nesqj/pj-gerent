@@ -15,13 +15,23 @@ const somarMeses = (dia, n) => {
 export const novoPagamento = () => ({
   dividir: false, forma: 'Dinheiro',
   linhas: [{ forma: 'Dinheiro', valor: '' }, { forma: 'PIX', valor: '' }],
-  fiado: { clienteId: '', nome: '', cpf: '', telefone: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal' },
+  fiado: { clienteId: '', nome: '', cpf: '', telefone: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', juros: '' },
 })
 const r2 = (x) => Math.round(x * 100) / 100
 
 // Datas das parcelas
 export function vencimentos(primeira, n, intervalo) {
   return Array.from({ length: n }, (_, k) => (intervalo === 'mensal' ? somarMeses(primeira, k) : somarDias(primeira, k * Number(intervalo))))
+}
+
+// Valor de cada parcela do fiado, com juros simples ao mês (opcional).
+// Meses = nº de parcelas × o intervalo (mês = 1; 15 dias = 0,5; 7 dias ≈ 0,23).
+export function calcularFiado(restante, n, jurosPct, intervalo) {
+  const meses = n * (intervalo === 'mensal' || intervalo === '30' ? 1 : Number(intervalo) / 30)
+  const total = r2(restante * (1 + ((+jurosPct || 0) / 100) * meses))
+  const base = Math.floor((total / n) * 100) / 100
+  const valores = Array.from({ length: n }, (_, k) => (k === n - 1 ? r2(total - base * (n - 1)) : base)) // a última leva os centavos
+  return { total, juros: r2(total - restante), valores }
 }
 
 // Pagamento de uma venda já salva → estado do formulário (para editar)
@@ -31,7 +41,8 @@ export function pagamentoDaVenda(v, clientes) {
     const ps = v.fiado.parcelas || []
     const intervalo = ps.length > 1 && ps[1].vencimento === somarMeses(ps[0].vencimento, 1) ? 'mensal' : ps.length > 1 ? String(Math.round((new Date(ps[1].vencimento) - new Date(ps[0].vencimento)) / 86400000)) : 'mensal'
     p.fiado = { clienteId: clientes.some((c) => c.id === v.fiado.clienteId) ? v.fiado.clienteId : '', nome: v.fiado.cliente || '', telefone: v.fiado.telefone || '',
-      parcelas: String(ps.length || 1), primeira: ps[0]?.vencimento || p.fiado.primeira, intervalo: ['mensal', '7', '15', '30'].includes(intervalo) ? intervalo : 'mensal' }
+      parcelas: String(ps.length || 1), primeira: ps[0]?.vencimento || p.fiado.primeira, intervalo: ['mensal', '7', '15', '30'].includes(intervalo) ? intervalo : 'mensal',
+      juros: v.fiado.jurosPct ? String(v.fiado.jurosPct).replace('.', ',') : '' }
   }
   const pagos = Array.isArray(v.pagamentos) ? v.pagamentos.filter((x) => +x.valor > 0) : null
   if (!pagos) return { ...p, forma: v.pagamento || 'Dinheiro' }
@@ -71,16 +82,16 @@ export function montarPagamento(pg, total, clientes) {
   }
   const n = Math.max(1, Math.min(24, parseInt(f.parcelas, 10) || 1))
   if (!f.primeira) return { erro: t('Informe a data combinada para o pagamento.') }
-  const base = Math.floor((restante / n) * 100) / 100
+  const jurosPct = String(f.juros ?? '').trim() === '' ? 0 : numero(f.juros)
+  if (!(jurosPct >= 0)) return { erro: t('Confira os juros.') }
+  const calc = calcularFiado(restante, n, jurosPct, f.intervalo)
   const datas = vencimentos(f.primeira, n, f.intervalo)
-  const parcelas = datas.map((vencimento, k) => ({
-    id: uid(), n: k + 1, vencimento, recebimentos: [],
-    valor: k === n - 1 ? r2(restante - base * (n - 1)) : base, // a última leva os centavos que sobram
-  }))
+  const parcelas = datas.map((vencimento, k) => ({ id: uid(), n: k + 1, vencimento, recebimentos: [], valor: calc.valores[k] }))
   return {
     pagamento: pagamentos.length ? 'Misto' : 'Fiado',
     pagamentos,
-    fiado: { clienteId: cliente.id, cliente: cliente.nome, telefone: cliente.telefone || '', parcelas },
+    fiado: { clienteId: cliente.id, cliente: cliente.nome, telefone: cliente.telefone || '', parcelas,
+      ...(calc.juros > 0 ? { jurosPct, juros: calc.juros } : {}) }, // juros: o que passa do valor da venda (vira lucro quando receber)
     novoCliente,
   }
 }
@@ -93,7 +104,8 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
   const temFiado = restante > 0.004
   const n = Math.max(1, Math.min(24, parseInt(pg.fiado.parcelas, 10) || 1))
   const datas = temFiado && pg.fiado.primeira ? vencimentos(pg.fiado.primeira, n, pg.fiado.intervalo) : []
-  const valorParcela = n ? Math.floor((restante / n) * 100) / 100 : restante
+  const jurosPct = String(pg.fiado.juros ?? '').trim() === '' ? 0 : numero(pg.fiado.juros)
+  const calc = temFiado ? calcularFiado(restante, n, jurosPct >= 0 ? jurosPct : 0, pg.fiado.intervalo) : null
 
   return (
     <div className="pagamento-venda">
@@ -164,11 +176,14 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
                 </select>
               </label>
             )}
+            <label className="pg-curto">{t('Juros (% ao mês)')}<input inputMode="decimal" placeholder="0" value={pg.fiado.juros ?? ''} onChange={(e) => mudarFiado({ juros: e.target.value })} /></label>
           </div>
+          {calc?.juros > 0 && <div className="pg-restante">{t('Com juros')}: <b>{brl(calc.total)}</b> · {t('juros')} <b className="ok">{brl(calc.juros)}</b></div>}
+          {!(jurosPct >= 0) && <small className="bad">{t('Confira os juros.')}</small>}
           {db && pg.fiado.clienteId && <AvisoCliente db={db} clienteId={pg.fiado.clienteId} />}
           {datas.length > 0 && (
             <small className="pg-parcelas">
-              {datas.map((d, k) => `${k + 1}ª ${d.split('-').reverse().join('/')}: ${brl(k === n - 1 ? r2(restante - valorParcela * (n - 1)) : valorParcela)}`).join(' · ')}
+              {datas.map((d, k) => `${k + 1}ª ${d.split('-').reverse().join('/')}: ${brl(calc.valores[k])}`).join(' · ')}
             </small>
           )}
           <small>{t('O lucro desta venda só conta quando você confirmar na aba Cobranças se o cliente pagou.')}</small>
