@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { brl, dataBR, dataTs, norm, num, resumoCliente, uid } from '../utils.js'
+import { brl, dataBR, dataTs, formatarCPF, lerCPF, norm, num, resumoCliente, soDigitos, uid } from '../utils.js'
 
 // Clientes: cadastro (nome, WhatsApp, observação) e a ficha de cada um, com o fiado e os empréstimos.
 const SIT = {
@@ -11,7 +11,7 @@ const SIT = {
   aberto: { nome: 'Em aberto', classe: 'warn' },
   pago: { nome: 'Pago', classe: 'ok' },
 }
-const vazio = { id: '', nome: '', telefone: '', obs: '' }
+const vazio = { id: '', nome: '', cpf: '', telefone: '', obs: '' }
 
 function linkWhats(telefone, texto) {
   let n = String(telefone || '').replace(/\D/g, '')
@@ -50,12 +50,16 @@ export default function Clientes({ db, executar, irPara }) {
     e.preventDefault()
     const nome = form.nome.trim()
     if (!nome) return aviso.alerta(t('Informe o nome do cliente.'))
+    const cpf = lerCPF(form.cpf)
+    if (cpf.erro) return aviso.alerta(cpf.erro)
+    const mesmoCpf = cpf && clientes.find((c) => c.id !== form.id && soDigitos(c.cpf) === soDigitos(cpf))
+    if (mesmoCpf) return aviso.alerta(t('Este CPF já é do cliente {nome}.', { nome: mesmoCpf.nome }))
     if (clientes.some((c) => c.id !== form.id && norm(c.nome) === norm(nome))) return aviso.alerta(t('Já existe um cliente com esse nome.'))
-    const c = { id: form.id || uid(), nome, telefone: form.telefone.trim(), obs: form.obs.trim() }
+    const c = { id: form.id || uid(), nome, cpf, telefone: form.telefone.trim(), obs: form.obs.trim() }
     if (await executar((A) => A.atualizarCliente(c), form.id ? t('Cliente atualizado.') : t('Cliente cadastrado.'))) setForm(vazio)
   }
   function editar(c) {
-    setForm({ id: c.id, nome: c.nome || '', telefone: c.telefone || '', obs: c.obs || '' })
+    setForm({ id: c.id, nome: c.nome || '', cpf: c.cpf || '', telefone: c.telefone || '', obs: c.obs || '' })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   async function excluir(c) {
@@ -73,7 +77,7 @@ export default function Clientes({ db, executar, irPara }) {
 
   const b = norm(busca)
   const lista = clientes
-    .filter((c) => !b || norm(c.nome).includes(b) || norm(c.telefone).includes(b))
+    .filter((c) => !b || norm(c.nome).includes(b) || norm(c.telefone).includes(b) || (soDigitos(b) && soDigitos(c.cpf).includes(soDigitos(b))))
     .map((c) => ({ c, r: resumoCliente(db, c.id, comEmp) }))
     .sort((x, y) => y.r.atrasado - x.r.atrasado || y.r.aberto - x.r.aberto || x.c.nome.localeCompare(y.c.nome))
   const tot = clientes.map((c) => resumoCliente(db, c.id, comEmp))
@@ -92,6 +96,7 @@ export default function Clientes({ db, executar, irPara }) {
       <div className="linha-titulo"><h3>{form.id ? t('Editando {nome}', { nome: form.nome }) : t('Novo cliente')}</h3></div>
       <form onSubmit={salvar} className={form.id ? 'form-edicao' : ''}>
         <label style={{ flex: '2 1 220px' }}>{t('Nome')} *<input required maxLength={60} {...campo('nome')} /></label>
+        <label style={{ flex: '1 1 160px' }}>{t('CPF')}<input inputMode="numeric" maxLength={14} placeholder="000.000.000-00" {...campo('cpf')} onBlur={() => setForm((f) => ({ ...f, cpf: formatarCPF(f.cpf) }))} /></label>
         <label style={{ flex: '1 1 180px' }}>{t('Telefone / WhatsApp')}<input inputMode="tel" maxLength={20} placeholder="(11) 99999-9999" {...campo('telefone')} /></label>
         <label style={{ flex: '2 1 240px' }}>{t('Observação')}<input maxLength={120} placeholder={t('Ex: endereço, indicação, limite combinado...')} {...campo('obs')} /></label>
         <button type="submit">{form.id ? t('Salvar alterações') : t('Cadastrar')}</button>
@@ -99,7 +104,7 @@ export default function Clientes({ db, executar, irPara }) {
       </form>
 
       <div className="linha-titulo">
-        <input className="busca" placeholder={t('Buscar cliente ou telefone...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <input className="busca" placeholder={t('Buscar nome, CPF ou telefone...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
       <div className="tw">
         <table>
@@ -111,7 +116,7 @@ export default function Clientes({ db, executar, irPara }) {
               const whats = linkWhats(c.telefone)
               return (
                 <tr key={c.id} className={(form.id === c.id ? 'em-edicao' : '') + (r.atrasado > 0 ? ' linha-prejuizo' : '')}>
-                  <td className="quebra"><button className="link" onClick={() => setAberto(c.id)}>{c.nome}</button>{(c.telefone || c.obs) && <small className="sub-linha">{[c.telefone, c.obs].filter(Boolean).join(' · ')}</small>}</td>
+                  <td className="quebra"><button className="link" onClick={() => setAberto(c.id)}>{c.nome}</button>{(c.cpf || c.telefone || c.obs) && <small className="sub-linha">{[c.cpf && t('CPF {cpf}', { cpf: c.cpf }), c.telefone, c.obs].filter(Boolean).join(' · ')}</small>}</td>
                   <td className="n">{r.registros.length}</td>
                   <td className="n">{r.aberto > 0 ? brl(r.aberto) : '-'}</td>
                   <td className={'n' + (r.atrasado > 0 ? ' bad' : '')}>{r.atrasado > 0 ? brl(r.atrasado) : '-'}</td>
@@ -143,6 +148,7 @@ function Ficha({ c, db, comEmp, voltar, editar, verCobrancas, irPara }) {
       <p><button className="link pequeno" onClick={voltar}>← {t('Voltar para Clientes')}</button></p>
       <div className="cabecalho-ficha">
         <h2>{c.nome}</h2>
+        {c.cpf && <span>{t('CPF {cpf}', { cpf: c.cpf })}</span>}
         {c.telefone && <span>{c.telefone}</span>}
         {whats && <a className="botao-whats" href={whats} target="_blank" rel="noreferrer">WhatsApp</a>}
         <button className="edit" onClick={editar}>{t('Editar')}</button>

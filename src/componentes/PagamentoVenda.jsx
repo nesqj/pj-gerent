@@ -1,6 +1,6 @@
 import { t } from '../i18n.js'
 import { AvisoCliente } from './Clientes.jsx'
-import { brl, hoje, lerValor as numero, norm, PAGAMENTOS, uid } from '../utils.js'
+import { brl, formatarCPF, hoje, lerCPF, lerValor as numero, norm, PAGAMENTOS, soDigitos, uid } from '../utils.js'
 
 // Pagamento da venda:
 //  - uma forma só (Dinheiro, PIX, Débito, Crédito ou Fiado para o valor todo), ou
@@ -15,7 +15,7 @@ const somarMeses = (dia, n) => {
 export const novoPagamento = () => ({
   dividir: false, forma: 'Dinheiro',
   linhas: [{ forma: 'Dinheiro', valor: '' }, { forma: 'PIX', valor: '' }],
-  fiado: { clienteId: '', nome: '', telefone: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal' },
+  fiado: { clienteId: '', nome: '', cpf: '', telefone: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal' },
 })
 const r2 = (x) => Math.round(x * 100) / 100
 
@@ -59,10 +59,14 @@ export function montarPagamento(pg, total, clientes) {
   const f = pg.fiado
   let cliente = clientes.find((c) => c.id === f.clienteId)
   let novoCliente = null
+  const cpf = cliente ? '' : lerCPF(f.cpf)
+  if (cpf?.erro) return { erro: cpf.erro }
+  // mesmo CPF ou mesmo nome de um cliente já cadastrado: usa o cadastro (não duplica)
+  if (!cliente && cpf) cliente = clientes.find((c) => soDigitos(c.cpf) === soDigitos(cpf))
   if (!cliente && f.nome.trim()) cliente = clientes.find((c) => norm(c.nome) === norm(f.nome))
   if (!cliente) {
     if (!f.nome.trim()) return { erro: t('Informe o cliente do fiado.') }
-    novoCliente = { id: uid(), nome: f.nome.trim(), telefone: f.telefone.trim() }
+    novoCliente = { id: uid(), nome: f.nome.trim(), cpf, telefone: f.telefone.trim() }
     cliente = novoCliente
   }
   const n = Math.max(1, Math.min(24, parseInt(f.parcelas, 10) || 1))
@@ -140,6 +144,7 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
             {!pg.fiado.clienteId && (
               <>
                 <label>{t('Nome do cliente')} *<input maxLength={60} value={pg.fiado.nome} onChange={(e) => mudarFiado({ nome: e.target.value })} /></label>
+                <label>{t('CPF')}<input inputMode="numeric" maxLength={14} placeholder="000.000.000-00" value={pg.fiado.cpf || ''} onChange={(e) => mudarFiado({ cpf: e.target.value })} onBlur={() => mudarFiado({ cpf: formatarCPF(pg.fiado.cpf) })} /></label>
                 <label>{t('Telefone / WhatsApp')}<input inputMode="tel" maxLength={20} placeholder="(11) 99999-9999" value={pg.fiado.telefone} onChange={(e) => mudarFiado({ telefone: e.target.value })} /></label>
               </>
             )}

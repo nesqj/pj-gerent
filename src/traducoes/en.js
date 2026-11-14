@@ -1187,4 +1187,10 @@ export default {
   'Venda fiado': 'Credit sale',
   '{valor} emprestado · {p}% ao mês': '{valor} lent · {p}% per month',
   'Último registro em {data}.': 'Last record on {data}.',
+  // CPF
+  'CPF': 'CPF (tax ID)',
+  'CPF inválido. Confira os números.': 'Invalid CPF. Check the numbers.',
+  'Este CPF já é do cliente {nome}.': 'This CPF already belongs to the customer {nome}.',
+  'CPF {cpf}': 'CPF {cpf}',
+  'Buscar nome, CPF ou telefone...': 'Search name, CPF or phone...',
 }

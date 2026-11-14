@@ -392,3 +392,20 @@ export function resumoCliente(db, clienteId, comEmprestimos = true, dia = hoje()
   return { registros, total: r(total), recebido: r(recebido), aberto: r(aberto), atrasado: r(atrasado), naoPago: r(naoPago), nAtrasadas,
     ultima: registros[0]?.r.data || null }
 }
+
+// ---------- CPF
+export const soDigitos = (s) => String(s ?? '').replace(/\D/g, '')
+// Confere os dois dígitos verificadores (e recusa 000.000.000-00, 111.111.111-11...)
+export function cpfValido(s) {
+  const d = soDigitos(s)
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false
+  const dv = (n) => { let soma = 0; for (let i = 0; i < n; i++) soma += +d[i] * (n + 1 - i); const r = (soma * 10) % 11; return r === 10 ? 0 : r }
+  return dv(9) === +d[9] && dv(10) === +d[10]
+}
+export const formatarCPF = (s) => { const d = soDigitos(s); return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : String(s ?? '').trim() }
+// CPF digitado num formulário: '' (vazio), o CPF formatado, ou { erro }
+export function lerCPF(s) {
+  if (!soDigitos(s)) return ''
+  if (!cpfValido(s)) return { erro: t('CPF inválido. Confira os números.') }
+  return formatarCPF(s)
+}

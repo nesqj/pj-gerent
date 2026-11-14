@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
+import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
 import { brl, calcularEmprestimo, dataBR, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
 import { AvisoCliente } from './Clientes.jsx'
@@ -9,7 +10,7 @@ import { AvisoCliente } from './Clientes.jsx'
 // O dinheiro sai do caixa (se marcado) e as parcelas vão para a aba Cobranças.
 // O lucro é só o juro, e conta quando todas as parcelas estiverem resolvidas.
 const somarDias = (dia, n) => { const d = new Date(dia + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
-const novo = () => ({ clienteId: '', nome: '', telefone: '', valor: '', juros: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', doCaixa: true, obs: '' })
+const novo = () => ({ clienteId: '', nome: '', cpf: '', telefone: '', valor: '', juros: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', doCaixa: true, obs: '' })
 
 export function NovoEmprestimo({ db, executar, aoSalvar }) {
   const [f, setF] = useState(novo)
@@ -28,10 +29,14 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
     if (!(juros >= 0)) return aviso.alerta(t('Confira os juros.'))
     if (!f.primeira) return aviso.alerta(t('Informe a data combinada para o pagamento.'))
     // cliente: escolhido, com o mesmo nome de um cadastrado, ou novo
-    let cliente = clientes.find((c) => c.id === f.clienteId) || (f.nome.trim() && clientes.find((c) => norm(c.nome) === norm(f.nome)))
+    let cliente = clientes.find((c) => c.id === f.clienteId)
+    const cpf = cliente ? '' : lerCPF(f.cpf)
+    if (cpf?.erro) return aviso.alerta(cpf.erro)
+    if (!cliente && cpf) cliente = clientes.find((c) => soDigitos(c.cpf) === soDigitos(cpf))
+    if (!cliente && f.nome.trim()) cliente = clientes.find((c) => norm(c.nome) === norm(f.nome))
     if (!cliente) {
       if (!f.nome.trim()) return aviso.alerta(t('Informe o cliente.'))
-      cliente = { id: uid(), nome: f.nome.trim(), telefone: f.telefone.trim() }
+      cliente = { id: uid(), nome: f.nome.trim(), cpf, telefone: f.telefone.trim() }
       if (!(await executar((A) => A.salvarCliente(cliente)))) return
       setF((x) => ({ ...x, clienteId: cliente.id }))
     }
@@ -66,6 +71,7 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
       {!f.clienteId && (
         <>
           <label style={{ flex: '2 1 200px' }}>{t('Nome do cliente')} *<input maxLength={60} {...campo('nome')} /></label>
+          <label style={{ flex: '1 1 150px' }}>{t('CPF')}<input inputMode="numeric" maxLength={14} placeholder="000.000.000-00" {...campo('cpf')} onBlur={() => setF((x) => ({ ...x, cpf: formatarCPF(x.cpf) }))} /></label>
           <label style={{ flex: '1 1 160px' }}>{t('Telefone / WhatsApp')}<input inputMode="tel" maxLength={20} placeholder="(11) 99999-9999" {...campo('telefone')} /></label>
         </>
       )}
