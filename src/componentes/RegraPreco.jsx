@@ -74,7 +74,7 @@ export default function RegraPreco({ db, executar }) {
       <div className="resultado">
         <div>
           <small>{t('Simular com custo de')}</small>
-          <input type="number" min="0" step="0.01" value={custoExemplo} onChange={(e) => setCustoExemplo(e.target.value)} style={{ width: 140 }} />
+          <input type="number" min="0" step="0.01" value={custoExemplo} onChange={(e) => setCustoExemplo(e.target.value)} style={{ width: 120 }} />
         </div>
         <div><small>{t('Cálculo')}</small><b>{textoCalculo(exemplo, nova)}</b></div>
         <div className="destaque"><small>{t('Preço de venda')}</small><b>{brl(calcularVenda(exemplo, nova))}</b></div>
