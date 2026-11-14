@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -35,6 +35,25 @@ const PERIODOS = [
 
 // ---------- Números do período ----------
 const lucroVenda0 = (v) => lucroDe(v.itens, fatorDesconto(v))
+
+// Lucro real do período: só o lucro do dinheiro que entrou no período.
+// Cada real recebido de uma venda (à vista no dia da venda, ou parcela do fiado no dia do recebimento) traz a parte
+// proporcional do lucro dela (com os juros do fiado); multa e juros de atraso recebidos são lucro inteiro.
+function lucroReal(todas, de, ate) {
+  let total = 0
+  for (const v of todas) {
+    const aReceber = pagoNaHora(v) + totalFiado(v) // tudo o que a venda vai trazer (com os juros do fiado)
+    if (!(aReceber > 0)) continue
+    const lucro = lucroVenda0(v).lucro + (+v.fiado?.juros || 0)
+    let entrou = v.dia >= de && v.dia <= ate ? pagoNaHora(v) : 0
+    let atraso = 0
+    for (const p of v.fiado?.parcelas || []) for (const r of p.recebimentos || []) {
+      if (r.dia >= de && r.dia <= ate) { entrou += +r.valor || 0; atraso += +r.encargo || 0 }
+    }
+    total += lucro * (entrou / aReceber) + atraso
+  }
+  return Math.round(total * 100) / 100
+}
 function resumo(vendas) {
   let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, naoPago = 0, jurosFiado = 0
   for (const v of vendas) {
@@ -106,7 +125,8 @@ export default function Analise({ db }) {
   ra.naoPago = somaPerdas(perdasV, antDe, antAte); ra.lucro -= ra.naoPago
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
   ra.margem = ra.faturamento ? (ra.lucro / ra.faturamento) * 100 : 0
-  const lucroTotal = Math.round(r.lucro * 100) / 100 // só vendas (os juros do fiado aparecem num card próprio; empréstimos na outra aba)
+  const lucroTotal = Math.round(r.lucro * 100) / 100
+  const lucroRealPer = lucroReal(db.vendas, de, ate) // só do dinheiro que entrou no período // só vendas (os juros do fiado aparecem num card próprio; empréstimos na outra aba)
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
@@ -186,7 +206,7 @@ export default function Analise({ db }) {
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
           {r.naoPago > 0 && <small className="var bad">{t('fiado não pago: {valor}', { valor: brl(r.naoPago) })}</small>}
         </div>
-        {r.jurosFiado !== 0 && <div className="card"><small>{t('Juros do fiado')}</small><b className="ok">{brl(r.jurosFiado)}</b></div>}
+        <div className={'card' + (lucroRealPer < 0 ? ' card-prejuizo' : '')}><small>{t('Lucro real')}</small><b className={lucroRealPer < 0 ? 'bad' : 'ok'}>{lucroRealPer < 0 ? '− ' + brl(-lucroRealPer) : brl(lucroRealPer)}</b></div>
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>
           <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
