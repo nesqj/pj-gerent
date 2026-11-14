@@ -13,6 +13,7 @@ const PERIODOS = [
 ]
 const ORIGENS = {
   venda: { nome: 'Venda', classe: 'ok' },
+  fiado: { nome: 'Recebimento de fiado', classe: 'ok' },
   compra: { nome: 'Compra de estoque', classe: 'bad' },
   colocar: { nome: 'Dinheiro colocado', classe: 'ok' },
   retirar: { nome: 'Dinheiro retirado', classe: 'bad' },
@@ -106,7 +107,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
 
       <div className="cards">
         <div className="card destaque-caixa"><small>{t('Saldo em caixa')}</small><b className={ext.saldo < 0 ? 'bad' : ''}>{brl(ext.saldo)}</b></div>
-        <div className="card"><small>{t('Vendas')}</small><b className="ok">+ {brl(soma('venda'))}</b></div>
+        <div className="card"><small>{t('Vendas')}</small><b className="ok">+ {brl(soma('venda') + soma('fiado'))}</b>{soma('fiado') > 0 && <small className="var">{t('{valor} de fiado', { valor: brl(soma('fiado')) })}</small>}</div>
         <div className="card"><small>{t('Dinheiro colocado')}</small><b className="ok">+ {brl(soma('colocar'))}</b></div>
         <div className="card"><small>{t('Compras de estoque')}</small><b className="bad">− {brl(soma('compra'))}</b></div>
         <div className="card"><small>{t('Dinheiro retirado')}</small><b className="bad">− {brl(soma('retirar'))}</b></div>
@@ -156,7 +157,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
                       <button className="del" onClick={() => excluir(m.ref)}>{t('Excluir')}</button>
                     </>
                   ) : (
-                    <button className="link pequeno" onClick={() => irPara(m.origem === 'venda' ? 'vendas' : 'estoque')}>{m.origem === 'venda' ? t('Ver em Vendas') : t('Ver no Estoque')}</button>
+                    <button className="link pequeno" onClick={() => irPara(m.origem === 'venda' ? 'vendas' : m.origem === 'fiado' ? 'fiado' : 'estoque')}>{m.origem === 'venda' ? t('Ver em Vendas') : m.origem === 'fiado' ? t('Ver no Fiado') : t('Ver no Estoque')}</button>
                   )}
                 </td>
               </tr>

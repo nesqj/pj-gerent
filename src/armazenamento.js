@@ -11,7 +11,7 @@ import { supabase } from './supabase.js'
 import { norm } from './utils.js'
 
 const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
-const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [] })
+const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [] })
 
 let org = null          // loja ativa: { id, nome, papel, suspensa, criada_por_mim }
 let db = vazio()
@@ -25,7 +25,7 @@ let perfil = null       // perfil de quem está logado
 const PODE = {
   admin: () => true,
   gerente: (acao) => acao !== 'tudo.substituido',
-  vendedor: (acao) => /^(venda|entrada)\./.test(acao),
+  vendedor: (acao) => /^(venda|entrada|cliente)\./.test(acao),
   leitor: () => false,
 }
 export const podeFazer = (acao) => !!org && (PODE[org.papel] || PODE.leitor)(acao)
@@ -258,6 +258,17 @@ export const salvarVenda = (v) => mudar('venda.salva', (d) => {
   return v
 }, resumo('vendas', v))
 export const excluirVenda = (id) => remover('vendas', 'venda.excluida', id)
+
+// Fiado: recebeu, não pagou, mudar data… (altera a venda, sem mexer nos itens)
+export const salvarFiado = (v, acao, detalhe) => mudar(acao, (d) => {
+  const i = d.vendas.findIndex((x) => x.id === v.id)
+  if (i < 0) throw new Error(t('Venda não encontrada.'))
+  d.vendas[i] = { ...d.vendas[i], fiado: v.fiado }
+  return d.vendas[i]
+}, detalhe)
+
+// Clientes (para o fiado): { id, nome, telefone, obs }
+export const salvarCliente = (c) => upsert('clientes', 'cliente.salvo', c, c.nome)
 
 // Entradas de estoque: { id, data, dia, produto, qtd, custo, obs }
 export const salvarEntrada = (e) => mudar('entrada.salva', (d) => {

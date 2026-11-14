@@ -9,6 +9,7 @@ import RegraPreco from './componentes/RegraPreco.jsx'
 import Analise from './componentes/Analise.jsx'
 import Estoque from './componentes/Estoque.jsx'
 import Caixa from './componentes/Caixa.jsx'
+import Fiado from './componentes/Fiado.jsx'
 import Configuracoes from './componentes/Configuracoes.jsx'
 import Ajuda from './componentes/Ajuda.jsx'
 import Login from './componentes/Login.jsx'
@@ -25,7 +26,7 @@ import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from
 import {
   IconeAjuda, IconeAjustes, IconeCaixaProduto, IconeCalculadora, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
   IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
-  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa,
+  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado,
 } from './icones.jsx'
 
 // Grupos e itens da barra lateral (dentro de uma loja)
@@ -34,6 +35,7 @@ const GRUPOS = [
     nome: 'Vendas',
     itens: [
       { id: 'vendas', nome: 'Vendas', icone: IconeCarrinho },
+      { id: 'fiado', nome: 'Fiado', icone: IconeFiado },
       { id: 'caixa', nome: 'Caixa', icone: IconeCaixa },
       { id: 'analise', nome: 'Análise', icone: IconeGrafico },
     ],
@@ -89,7 +91,7 @@ const RODAPE = [
 ]
 
 // Abas que o vendedor vê (o banco também confere o que cada papel pode gravar)
-const ABAS_DO_VENDEDOR = ['vendas', 'estoque', 'venda', 'config', 'ajuda']
+const ABAS_DO_VENDEDOR = ['vendas', 'fiado', 'estoque', 'venda', 'config', 'ajuda']
 const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.includes(aba)
 
 const chaveLoja = (uid) => 'pjgerent-loja-' + uid
@@ -507,6 +509,7 @@ export default function App() {
         <main>
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} />}
+          {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'caixa' && <Caixa db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'analise' && <Analise db={db} />}
           {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} irPara={irPara} />}

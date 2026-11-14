@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda, pagamentosDaVenda } from '../utils.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
 // ---------- Datas ----------
@@ -34,16 +34,18 @@ const PERIODOS = [
 
 // ---------- Números do período ----------
 function resumo(vendas) {
-  let faturamento = 0, custo = 0, itens = 0, perdas = 0, comPrejuizo = 0
+  let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, aConfirmar = 0, naoPago = 0
   for (const v of vendas) {
     faturamento += v.total
-    for (const i of v.itens) { custo += (i.custo ?? 0) * i.qtd; itens += i.qtd }
-    const p = lucroVenda(v).perda
-    if (p > 0) { perdas += p; comPrejuizo++ }
+    for (const i of v.itens) itens += i.qtd
+    const l = lucroVenda(v) // fiado em aberto: o lucro fica "a confirmar"
+    lucro += l.lucro
+    if (l.pendente) aConfirmar += l.lucroPrevisto
+    naoPago += l.naoPago || 0
+    if (l.perda > 0) { perdas += l.perda; comPrejuizo++ }
   }
-  const lucro = faturamento - custo
   return {
-    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo,
+    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo, aConfirmar, naoPago,
     ticket: vendas.length ? faturamento / vendas.length : 0,
     margem: faturamento ? (lucro / faturamento) * 100 : 0,
   }
@@ -110,17 +112,21 @@ export default function Analise({ db }) {
   const melhorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
 
   // por forma de pagamento (só as que tiveram venda)
-  const pagamentos = PAGAMENTOS.map((p) => ({ nome: p, valor: vendas.filter((v) => v.pagamento === p).reduce((s, v) => s + v.total, 0) }))
+  const pagamentos = [...PAGAMENTOS, 'Fiado'].map((p) => ({ nome: p, valor: vendas.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === p).reduce((a, x) => a + x.valor, 0), 0) }))
     .filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor)
 
   // por produto (desconto da venda dividido proporcionalmente entre os itens)
   const prod = new Map()
   for (const v of vendas) {
     const fator = 1 - (+v.descontoPct || 0) / 100
+    // fiado: em aberto não entra no lucro; o que não foi pago sai do lucro proporcionalmente
+    const lv = lucroVenda(v)
+    const ajusteLucro = lv.pendente ? 0 : 1
+    const calotePorReal = !lv.pendente && v.total > 0 ? (lv.naoPago || 0) / v.total : 0
     for (const i of v.itens) {
       const k = (i.produto + '|' + (i.marca || '')).toLowerCase()
       const p = prod.get(k) || { produto: i.produto, marca: i.marca, qtd: 0, faturamento: 0, lucro: 0 }
-      p.qtd += i.qtd; p.faturamento += i.qtd * i.preco * fator; p.lucro += i.qtd * (i.preco * fator - (i.custo ?? 0))
+      p.qtd += i.qtd; p.faturamento += i.qtd * i.preco * fator; p.lucro += ajusteLucro * (i.qtd * (i.preco * fator - (i.custo ?? 0)) - i.qtd * i.preco * fator * calotePorReal)
       prod.set(k, p)
     }
   }
@@ -156,6 +162,8 @@ export default function Analise({ db }) {
           <small>{r.lucro < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small>
           <b className={r.lucro < 0 ? 'bad' : 'ok'}>{r.lucro < 0 ? '− ' + brl(-r.lucro) : brl(r.lucro)}</b>
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
+          {r.aConfirmar > 0 && <small className="var">+ {brl(r.aConfirmar)} {t('a confirmar (fiado)')}</small>}
+          {r.naoPago > 0 && <small className="var bad">{t('fiado não pago: {valor}', { valor: brl(r.naoPago) })}</small>}
         </div>
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>

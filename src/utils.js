@@ -248,10 +248,15 @@ export function extratoCaixa(db) {
   if (!c?.inicio) return null
   const depois = (x) => (x.data || 0) >= c.inicio
   const movs = [
-    ...(db.vendas || []).filter(depois).map((v) => ({
-      id: 'v-' + v.id, ref: v, origem: 'venda', data: v.data, dia: v.dia, valor: +v.total || 0,
-      descricao: (v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', '), pagamento: v.pagamento,
+    ...(db.vendas || []).filter((v) => depois(v) && pagoNaHora(v) > 0).map((v) => ({
+      id: 'v-' + v.id, ref: v, origem: 'venda', data: v.data, dia: v.dia, valor: pagoNaHora(v),
+      descricao: (v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + (v.fiado ? ` (${v.fiado.cliente || ''}: entrada)` : ''),
+      pagamento: Array.isArray(v.pagamentos) ? v.pagamentos.filter((p) => +p.valor > 0).map((p) => p.forma).join(' + ') : v.pagamento,
     })),
+    ...(db.vendas || []).flatMap((v) => (v.fiado?.parcelas || []).flatMap((p) => (p.recebimentos || []).filter(depois).map((r) => ({
+      id: 'f-' + r.id, ref: v, origem: 'fiado', data: r.data, dia: r.dia, valor: +r.valor || 0,
+      descricao: `${v.fiado.cliente || ''} · ${p.n}/${v.fiado.parcelas.length}`, pagamento: r.forma,
+    })))),
     ...(db.entradas || []).filter((e) => depois(e) && !e.foraDoCaixa && e.custo != null).map((e) => ({
       id: 'e-' + e.id, ref: e, origem: 'compra', data: e.data, dia: e.dia, valor: -(+e.qtd || 0) * (+e.custo || 0),
       descricao: `${e.qtd}× ${e.produto}`,
@@ -281,5 +286,50 @@ export function lucroDe(itens, fator = 1) {
   }
   return { lucro: Math.round(lucro * 100) / 100, perda: Math.round(perda * 100) / 100, itensComPrejuizo }
 }
-export const lucroVenda = (v) => lucroDe(v.itens, fatorDesconto(v))
+// ---------- Pagamento dividido e fiado
+// venda.pagamentos = [{ forma, valor }]  — o que foi pago na hora (dinheiro, PIX, débito, crédito)
+// venda.fiado = { clienteId, cliente, telefone, parcelas: [{ id, n, valor, vencimento 'AAAA-MM-DD', naoPaga, recebimentos: [{ id, data, dia, valor, forma }] }] }
+// Vendas antigas (sem "pagamentos") foram pagas inteiras na forma "pagamento".
+export const recebidoDaParcela = (p) => (p.recebimentos || []).reduce((s, r) => s + (+r.valor || 0), 0)
+export function situacaoParcela(p, dia = hoje()) {
+  const falta = (+p.valor || 0) - recebidoDaParcela(p)
+  if (falta <= 0.004) return 'paga'
+  if (p.naoPaga) return 'nao_paga'
+  if (p.vencimento < dia) return 'atrasada'
+  if (p.vencimento === dia) return 'vence_hoje'
+  return 'aberta'
+}
+export const totalFiado = (v) => (v.fiado?.parcelas || []).reduce((s, p) => s + (+p.valor || 0), 0)
+// Resumo do fiado de uma venda: total, recebido, não pago (perda), em aberto
+export function resumoFiado(v) {
+  if (!v.fiado?.parcelas?.length) return null
+  let recebido = 0, naoPago = 0, aberto = 0
+  for (const p of v.fiado.parcelas) {
+    const rec = recebidoDaParcela(p)
+    const falta = Math.max(0, (+p.valor || 0) - rec)
+    recebido += rec
+    if (falta > 0.004) { if (p.naoPaga) naoPago += falta; else aberto += falta }
+  }
+  const r = (x) => Math.round(x * 100) / 100
+  return { total: r(totalFiado(v)), recebido: r(recebido), naoPago: r(naoPago), aberto: r(aberto), pendente: aberto > 0.004 }
+}
+// O que entrou em cada forma de pagamento (para relatórios): pago na hora + o fiado como "Fiado"
+export function pagamentosDaVenda(v) {
+  if (!Array.isArray(v.pagamentos)) return [{ forma: v.pagamento, valor: +v.total || 0 }]
+  const l = v.pagamentos.filter((p) => +p.valor > 0).map((p) => ({ forma: p.forma, valor: +p.valor }))
+  if (v.fiado) l.push({ forma: 'Fiado', valor: totalFiado(v) })
+  return l
+}
+export const pagoNaHora = (v) => (Array.isArray(v.pagamentos) ? v.pagamentos.reduce((s, p) => s + (+p.valor || 0), 0) : +v.total || 0)
+
+// Lucro de uma venda. Com fiado:
+//  - ainda em aberto: o lucro fica "a confirmar" (não conta) até você confirmar se o cliente pagou
+//  - resolvido: lucro = lucro da venda − o que o cliente não pagou (o calote vira perda)
+export function lucroVenda(v) {
+  const base = lucroDe(v.itens, fatorDesconto(v))
+  const f = resumoFiado(v)
+  if (!f) return { ...base, pendente: false, lucroPrevisto: base.lucro, naoPago: 0 }
+  if (f.pendente) return { ...base, lucro: 0, pendente: true, lucroPrevisto: base.lucro, aReceber: f.aberto, naoPago: f.naoPago }
+  return { ...base, lucro: Math.round((base.lucro - f.naoPago) * 100) / 100, pendente: false, lucroPrevisto: base.lucro, naoPago: f.naoPago }
+}
 

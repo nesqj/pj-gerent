@@ -2,14 +2,15 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda } from '../utils.js'
+import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
+import PagamentoVenda, { montarPagamento, novoPagamento, pagamentoDaVenda } from './PagamentoVenda.jsx'
 
 const itemNovo = { k: '', qtd: '1', preco: '' } // preco: digitado só para produtos do estoque
 
 export default function Vendas({ db, executar }) {
   const [item, setItem] = useState(itemNovo)
   const [carrinho, setCarrinho] = useState([])
-  const [pagamento, setPagamento] = useState('Dinheiro')
+  const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
   const [desconto, setDesconto] = useState('') // % de desconto na venda (opcional)
   const [dia, setDia] = useState(() => {
     try { const d = sessionStorage.getItem('vendas-dia'); sessionStorage.removeItem('vendas-dia'); if (d) return d } catch { /* sem acesso */ }
@@ -57,9 +58,14 @@ export default function Vendas({ db, executar }) {
   }
 
   function editar(v) {
+    // fiado com pagamento já registrado: a venda não muda mais por aqui (só pela aba Fiado)
+    const f = resumoFiado(v)
+    if (f && (f.recebido > 0 || f.naoPago > 0)) {
+      return aviso.alerta(t('Esta venda tem fiado com pagamento já registrado.'), t('Para mudar, use a aba Fiado (receber, mudar data, não pagou) ou exclua a venda.'))
+    }
     setEditando(v)
     setCarrinho(v.itens.map((i) => ({ ...i })))
-    setPagamento(v.pagamento)
+    setPg(pagamentoDaVenda(v, db.clientes || []))
     setDesconto(v.descontoPct ? String(v.descontoPct) : '')
     setItem(itemNovo)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -68,7 +74,7 @@ export default function Vendas({ db, executar }) {
   function cancelar() {
     setCarrinho([])
     setEditando(null)
-    setPagamento('Dinheiro')
+    setPg(novoPagamento())
     setDesconto('')
   }
 
@@ -111,17 +117,24 @@ export default function Vendas({ db, executar }) {
     const descontoPct = pctDesconto
     const descontoValor = Math.round(subtotal * descontoPct) / 100
     const total = Math.round((subtotal - descontoValor) * 100) / 100
+    // pagamento: uma forma, dividido e/ou fiado
+    const pago = montarPagamento(pg, total, db.clientes || [])
+    if (pago.erro) return aviso.alerta(pago.erro)
+    if (pago.novoCliente && !(await executar((A) => A.salvarCliente(pago.novoCliente)))) return
+    const extra = { pagamento: pago.pagamento, pagamentos: pago.pagamentos, ...(pago.fiado ? { fiado: pago.fiado } : {}) }
     // editando: mantém id, data e dia originais
     const venda = editando
-      ? { ...editando, itens, pagamento, subtotal, descontoPct, descontoValor, total }
-      : { id: uid(), data: Date.now(), dia: hoje(), itens, pagamento, subtotal, descontoPct, descontoValor, total }
+      ? { ...editando, itens, subtotal, descontoPct, descontoValor, total, ...extra }
+      : { id: uid(), data: Date.now(), dia: hoje(), itens, subtotal, descontoPct, descontoValor, total, ...extra }
+    if (!pago.fiado) delete venda.fiado
     // produtos do estoque que vão ficar com 2 ou menos depois desta venda
     const baixos = [...new Set(itens.filter((i) => i.origem === 'estoque').map((i) => norm(i.produto)))]
       .map((k) => ({ nome: estoque.get(k)?.produto, resta: disponivel(k) }))
       .filter((p) => p.nome && p.resta <= 2)
     if (await executar((A) => A.salvarVenda(venda))) {
       const resultado = lucroVenda(venda)
-      if (resultado.lucro < 0) aviso.alerta(editando ? t('Venda atualizada com prejuízo.') : t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
+      if (venda.fiado) aviso.info(editando ? t('Venda atualizada com fiado.') : t('Venda registrada com fiado.'), t('{valor} a receber de {cliente}. O lucro conta quando você confirmar o pagamento na aba Fiado.', { valor: brl(resumoFiado(venda).aberto), cliente: venda.fiado.cliente }))
+      else if (resultado.lucro < 0) aviso.alerta(editando ? t('Venda atualizada com prejuízo.') : t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
       else if (resultado.perda > 0) aviso.alerta(editando ? t('Venda atualizada.') : t('Venda registrada.'), t('Atenção: {n} item(ns) vendido(s) abaixo do custo (perda de {valor}).', { n: resultado.itensComPrejuizo, valor: brl(resultado.perda) }))
       else aviso.ok(editando ? t('Venda atualizada.') : t('Venda registrada.'), brl(venda.total))
       if (!editando) setDia(hoje())
@@ -137,7 +150,9 @@ export default function Vendas({ db, executar }) {
   }
 
   async function excluir(v) {
-    if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }))) {
+    const f = resumoFiado(v)
+    const extra = f?.recebido > 0 ? '\n' + t('Os recebimentos do fiado desta venda ({valor}) também serão apagados, e o caixa é ajustado.', { valor: brl(f.recebido) }) : ''
+    if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }) + extra)) {
       executar((A) => A.excluirVenda(v.id), t('Venda excluída.')).then((ok) => ok && editando?.id === v.id && cancelar())
     }
   }
@@ -146,13 +161,15 @@ export default function Vendas({ db, executar }) {
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
   const totalDia = vendasDia.reduce((s, v) => s + v.total, 0)
   const custoDia = vendasDia.reduce((s, v) => s + v.itens.reduce((c, i) => c + (i.custo ?? 0) * i.qtd, 0), 0)
-  const lucroDia = Math.round((totalDia - custoDia) * 100) / 100
+  // lucro só do que já está confirmado (fiado em aberto fica "a confirmar")
+  const lucroDia = Math.round(vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) * 100) / 100
+  const aConfirmarDia = vendasDia.reduce((s, v) => { const l = lucroVenda(v); return s + (l.pendente ? l.lucroPrevisto : 0) }, 0)
   const perdasDia = vendasDia.reduce((s, v) => s + lucroVenda(v).perda, 0)
   const vendasComPrejuizo = vendasDia.filter((v) => lucroVenda(v).perda > 0).length
   const semCusto = vendasDia.some((v) => v.itens.some((i) => i.custo == null))
-  const porPagamento = PAGAMENTOS.map((p) => ({
-    p, total: vendasDia.filter((v) => v.pagamento === p).reduce((s, v) => s + v.total, 0),
-  }))
+  const somaForma = (forma) => vendasDia.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === forma).reduce((a, x) => a + x.valor, 0), 0)
+  const porPagamento = [...PAGAMENTOS, 'Fiado'].map((p) => ({ p, total: somaForma(p) })).filter((x) => x.p !== 'Fiado' || x.total > 0)
+  const textoPagamento = (v) => { const l = pagamentosDaVenda(v); return l.length > 1 ? l.map((x) => `${t(x.forma)} ${brl(x.valor)}`).join(' + ') : t(l[0]?.forma || v.pagamento) }
 
   return (
     <section>
@@ -213,7 +230,7 @@ export default function Vendas({ db, executar }) {
         {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
       </p>
 
-      {opcoes.length === 0 && <p className="warn">{t('Registre produtos no Estoque ou cadastre produtos nos fornecedores para poder vender.')}</p>}
+      {doEstoque.length + semEstoque.length + dosFornecedores.length === 0 && <p className="warn">{t('Registre produtos no Estoque ou cadastre produtos nos fornecedores para poder vender.')}</p>}
 
       {(carrinho.length > 0 || editando) && (
         <div className={'painel' + (editando ? ' painel-edicao' : '')}>
@@ -231,7 +248,7 @@ export default function Vendas({ db, executar }) {
                   const l = lucroItem(i, fatorCarrinho)
                   return (
                   <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
-                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="desconto-linha">{i.lote}</small>}</td>
+                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}</td>
                     <td className="n">
                       <input className={'cel' + (i.origem === 'estoque' && (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
                         max={i.origem === 'estoque' ? (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) + +i.qtd : undefined}
@@ -251,12 +268,8 @@ export default function Vendas({ db, executar }) {
               </tbody>
             </table>
           </div>
+          <PagamentoVenda pg={pg} setPg={setPg} total={totalCarrinho} clientes={db.clientes || []} />
           <div className="finalizar">
-            <label style={{ flex: '0 1 180px' }}>{t('Forma de pagamento')}
-              <select value={pagamento} onChange={(e) => setPagamento(e.target.value)}>
-                {PAGAMENTOS.map((p) => <option key={p} value={p}>{t(p)}</option>)}
-              </select>
-            </label>
             <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
               <input type="number" min="0" max="100" step="0.01" placeholder={t('Opcional')} value={desconto} onChange={(e) => setDesconto(e.target.value)} />
             </label>
@@ -286,6 +299,7 @@ export default function Vendas({ db, executar }) {
         <div className={'card' + (lucroDia < 0 ? ' card-prejuizo' : '')}>
           <small>{lucroDia < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}{semCusto ? ' *' : ''}</small>
           <b className={lucroDia < 0 ? 'bad' : 'ok'}>{lucroDia < 0 ? '− ' + brl(-lucroDia) : brl(lucroDia)}</b>
+          {aConfirmarDia > 0 && <small className="var">+ {brl(aConfirmarDia)} {t('a confirmar (fiado)')}</small>}
         </div>
         {perdasDia > 0 && (
           <div className="card card-prejuizo">
@@ -311,13 +325,15 @@ export default function Vendas({ db, executar }) {
               <tr key={v.id} className={(editando?.id === v.id ? 'em-edicao' : '') + (res.lucro < 0 ? ' linha-prejuizo' : '')}>
                 <td>{hora(v.data)}</td>
                 <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}</td>
-                <td>{t(v.pagamento)}</td>
+                <td className="quebra">{textoPagamento(v)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}</small>}</td>
                 <td className="n">
                   <b>{brl(v.total)}</b>
                   {v.descontoPct > 0 && <small className="desconto-linha">{t('{p}% de desconto', { p: num(v.descontoPct, 2) })}</small>}
                 </td>
                 <td className="n">
-                  {temCustoV ? <ValorLucro valor={res.lucro} /> : '-'}
+                  {res.pendente ? <span className="pendente">{t('a confirmar')}<small className="sub-linha">{t('previsto {valor}', { valor: brl(res.lucroPrevisto) })}</small></span>
+                    : temCustoV ? <ValorLucro valor={res.lucro} /> : '-'}
+                  {res.naoPago > 0 && <small className="desconto-linha bad">{t('não pago: {valor}', { valor: brl(res.naoPago) })}</small>}
                   {res.perda > 0 && res.lucro >= 0 && <small className="desconto-linha bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
                 </td>
                 <td>

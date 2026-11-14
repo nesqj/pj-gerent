@@ -92,3 +92,6 @@ export const IconeCobranca = () => (
 export const IconeCaixa = () => (
   <Svg><rect x="3" y="7" width="18" height="12" rx="2" /><path d="M3 11h18" /><circle cx="12" cy="15" r="1.6" /><path d="M7 7V5h10v2" /></Svg>
 )
+export const IconeFiado = () => (
+  <Svg><rect x="4" y="4" width="16" height="17" rx="2" /><path d="M8 2.5v3M16 2.5v3M4 9.5h16" /><path d="M9 15l2 2 4-4" /></Svg>
+)

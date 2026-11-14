@@ -111,6 +111,8 @@ const ACOES = {
   'preco-fornecedor.salvo': 'Preço de fornecedor salvo', 'preco-fornecedor.excluido': 'Preço de fornecedor excluído',
   'config.salva': 'Configurações da loja salvas', 'regras.salvas': 'Regras de preço salvas',
   'preco-venda.salvo': 'Preço de venda alterado', 'venda.salva': 'Venda salva', 'venda.excluida': 'Venda excluída',
+  'venda.fiado-recebido': 'Fiado recebido', 'venda.fiado-nao-pago': 'Fiado marcado como não pago', 'venda.fiado-reaberto': 'Fiado reaberto',
+  'venda.fiado-data': 'Data do fiado alterada', 'venda.fiado-estorno': 'Recebimento de fiado estornado', 'cliente.salvo': 'Cliente salvo',
   'entrada.salva': 'Entrada no estoque salva', 'entrada.excluida': 'Entrada no estoque excluída',
   'caixa.config': 'Controle de caixa iniciado/ajustado', 'caixa.mov-salvo': 'Movimento de caixa salvo', 'caixa.mov-excluido': 'Movimento de caixa excluído',
   'tudo.substituido': 'Dados restaurados de arquivo',
