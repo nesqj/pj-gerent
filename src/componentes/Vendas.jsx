@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { brl, num, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda } from '../utils.js'
+import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda } from '../utils.js'
 
 const itemNovo = { k: '', qtd: '1', preco: '' } // preco: digitado só para produtos do estoque
 
@@ -18,12 +18,22 @@ export default function Vendas({ db, executar }) {
   const [editando, setEditando] = useState(null) // venda sendo editada (carregada no carrinho)
 
   // Duas origens de produtos:
-  // - Estoque: produtos próprios, preço digitado na hora da venda, controla quantidade
+  // - Estoque: cada entrada é um lote com o próprio custo; você escolhe de qual lote está vendendo.
+  //   O preço é digitado na hora da venda, e a quantidade é controlada por lote.
   // - Fornecedores: preço calculado na aba "Preços de Venda", sem controle de quantidade
   const estoque = calcularEstoque(db)
-  const doEstoque = [...estoque.values()]
-    .map((s) => ({ id: 'e:' + s.k, origem: 'estoque', k: s.k, produto: s.produto, marca: '', preco: null, custo: s.custo }))
-    .sort((a, b) => a.produto.localeCompare(b.produto))
+  const lotes = calcularLotes(db)
+  // quanto de um lote já está no carrinho (ou na venda em edição, que devolve o que tinha tirado)
+  const doLoteEm = (itens, id) => itens.filter((i) => i.origem === 'estoque' && i.entradaId === id).reduce((x, i) => x + (+i.qtd || 0), 0)
+  const disponivelLote = (id) => (lotes.get(id)?.saldo ?? 0) + (editando ? doLoteEm(editando.itens, id) : 0) - doLoteEm(carrinho, id)
+  const detalheLote = (l) => [`${t('custo')} ${l.custo != null ? brl(l.custo) : '-'}`, l.dia && dataBR(l.dia), l.obs].filter(Boolean).join(' · ')
+  const doEstoque = [...lotes.values()]
+    .map((l) => ({ id: 'l:' + l.id, entradaId: l.id, origem: 'estoque', k: l.k, produto: l.produto, marca: '', preco: null, custo: l.custo,
+      detalhe: detalheLote(l), disp: disponivelLote(l.id) }))
+    .filter((o) => o.disp > 0)
+    .sort((a, b) => a.produto.localeCompare(b.produto) || (a.custo ?? 0) - (b.custo ?? 0))
+  // produtos do estoque sem nenhuma unidade disponível (aparecem desativados na lista)
+  const semEstoque = [...estoque.values()].filter((e) => !doEstoque.some((o) => o.k === e.k)).sort((a, b) => a.produto.localeCompare(b.produto))
   const dosFornecedores = produtosAVenda(db).map((p) => ({ ...p, id: 'c:' + p.k, origem: 'fornecedor' }))
   const opcoes = [...doEstoque, ...dosFornecedores]
   const selecionado = opcoes.find((x) => x.id === item.k)
@@ -71,18 +81,24 @@ export default function Vendas({ db, executar }) {
     const p = selecionado
     if (!p) return
     if (p.origem === 'estoque') {
-      const disp = disponivel(p.k)
+      const disp = disponivelLote(p.entradaId)
       if (disp <= 0) return aviso.alerta(t('"{produto}" está sem estoque. Registre uma entrada no Estoque para vender.', { produto: p.produto }))
-      if (+item.qtd > disp) return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: p.produto, n: disp }))
+      if (+item.qtd > disp) return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: p.produto, n: disp }), p.detalhe)
     }
     const preco = p.origem === 'estoque' ? +item.preco : p.preco
-    setCarrinho([...carrinho, { produto: p.produto, marca: p.marca, qtd: +item.qtd, preco, custo: p.custo, origem: p.origem }])
+    setCarrinho([...carrinho, { produto: p.produto, marca: p.marca, qtd: +item.qtd, preco, custo: p.custo, origem: p.origem,
+      ...(p.origem === 'estoque' ? { entradaId: p.entradaId, lote: p.detalhe } : {}) }])
     setItem(itemNovo)
   }
 
   async function finalizar() {
     if (!carrinho.length) return
-    // nenhum produto do estoque pode passar do que há (o carrinho pode ter sido alterado na tabela)
+    // nenhum lote pode passar do que há (o carrinho pode ter sido alterado na tabela)
+    const lotePassou = carrinho.find((i) => i.origem === 'estoque' && i.entradaId && disponivelLote(i.entradaId) < 0)
+    if (lotePassou) {
+      return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: lotePassou.produto, n: disponivelLote(lotePassou.entradaId) + doLoteEm(carrinho, lotePassou.entradaId) }), lotePassou.lote)
+    }
+    // e nenhum produto (vendas antigas, sem lote)
     const passou = [...new Set(carrinho.filter((i) => i.origem === 'estoque').map((i) => norm(i.produto)))].find((k) => disponivel(k) < 0)
     if (passou) {
       const nome = estoque.get(passou)?.produto || passou
@@ -147,12 +163,12 @@ export default function Vendas({ db, executar }) {
         <label style={{ flex: '2 1 240px' }}>{t('Produto')}
           <select required value={item.k} onChange={(e) => escolherProduto(e.target.value)}>
             <option value="">{t('Selecione um produto...')}</option>
-            {doEstoque.length > 0 && (
-              <optgroup label={t('Estoque')}>
-                {doEstoque.map((p) => {
-                  const d = disponivel(p.k)
-                  return <option key={p.id} value={p.id} disabled={d <= 0}>{p.produto} · {d <= 0 ? t('sem estoque') : `${t('estoque')}: ${d}`}</option>
-                })}
+            {doEstoque.length + semEstoque.length > 0 && (
+              <optgroup label={t('Estoque (escolha a unidade/lote)')}>
+                {doEstoque.map((p) => (
+                  <option key={p.id} value={p.id}>{p.produto} · {p.detalhe} — {t('{n} un.', { n: p.disp })}</option>
+                ))}
+                {semEstoque.map((e) => <option key={'sem:' + e.k} value="" disabled>{e.produto} · {t('sem estoque')}</option>)}
               </optgroup>
             )}
             {dosFornecedores.length > 0 && (
@@ -165,7 +181,7 @@ export default function Vendas({ db, executar }) {
           </select>
         </label>
         <label style={{ flex: '0 1 100px' }}>{t('Qtd.')}
-          <input type="number" min="1" step="1" required max={selecionado?.origem === 'estoque' ? Math.max(1, disponivel(selecionado.k)) : undefined}
+          <input type="number" min="1" step="1" required max={selecionado?.origem === 'estoque' ? Math.max(1, disponivelLote(selecionado.entradaId)) : undefined}
             value={item.qtd} onChange={(e) => setItem({ ...item, qtd: e.target.value })} />
         </label>
         {selecionado?.origem === 'estoque' ? (
@@ -181,8 +197,8 @@ export default function Vendas({ db, executar }) {
         )}
         {selecionado?.origem === 'estoque' && (
           <label style={{ flex: '0 1 110px' }}>{t('Em estoque')}
-            <input readOnly tabIndex={-1} className={'somente-leitura estoque-' + classeEstoque(disponivel(selecionado.k))}
-              value={disponivel(selecionado.k)} />
+            <input readOnly tabIndex={-1} className={'somente-leitura estoque-' + classeEstoque(disponivelLote(selecionado.entradaId))}
+              value={disponivelLote(selecionado.entradaId)} />
           </label>
         )}
         <button type="submit">{t('Adicionar')}</button>
@@ -215,10 +231,10 @@ export default function Vendas({ db, executar }) {
                   const l = lucroItem(i, fatorCarrinho)
                   return (
                   <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
-                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}</td>
+                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="desconto-linha">{i.lote}</small>}</td>
                     <td className="n">
-                      <input className={'cel' + (i.origem === 'estoque' && disponivel(norm(i.produto)) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
-                        max={i.origem === 'estoque' ? disponivel(norm(i.produto)) + +i.qtd : undefined}
+                      <input className={'cel' + (i.origem === 'estoque' && (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
+                        max={i.origem === 'estoque' ? (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) + +i.qtd : undefined}
                         value={i.qtd} onChange={(e) => alterarItem(n, 'qtd', e.target.value)} />
                     </td>
                     <td className="n">

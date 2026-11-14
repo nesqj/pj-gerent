@@ -230,6 +230,9 @@ function conferirEstoque(antes, depois, produtos) {
   if (r) throw new Error(t('Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua ou edite antes a venda desse produto na aba Vendas.', { produto: r.nome, n: r.novo }))
 }
 const doEstoque = (itens) => (itens || []).filter((i) => i.origem === 'estoque').map((i) => [norm(i.produto), i.produto])
+// unidades vendidas que apontam direto para uma entrada (lote)
+const vendidoDoLote = (d, id) => (d.vendas || []).reduce((s, v) => s + (v.itens || []).filter((i) => i.origem === 'estoque' && i.entradaId === id)
+  .reduce((x, i) => x + (+i.qtd || 0), 0), 0)
 const copiaListas = (d) => ({ entradas: [...(d.entradas || [])], vendas: [...(d.vendas || [])] })
 
 export const salvarVenda = (v) => mudar('venda.salva', (d) => {
@@ -237,6 +240,15 @@ export const salvarVenda = (v) => mudar('venda.salva', (d) => {
   const i = d.vendas.findIndex((x) => x.id === v.id)
   if (i >= 0) d.vendas[i] = v
   else d.vendas.push(v)
+  // cada lote escolhido precisa ter as unidades
+  for (const id of new Set((v.itens || []).filter((i) => i.origem === 'estoque' && i.entradaId).map((i) => i.entradaId))) {
+    const e = d.entradas.find((x) => x.id === id)
+    const sobra = (e ? +e.qtd || 0 : 0) - vendidoDoLote(d, id)
+    if (sobra < 0 && sobra < (e ? +e.qtd || 0 : 0) - vendidoDoLote(antes, id)) {
+      throw new Error(t('Estoque insuficiente nesta entrada de "{produto}": só há {n} unidade(s). A venda não foi salva.', {
+        produto: e?.produto || '', n: Math.max(0, (e ? +e.qtd || 0 : 0) - vendidoDoLote({ vendas: antes.vendas.filter((x) => x.id !== v.id) }, id)) }))
+    }
+  }
   const r = ficaNegativo(antes, d, doEstoque(v.itens))
   if (r) {
     // quanto havia para esta venda = saldo sem contar esta venda (nem a versão antiga dela, se for edição)
@@ -252,6 +264,11 @@ export const salvarEntrada = (e) => mudar('entrada.salva', (d) => {
   const antes = copiaListas(d)
   const i = d.entradas.findIndex((x) => x.id === e.id)
   const velha = i >= 0 ? d.entradas[i] : null
+  // entrada com vendas apontando para ela: não pode ficar com menos unidades do que já saíram, nem mudar de produto
+  const ja = velha ? vendidoDoLote(d, e.id) : 0
+  if (ja > 0 && ((+e.qtd || 0) < ja || norm(e.produto) !== norm(velha.produto))) {
+    throw new Error(t('Não dá: esta entrada já tem {n} unidade(s) vendida(s). A quantidade não pode ficar menor que isso, e o produto não pode mudar de nome.', { n: ja }))
+  }
   if (i >= 0) d.entradas[i] = e
   else d.entradas.push(e)
   // editar pode diminuir a quantidade ou trocar o nome do produto: confere os dois
@@ -261,6 +278,7 @@ export const salvarEntrada = (e) => mudar('entrada.salva', (d) => {
 export const excluirEntrada = (id) => mudar('entrada.excluida', (d) => {
   const antes = copiaListas(d)
   const e = d.entradas.find((x) => x.id === id)
+  if (vendidoDoLote(d, id) > 0) throw new Error(t('Não dá para excluir: esta entrada já foi vendida.'))
   d.entradas = d.entradas.filter((x) => x.id !== id)
   if (e) conferirEstoque(antes, d, [[norm(e.produto), e.produto]])
   return e

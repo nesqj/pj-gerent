@@ -172,48 +172,64 @@ export function menorPreco(db, produto, marca) {
 // Estoque próprio (separado dos fornecedores), por nome do produto.
 // Entradas: { produto, qtd, custo }. Saídas: itens de venda com origem 'estoque'
 // (o preço de venda é digitado na hora da venda).
-// Retorna Map nome normalizado → { k, produto, entradas, vendidos, saldo, custo, ultimoCusto }
-// custo = CUSTO MÉDIO PONDERADO das unidades em estoque (padrão do varejo):
-//   cada entrada mistura o custo dela com o das unidades que ainda estão lá;
-//   cada venda tira unidades sem mudar o custo médio das que sobram.
-//   Ex.: 1 un. a R$ 1.000 + 1 un. a R$ 100 → custo médio R$ 550, valor em estoque R$ 1.100.
-export function calcularEstoque(db) {
-  const m = new Map()
-  const pega = (k, produto) => {
-    if (!m.has(k)) m.set(k, { k, produto, entradas: 0, vendidos: 0, saldo: 0, custo: null, ultimoCusto: null, temEntrada: false })
-    return m.get(k)
+// ---------- Lotes do estoque
+// Cada entrada é um lote, com o próprio custo (o mesmo produto pode ser comprado por preços diferentes).
+// Na venda, o item guarda de qual lote saiu (entradaId). Vendas antigas, sem lote, saem do lote mais antigo.
+// Retorna Map id da entrada → { id, k, produto, custo, qtd, vendidos, saldo, data, dia, obs }
+export function calcularLotes(db) {
+  const lotes = new Map()
+  const porProduto = new Map()
+  for (const e of [...(db.entradas || [])].sort((a, b) => (a.data || 0) - (b.data || 0))) {
+    const l = { id: e.id, k: norm(e.produto), produto: e.produto, custo: e.custo != null ? +e.custo : null, qtd: +e.qtd || 0,
+      vendidos: 0, data: e.data, dia: e.dia, obs: e.obs || '' }
+    lotes.set(e.id, l)
+    if (!porProduto.has(l.k)) porProduto.set(l.k, [])
+    porProduto.get(l.k).push(l)
   }
-  // entradas e vendas em ordem de data
-  const eventos = [
-    ...(db.entradas || []).map((e) => ({ data: e.data || 0, ordem: 0, entrada: e })),
-    ...(db.vendas || []).flatMap((v) => (v.itens || []).filter((i) => i.origem === 'estoque').map((i) => ({ data: v.data || 0, ordem: 1, item: i }))),
-  ].sort((a, b) => a.data - b.data || a.ordem - b.ordem)
-  for (const ev of eventos) {
-    if (ev.entrada) {
-      const e = ev.entrada
-      const s = pega(norm(e.produto), e.produto)
-      const qtd = +e.qtd || 0
-      s.temEntrada = true
-      s.produto = e.produto
-      s.entradas += qtd
-      if (e.custo != null) {
-        const c = +e.custo
-        const antes = Math.max(0, s.saldo)
-        s.custo = antes > 0 && s.custo != null ? (antes * s.custo + qtd * c) / (antes + qtd) : c
-        s.ultimoCusto = c
-      }
-      s.saldo += qtd
-    } else {
-      const i = ev.item
-      const s = pega(norm(i.produto), i.produto)
-      s.vendidos += +i.qtd || 0
-      s.saldo -= +i.qtd || 0
+  const semLote = []
+  for (const v of db.vendas || []) {
+    for (const i of v.itens || []) {
+      if (i.origem !== 'estoque') continue
+      const l = i.entradaId && lotes.get(i.entradaId)
+      if (l && norm(i.produto) === l.k) l.vendidos += +i.qtd || 0
+      else semLote.push({ k: norm(i.produto), qtd: +i.qtd || 0, data: v.data || 0 })
     }
   }
-  // produto que só aparece em vendas (sem nenhuma entrada) não entra na lista do estoque
-  for (const [k, s] of m) {
-    if (!s.temEntrada) m.delete(k)
-    else { if (s.custo != null) s.custo = Math.round(s.custo * 100) / 100; delete s.temEntrada }
+  for (const x of semLote.sort((a, b) => a.data - b.data)) {
+    const ls = porProduto.get(x.k) || []
+    let resta = x.qtd
+    for (const l of ls) {
+      const livre = l.qtd - l.vendidos
+      if (livre <= 0) continue
+      const usa = Math.min(livre, resta)
+      l.vendidos += usa
+      resta -= usa
+      if (!resta) break
+    }
+    if (resta && ls.length) ls[ls.length - 1].vendidos += resta // vendeu mais do que entrou (dados antigos)
+  }
+  for (const l of lotes.values()) l.saldo = l.qtd - l.vendidos
+  return lotes
+}
+
+// Estoque por produto (soma dos lotes): Map nome normalizado → { k, produto, entradas, vendidos, saldo, custo, ultimoCusto, valor, lotes }
+// custo = custo médio das unidades que ainda restam (cada lote com o próprio custo); valor = soma exata dos lotes.
+export function calcularEstoque(db) {
+  const m = new Map()
+  for (const l of calcularLotes(db).values()) {
+    if (!m.has(l.k)) m.set(l.k, { k: l.k, produto: l.produto, entradas: 0, vendidos: 0, saldo: 0, custo: null, ultimoCusto: null, valor: 0, lotes: [] })
+    const s = m.get(l.k)
+    s.produto = l.produto
+    s.entradas += l.qtd
+    s.vendidos += l.vendidos
+    s.saldo += l.saldo
+    if (l.custo != null) { s.ultimoCusto = l.custo; if (l.saldo > 0) s.valor += l.saldo * l.custo }
+    s.lotes.push(l)
+  }
+  for (const s of m.values()) {
+    const restantes = s.lotes.reduce((x, l) => x + Math.max(0, l.saldo), 0)
+    s.custo = restantes > 0 ? Math.round((s.valor / restantes) * 100) / 100 : s.ultimoCusto
+    s.valor = Math.round(s.valor * 100) / 100
   }
   return m
 }

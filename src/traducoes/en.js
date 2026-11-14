@@ -987,4 +987,11 @@ export default {
   'Ver venda de {data}': 'See sale from {data}',
   'Custo médio': 'Average cost',
   'Média do custo das unidades em estoque, pesando a quantidade de cada entrada.': 'Average cost of the units in stock, weighted by the quantity of each entry.',
+  '{n} un.': '{n} unit(s)',
+  'Estoque (escolha a unidade/lote)': 'Stock (choose the unit/lot)',
+  'Restam': 'Remaining',
+  'Não dá para excluir: esta entrada já foi vendida.': 'Can\'t delete: this entry was already sold.',
+  'Desta entrada já saíram {n} unidade(s). Exclua antes a venda em Vendas: {dias}.': '{n} unit(s) of this entry were already sold. First delete the sale in Sales: {dias}.',
+  'Não dá: esta entrada já tem {n} unidade(s) vendida(s). A quantidade não pode ficar menor que isso, e o produto não pode mudar de nome.': 'Can\'t do it: this entry already has {n} unit(s) sold. The quantity can\'t go below that, and the product can\'t be renamed.',
+  'Estoque insuficiente nesta entrada de "{produto}": só há {n} unidade(s). A venda não foi salva.': 'Not enough stock in this entry of "{produto}": only {n} unit(s). The sale was not saved.',
 }

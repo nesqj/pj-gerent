@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
-import { brl, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, uid } from '../utils.js'
+import { brl, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, uid } from '../utils.js'
 
 // Estoque próprio da loja: não tem fornecedor nem marca, e não se mistura com os preços dos fornecedores.
 // O preço de venda é digitado na aba Vendas, na hora de vender.
@@ -16,6 +16,7 @@ export default function Estoque({ db, executar, irPara }) {
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
 
   const estoque = calcularEstoque(db)
+  const lotes = calcularLotes(db)
   const existente = estoque.get(norm(form.produto)) // produto que já está no estoque
 
   async function registrar(e) {
@@ -48,16 +49,18 @@ export default function Estoque({ db, executar, irPara }) {
   }
 
   async function excluirEntrada(en) {
-    // entrada que já foi vendida: excluir deixaria o estoque negativo
-    const p = estoque.get(norm(en.produto))
-    if (p && p.saldo - en.qtd < 0) {
-      // em que dias estão as vendas desse produto (a aba Vendas mostra um dia por vez)
-      const k = norm(en.produto)
-      const dias = [...new Set((db.vendas || []).filter((v) => v.itens.some((i) => i.origem === 'estoque' && norm(i.produto) === k)).map((v) => v.dia))].sort().reverse()
+    // entrada (lote) que já teve unidades vendidas: excluir deixaria o estoque negativo
+    const lote = lotes.get(en.id)
+    const k = norm(en.produto)
+    const vendidoDireto = (db.vendas || []).reduce((s, v) => s + v.itens.filter((i) => i.origem === 'estoque' && i.entradaId === en.id).reduce((x, i) => x + (+i.qtd || 0), 0), 0)
+    if (lote && (vendidoDireto > 0 || (estoque.get(k)?.saldo ?? 0) - en.qtd < 0)) {
+      // em que dias estão as vendas que usaram esta entrada (ou o produto, nas vendas antigas sem lote)
+      const usa = (i) => i.origem === 'estoque' && (i.entradaId ? i.entradaId === en.id : norm(i.produto) === k)
+      const dias = [...new Set((db.vendas || []).filter((v) => v.itens.some(usa)).map((v) => v.dia))].sort().reverse()
       const abrirDia = (d) => { try { sessionStorage.setItem('vendas-dia', d) } catch { /* sem acesso */ } irPara?.('vendas') }
       return aviso.alerta(
-        t('Não dá para excluir: "{produto}" já foi vendido.', { produto: en.produto }),
-        t('Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Exclua antes a venda desse produto em Vendas: {dias}.', { n: p.vendidos, saldo: Math.max(0, p.saldo), dias: dias.map(dataBR).join(', ') }),
+        t('Não dá para excluir: esta entrada já foi vendida.'),
+        t('Desta entrada já saíram {n} unidade(s). Exclua antes a venda em Vendas: {dias}.', { n: lote.vendidos, dias: dias.map(dataBR).join(', ') }),
         dias.length && irPara ? { duration: 12000, action: { label: t('Ver venda de {data}', { data: dataBR(dias[0]) }), onClick: () => abrirDia(dias[0]) } } : undefined,
       )
     }
@@ -74,7 +77,7 @@ export default function Estoque({ db, executar, irPara }) {
     .sort((a, c) => a.produto.localeCompare(c.produto))
 
   const unidades = todos.reduce((s, p) => s + Math.max(0, p.saldo), 0)
-  const valorCusto = todos.reduce((s, p) => s + Math.max(0, p.saldo) * (p.custo ?? 0), 0)
+  const valorCusto = todos.reduce((s, p) => s + (p.valor || 0), 0) // soma exata dos lotes (cada um com o próprio custo)
   const semEstoque = todos.filter((p) => p.saldo <= 0).length
 
   const entradas = [...(db.entradas || [])].sort((a, c) => c.data - a.data).slice(0, 50)
@@ -141,7 +144,7 @@ export default function Estoque({ db, executar, irPara }) {
                 <td className="n">{p.entradas}</td>
                 <td className="n">{p.vendidos}</td>
                 <td className="n"><b className={classeEstoque(p.saldo)}>{Math.max(0, p.saldo)}</b>{p.saldo < 0 && <small className="bad" title={t('Vendeu {n} a mais do que entrou (antes do bloqueio). Registre uma entrada para acertar.', { n: -p.saldo })}> ({p.saldo})</small>}</td>
-                <td className="n">{p.saldo > 0 && p.custo != null ? brl(p.saldo * p.custo) : '-'}</td>
+                <td className="n">{p.saldo > 0 && p.valor > 0 ? brl(p.valor) : '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -153,15 +156,16 @@ export default function Estoque({ db, executar, irPara }) {
       <div className="tw">
         <table>
           <thead>
-            <tr><th>{t('Data')}</th><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Custo unit.')}</th><th className="n">{t('Total')}</th><th>{t('Obs.')}</th><th></th></tr>
+            <tr><th>{t('Data')}</th><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Restam')}</th><th className="n">{t('Custo unit.')}</th><th className="n">{t('Total')}</th><th>{t('Obs.')}</th><th></th></tr>
           </thead>
           <tbody>
-            {entradas.length === 0 && <tr><td colSpan="7" className="vazio">{t('Nenhuma entrada registrada.')}</td></tr>}
+            {entradas.length === 0 && <tr><td colSpan="8" className="vazio">{t('Nenhuma entrada registrada.')}</td></tr>}
             {entradas.map((en) => (
               <tr key={en.id} className={editando?.id === en.id ? 'em-edicao' : ''}>
                 <td>{dataBR(en.dia)} {hora(en.data)}</td>
                 <td>{en.produto}</td>
                 <td className="n">{en.qtd}</td>
+                <td className="n"><b className={classeEstoque(lotes.get(en.id)?.saldo ?? 0)}>{Math.max(0, lotes.get(en.id)?.saldo ?? 0)}</b></td>
                 <td className="n">{en.custo != null ? brl(en.custo) : '-'}</td>
                 <td className="n">{en.custo != null ? brl(en.qtd * en.custo) : '-'}</td>
                 <td className="quebra">{en.obs || '-'}{en.foraDoCaixa && <span className="tag">{t('fora do caixa')}</span>}</td>
