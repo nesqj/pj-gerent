@@ -161,12 +161,6 @@ export default function Analise({ db }) {
           <small>{t('Vendas')}</small><b>{r.vendas}</b>
           <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
         </div>
-        {r.perdas > 0 && (
-          <div className="card card-prejuizo">
-            <small>{t('Perdas')}</small><b className="bad">− {brl(r.perdas)}</b>
-            <small>{t('{n} venda(s) com item abaixo do custo', { n: r.comPrejuizo })}</small>
-          </div>
-        )}
       </div>
 
       {vendas.length === 0 ? (
