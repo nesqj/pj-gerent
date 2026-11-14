@@ -99,7 +99,6 @@ function ControleCaixa({ db, ext, executar, irPara }) {
     tudo: 0,
   }[periodo]
   const doPeriodo = ext.movimentos.filter((m) => m.data >= desde)
-  const soma = (origem) => doPeriodo.filter((m) => m.origem === origem).reduce((s, m) => s + Math.abs(m.valor), 0)
   const lista = [...doPeriodo].reverse()
 
   return (
@@ -108,13 +107,6 @@ function ControleCaixa({ db, ext, executar, irPara }) {
 
       <div className="cards">
         <div className="card destaque-caixa"><small>{t('Saldo em caixa')}</small><b className={ext.saldo < 0 ? 'bad' : ''}>{brl(ext.saldo)}</b></div>
-        <div className="card"><small>{t('Vendas')}</small><b className="ok">+ {brl(soma('venda') + soma('fiado'))}</b></div>
-        <div className="card"><small>{t('Dinheiro colocado')}</small><b className="ok">+ {brl(soma('colocar'))}</b></div>
-        <div className="card"><small>{t('Compras de estoque')}</small><b className="bad">− {brl(soma('compra'))}</b></div>
-        <div className="card"><small>{t('Dinheiro retirado')}</small><b className="bad">− {brl(soma('retirar'))}</b></div>
-        {(soma('emprestimo') > 0 || soma('emprestimo-receb') > 0) && (
-          <div className="card"><small>{t('Empréstimos')}</small><b className="bad">− {brl(soma('emprestimo'))}</b><small className="var ok">+ {brl(soma('emprestimo-receb'))} {t('recebido de volta')}</small></div>
-        )}
       </div>
       <p><small>{t('Controle desde {data}.', { data: `${dataTs(ext.inicio)} ${hora(ext.inicio)}` })}{' '}<button className="link pequeno" onClick={() => setAjustando(true)}>{t('Ajustar saldo inicial')}</button></small></p>
       {ext.saldo < 0 && <p className="bad">{t('O caixa está negativo: saiu mais dinheiro do que entrou. Confira as compras e retiradas, ou registre o dinheiro colocado.')}</p>}
