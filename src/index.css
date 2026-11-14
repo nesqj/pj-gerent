@@ -643,3 +643,9 @@ i.q.fat { background: var(--pri) } i.q.luc { background: var(--cor-lucro) } i.q.
 i.l.fat { border-color: var(--pri) } i.l.luc { border-color: var(--cor-lucro) } i.l.preju { border-color: var(--bad) }
 i.q.ven { background: var(--cor-vendas); opacity: .7 }
 
+
+/* ---------- Valores dos cards: nunca quebram de linha; diminuem um pouco quando o número é grande ---------- */
+.card { container-type: inline-size; min-width: 0 }
+.card b { white-space: nowrap; font-size: clamp(14px, 12.5cqi, 18px); font-variant-numeric: tabular-nums }
+.card.destaque-caixa b { font-size: clamp(15px, 14cqi, 22px) }
+@media (max-width: 767px) { .card b { font-size: clamp(13px, 12.5cqi, 16px) } }
