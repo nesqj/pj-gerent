@@ -176,7 +176,7 @@ export default function Vendas({ db, executar }) {
 
   return (
     <section>
-      <h2>{t('Vendas')}</h2>
+      <h2>{t('Novo Registro')}</h2>
 
       {/* ---------- Nova venda ---------- */}
       <form onSubmit={adicionar}>
