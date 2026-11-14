@@ -118,7 +118,7 @@ export default function Fiado({ db, executar, irPara }) {
 
   return (
     <section>
-      <h2>{t('Fiado')}</h2>
+      <h2>{t('A receber')}</h2>
 
       <div className="cards">
         <div className="card destaque"><small>{t('A receber')}</small><b>{brl(cards.receber)}</b><small className="var">{t('{n} parcela(s) em aberto', { n: abertas.length })}</small></div>
