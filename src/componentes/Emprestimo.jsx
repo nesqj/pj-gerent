@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
-import { brl, calcularEmprestimo, dataBR, encargoAtraso, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
+import { brl, calcularEmprestimo, dataBR, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
 import { AvisoCliente } from './Clientes.jsx'
 
@@ -118,13 +118,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
   const lista = (db.emprestimos || []).filter((e) => e.dia === dia).sort((a, b) => b.data - a.data)
   const lucros = lista.map(lucroEmprestimo)
   const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
-  // falta receber = o que falta das parcelas + multa e juros de atraso de hoje (se configurados)
-  const faltaDe = (e) => {
-    const f = resumoFiado(e)
-    const atraso = (e.fiado?.parcelas || []).reduce((s, p) => s + encargoAtraso(p, db.config?.atraso).total, 0)
-    return { falta: Math.round(((f?.aberto || 0) + atraso) * 100) / 100, atraso: Math.round(atraso * 100) / 100 }
-  }
-  const faltas = lista.map(faltaDe)
   const jurosConfirmados = lucros.reduce((s, l) => s + l.lucro, 0)
 
   async function excluir(e) {
@@ -149,11 +142,10 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
           <b className={jurosConfirmados < 0 ? 'bad' : 'ok'}>{jurosConfirmados < 0 ? '− ' + brl(-jurosConfirmados) : brl(jurosConfirmados)}</b>
         </div>
       </div>
-      <div className="tw">
+      {lista.length > 0 && <div className="tw">
         <table>
-          <thead><tr><th>{t('Hora')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('A receber')}</th><th className="n">{t('Recebido')}</th><th className="n">{t('Lucro (juros)')}</th><th></th></tr></thead>
+          <thead><tr><th>{t('Hora')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('Recebido')}</th><th className="n">{t('Lucro (juros)')}</th><th></th></tr></thead>
           <tbody>
-            {lista.length === 0 && <tr><td colSpan="7" className="vazio">{t('Nenhum empréstimo neste dia.')}</td></tr>}
             {lista.map((e) => {
               const l = lucroEmprestimo(e)
               const n = e.fiado?.parcelas?.length || 1
@@ -162,9 +154,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
                   <td>{hora(e.data)}</td>
                   <td className="quebra">{e.fiado?.cliente}<small className="sub-linha">{n}× · {t('{p}% ao mês', { p: num(e.jurosPct || 0, 2) })}{e.foraDoCaixa ? ' · ' + t('fora do caixa') : ''}{e.obs ? ' · ' + e.obs : ''}</small></td>
                   <td className="n">{brl(e.valor)}</td>
-                  <td className="n">
-                    <b>{faltas[lista.indexOf(e)].falta > 0 ? brl(faltas[lista.indexOf(e)].falta) : '-'}</b>
-                  </td>
                   <td className="n">{brl(l.recebido)}</td>
                   <td className="n">
                     {l.lucro < 0 ? <span className="bad">− {brl(-l.lucro)}<small className="desconto-linha">{t('prejuízo')}</small></span> : <span className="ok">{brl(l.lucro)}</span>}
@@ -179,7 +168,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
             })}
           </tbody>
         </table>
-      </div>
+      </div>}
     </>
   )
 }
