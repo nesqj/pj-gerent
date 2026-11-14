@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
 import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroVenda } from '../utils.js'
-import { Anel, AnelPontilhado, BarrasSegmentadas, CalendarioCalor, ColunasDegrade, GraficoArea, Sparkline } from './Graficos.jsx'
+import { Anel, AnelPontilhado, BarrasSegmentadas, CalendarioCalor, ColunasDegrade, GraficoArea, GraficoTendencia, Sparkline } from './Graficos.jsx'
 
 // ---------- Datas ----------
 const paraDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -31,6 +31,36 @@ const PERIODOS = [
   { id: 'mesPassado', nome: 'Mês passado' },
   { id: 'perso', nome: 'Personalizado' },
 ]
+
+// ---------- Tendência por semana (segunda a domingo) e previsão ----------
+const SEMANAS = 12, PREVER = 4
+const inicioSemana = (s) => { const d = deDia(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return paraDia(d) }
+function tendenciaSemanal(vendas) {
+  const atual = inicioSemana(hoje())
+  const semanas = Array.from({ length: SEMANAS }, (_, i) => {
+    const inicio = somarDias(atual, -7 * (SEMANAS - 1 - i))
+    return { inicio, rotulo: dataBR(inicio).slice(0, 5), valor: 0, vendas: 0, parcial: i === SEMANAS - 1 }
+  })
+  const pos = new Map(semanas.map((x, i) => [x.inicio, i]))
+  for (const v of vendas) { const i = pos.get(inicioSemana(v.dia)); if (i != null) { semanas[i].valor += v.total; semanas[i].vendas++ } }
+  // previsão: reta das semanas já fechadas (a partir da primeira com venda), misturada com a média recente
+  const fechadas = semanas.slice(0, -1)
+  const primeira = fechadas.findIndex((x) => x.valor > 0)
+  const base = primeira < 0 ? [] : fechadas.slice(primeira).slice(-8)
+  let previsao = []
+  if (base.length >= 3) {
+    const n = base.length
+    const mx = (n - 1) / 2, my = base.reduce((a, x) => a + x.valor, 0) / n
+    const inclinacao = base.reduce((a, x, i) => a + (i - mx) * (x.valor - my), 0) / base.reduce((a, _, i) => a + (i - mx) ** 2, 0)
+    const media4 = base.slice(-4).reduce((a, x) => a + x.valor, 0) / Math.min(4, n)
+    previsao = Array.from({ length: PREVER }, (_, k) => {
+      const inicio = somarDias(atual, 7 * (k + 1))
+      const reta = my + inclinacao * (n + k + 1 - mx) // a semana atual fica no meio (n), a previsão começa na seguinte
+      return { inicio, rotulo: dataBR(inicio).slice(0, 5), valor: Math.max(0, Math.round((0.5 * reta + 0.5 * media4) * 100) / 100) }
+    })
+  }
+  return { semanas, previsao }
+}
 
 // ---------- Números do período ----------
 function resumo(vendas) {
@@ -89,6 +119,7 @@ export default function Analise({ db }) {
   }
   const faturamentoPorDia = new Map()
   for (const v of vendas) faturamentoPorDia.set(v.dia, (faturamentoPorDia.get(v.dia) || 0) + v.total)
+  const tendencia = tendenciaSemanal(db.vendas)
   const melhorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
 
   // por forma de pagamento
@@ -206,6 +237,20 @@ export default function Analise({ db }) {
               </div>
             </div>
           </div>
+
+          {/* ---------- Tendência por semana ---------- */}
+          {tendencia.semanas.some((x) => x.valor > 0) && (
+            <div className="painel neon">
+              <div className="painel-titulo">
+                <h3 className="titulo-neon">{t('Tendência de vendas (por semana)')}</h3>
+                {tendencia.previsao.length > 0
+                  ? <small>{t('Previsão das próximas {n} semanas, pelo ritmo das últimas semanas fechadas.', { n: tendencia.previsao.length })}</small>
+                  : <small>{t('A previsão aparece com pelo menos 3 semanas fechadas de vendas.')}</small>}
+              </div>
+              <GraficoTendencia semanas={tendencia.semanas} previsao={tendencia.previsao}
+                rotuloDica={(d) => t('Semana de {de} a {ate}', { de: dataBR(d.inicio), ate: dataBR(somarDias(d.inicio, 6)) })} />
+            </div>
+          )}
 
           {/* ---------- Produtos ---------- */}
           <div className="linha-titulo">

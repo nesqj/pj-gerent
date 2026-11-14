@@ -659,3 +659,13 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
   .destaque-numero b { font-size: 22px }
 }
 
+/* ---------- Tendência por semana ---------- */
+.grafico.tendencia .marcador { fill: var(--card); stroke: var(--pri); stroke-width: 2.5 }
+.grafico.tendencia .marcador.parcial { stroke-dasharray: 2 2 }
+.grafico.tendencia .marcador.previsto { stroke: var(--neon) }
+.grafico.tendencia .faixa-previsao { fill: color-mix(in srgb, var(--neon) 6%, transparent) }
+.grafico.tendencia .eixo-prev { fill: var(--neon) }
+.grafico.tendencia .guia-linha { stroke: var(--mut); stroke-dasharray: 3 3; opacity: .6 }
+.grafico .legenda .leg-linha { width: 18px; height: 0; border-top: 2.5px solid; border-radius: 0; vertical-align: 3px }
+.grafico .legenda .leg-linha.tracejada { border-top-style: dashed }
+

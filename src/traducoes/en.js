@@ -1004,4 +1004,12 @@ export default {
   'do faturamento': 'of revenue',
   'menos': 'less',
   'mais': 'more',
+  'Tendência de vendas por semana': 'Weekly sales trend',
+  'Tendência de vendas (por semana)': 'Sales trend (weekly)',
+  'Previsão': 'Forecast',
+  'previsão': 'forecast',
+  'semana em andamento': 'week in progress',
+  'Previsão das próximas {n} semanas, pelo ritmo das últimas semanas fechadas.': 'Forecast for the next {n} weeks, based on the pace of the last completed weeks.',
+  'A previsão aparece com pelo menos 3 semanas fechadas de vendas.': 'The forecast appears after at least 3 completed weeks of sales.',
+  'Semana de {de} a {ate}': 'Week of {de} to {ate}',
 }
