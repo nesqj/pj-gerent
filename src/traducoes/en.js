@@ -1019,4 +1019,5 @@ export default {
   'Faturamento, lucro e vendas por hora': 'Revenue, profit and sales by hour',
   'Faturamento, lucro e vendas por dia': 'Revenue, profit and sales by day',
   'vendas: eixo da direita': 'sales: right axis',
+  'eixo da direita': 'right axis',
 }
