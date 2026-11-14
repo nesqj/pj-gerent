@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { confirmar } from '../avisos-tela.jsx'
+import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, uid } from '../utils.js'
 
@@ -48,6 +48,14 @@ export default function Estoque({ db, executar }) {
   }
 
   async function excluirEntrada(en) {
+    // entrada que já foi vendida: excluir deixaria o estoque negativo
+    const p = estoque.get(norm(en.produto))
+    if (p && p.saldo - en.qtd < 0) {
+      return aviso.alerta(
+        t('Não dá para excluir: "{produto}" já foi vendido.', { produto: en.produto }),
+        t('Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Para excluir esta entrada, exclua antes a venda desse produto na aba Vendas.', { n: p.vendidos, saldo: Math.max(0, p.saldo) }),
+      )
+    }
     if (await confirmar(t('Excluir a entrada de {qtd}× "{produto}" de {data}?\nO estoque vai diminuir {qtd} unidade(s).', { qtd: en.qtd, produto: en.produto, data: dataBR(en.dia) }))) {
       executar((A) => A.excluirEntrada(en.id), t('Entrada excluída.')).then((ok) => ok && editando?.id === en.id && cancelarEdicao())
     }

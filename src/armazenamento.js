@@ -227,7 +227,7 @@ function ficaNegativo(antes, depois, produtos) {
 }
 function conferirEstoque(antes, depois, produtos) {
   const r = ficaNegativo(antes, depois, produtos)
-  if (r) throw new Error(t('Não dá para fazer isso: "{produto}" já tem vendas que usam essas unidades e o estoque ficaria em {n}.', { produto: r.nome, n: r.novo }))
+  if (r) throw new Error(t('Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua ou edite antes a venda desse produto na aba Vendas.', { produto: r.nome, n: r.novo }))
 }
 const doEstoque = (itens) => (itens || []).filter((i) => i.origem === 'estoque').map((i) => [norm(i.produto), i.produto])
 const copiaListas = (d) => ({ entradas: [...(d.entradas || [])], vendas: [...(d.vendas || [])] })
