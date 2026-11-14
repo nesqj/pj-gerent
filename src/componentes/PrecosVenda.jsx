@@ -122,6 +122,18 @@ export default function PrecosVenda({ db, executar, embutido }) {
     }
   }
 
+  // exclui de uma vez os produtos marcados (de todos os fornecedores de cada um)
+  async function excluirMarcados() {
+    const lista = tabela.filter((i) => marcados[i.k])
+    if (!lista.length) return
+    if (!(await confirmar(t('Excluir {n} produto(s) selecionado(s)?\nEles saem de todos os fornecedores. Não dá para desfazer.', { n: lista.length }), { perigo: true }))) return
+    const ids = lista.flatMap((i) => fornecedoresDe(i.k).map((o) => o.id))
+    if (await executar(async (A) => { for (const id of ids) await A.excluirPrecoFornecedor(id) }, t('{n} produto(s) excluído(s).', { n: lista.length }))) {
+      setMarcados({})
+      if (lista.some((i) => i.k === sel)) setSel('')
+    }
+  }
+
   async function aplicarNosMarcados() {
     const ks = tabela.filter((i) => marcados[i.k]).map((i) => i.k)
     if (!ks.length) return
@@ -148,19 +160,21 @@ export default function PrecosVenda({ db, executar, embutido }) {
         <>
           <div className="linha-titulo">
             <input className="busca" style={{ marginBottom: 0 }} placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+            <small className="qtd-produtos">{b ? t('{n} de {total} produto(s)', { n: tabela.length, total: itens.length }) : t('{n} produto(s) cadastrado(s)', { n: itens.length })}</small>
             <div className="chips">
               <button className={'filtro' + (ordem === 'az' ? ' ativo' : '')} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
               <button className={'filtro' + (ordem === 'recentes' ? ' ativo' : '')} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
             </div>
             {qtdMarcados > 0 && (
               <div className="aplicar-lote">
-                <small>{t('{n} selecionado(s):', { n: qtdMarcados })}</small>
+                <small>{t('{n} de {total} selecionado(s):', { n: qtdMarcados, total: tabela.length })}</small>
                 <select value={aplicar} onChange={(e) => setAplicar(e.target.value)}>
                   <option value="padrao">{t('Usar a regra padrão')}</option>
                   {regras.map((r) => <option key={r.id} value={'r:' + r.id}>{r.nome} ({formulaRegra(r)})</option>)}
                   <option value="nenhuma">{t('Sem regra (preço = custo)')}</option>
                 </select>
                 <button onClick={aplicarNosMarcados}>{t('Aplicar')}</button>
+                <button className="del" onClick={excluirMarcados}>{t('Excluir selecionados')}</button>
               </div>
             )}
           </div>

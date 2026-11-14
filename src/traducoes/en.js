@@ -1311,4 +1311,10 @@ export default {
   'Salvar nome': 'Save name',
   'Adicionar fornecedor': 'Add supplier',
   'Para cadastrar um produto, use "+ Cadastrar produto" na aba Fornecedores.': 'To add a product, use "+ Add product" in the Suppliers tab.',
+  'Excluir {n} produto(s) selecionado(s)?\nEles saem de todos os fornecedores. Não dá para desfazer.': 'Delete {n} selected product(s)?\nThey are removed from all suppliers. This cannot be undone.',
+  '{n} produto(s) excluído(s).': '{n} product(s) deleted.',
+  '{n} de {total} selecionado(s):': '{n} of {total} selected:',
+  'Excluir selecionados': 'Delete selected',
+  '{n} de {total} produto(s)': '{n} of {total} product(s)',
+  '{n} produto(s) cadastrado(s)': '{n} product(s) registered',
 }

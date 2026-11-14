@@ -764,4 +764,5 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
   border: 1px dashed var(--bd); border-radius: 8px; background: transparent }
 .ep-adicionar select { min-width: 0 }
 @media (max-width: 767px) { .ep-adicionar { grid-template-columns: 1fr 100px; } .ep-adicionar button { grid-column: 1 / -1 } }
+.qtd-produtos { color: var(--mut); white-space: nowrap }
 
