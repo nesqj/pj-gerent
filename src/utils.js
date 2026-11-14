@@ -290,6 +290,8 @@ export function lucroDe(itens, fator = 1) {
 // venda.pagamentos = [{ forma, valor }]  — o que foi pago na hora (dinheiro, PIX, débito, crédito)
 // venda.fiado = { clienteId, cliente, telefone, parcelas: [{ id, n, valor, vencimento 'AAAA-MM-DD', naoPaga, recebimentos: [{ id, data, dia, valor, forma }] }] }
 // Vendas antigas (sem "pagamentos") foram pagas inteiras na forma "pagamento".
+// Valor digitado em reais: "1.000,50", "1000,50", "1000.50" e "1.000" (mil) funcionam
+export const lerValor = (s) => Number(String(s ?? '').replace(/\s/g, '').replace(/R\$/i, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'))
 export const recebidoDaParcela = (p) => (p.recebimentos || []).reduce((s, r) => s + (+r.valor || 0), 0)
 export function situacaoParcela(p, dia = hoje()) {
   const falta = (+p.valor || 0) - recebidoDaParcela(p)

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
+import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
 // "Recebeu" registra o pagamento (total ou parcial) e entra no caixa; "Não pagou" vira perda.
@@ -20,7 +20,6 @@ const FILTROS = [
   { id: 'nao_pagos', nome: 'Não pagos' },
   { id: 'todos', nome: 'Todos' },
 ]
-const numero = (s) => Number(String(s ?? '').replace(/\s/g, '').replace(',', '.'))
 const r2 = (x) => Math.round(x * 100) / 100
 
 // Link do WhatsApp com a mensagem pronta
@@ -39,7 +38,7 @@ export default function Fiado({ db, executar, irPara }) {
   const dia = hoje()
 
   // todas as parcelas, com a venda junto
-  const parcelas = (db.vendas || []).filter((v) => v.fiado).flatMap((v) => v.fiado.parcelas.map((p) => {
+  const parcelas = (db.vendas || []).filter((v) => v.fiado?.parcelas?.length).flatMap((v) => v.fiado.parcelas.map((p) => {
     const recebido = recebidoDaParcela(p)
     return { v, p, recebido, falta: r2(Math.max(0, p.valor - recebido)), situacao: situacaoParcela(p, dia), total: v.fiado.parcelas.length }
   }))
@@ -64,14 +63,10 @@ export default function Fiado({ db, executar, irPara }) {
       nao_pagos: x.situacao === 'nao_paga',
       todos: true,
     }[filtro]))
-    .sort((a, c) => a.p.vencimento.localeCompare(c.p.vencimento) || a.v.fiado.cliente.localeCompare(c.v.fiado.cliente))
+    .sort((a, c) => String(a.p.vencimento).localeCompare(String(c.p.vencimento)) || String(a.v.fiado.cliente || '').localeCompare(String(c.v.fiado.cliente || '')))
 
-  // grava a venda com o fiado alterado
-  async function gravar(v, novasParcelas, acao, detalhe, msgOk) {
-    const nova = { ...v, fiado: { ...v.fiado, parcelas: novasParcelas } }
-    return executar((A) => A.salvarFiado(nova, acao, detalhe), msgOk)
-  }
-  const trocaParcela = (v, id, fn) => v.fiado.parcelas.map((p) => (p.id === id ? fn(p) : p))
+  // altera uma parcela (a mudança é aplicada sobre a versão mais nova da venda, no banco)
+  const gravar = (x, alterar, acao, detalhe, msgOk) => executar((A) => A.salvarFiado(x.v.id, x.p.id, alterar, acao, detalhe), msgOk)
 
   async function confirmarRecebimento(e) {
     e.preventDefault()
@@ -81,7 +76,12 @@ export default function Fiado({ db, executar, irPara }) {
     if (!(valor > 0)) return aviso.alerta(t('Informe um valor maior que zero.'))
     if (valor > x.falta + 0.004) return aviso.alerta(t('O valor passa do que falta nesta parcela ({valor}).', { valor: brl(x.falta) }))
     const rec = { id: uid(), data: Date.now(), dia: hoje(), valor, forma: recebendo.forma }
-    const ok = await gravar(x.v, trocaParcela(x.v, x.p.id, (p) => ({ ...p, naoPaga: false, recebimentos: [...(p.recebimentos || []), rec] })),
+    const ok = await gravar(x, (p) => {
+      // confere de novo com os dados mais novos (outra pessoa pode ter recebido antes)
+      const falta = r2(Math.max(0, p.valor - recebidoDaParcela(p)))
+      if (valor > falta + 0.004) throw new Error(t('O valor passa do que falta nesta parcela ({valor}).', { valor: brl(falta) }))
+      return { ...p, naoPaga: false, recebimentos: [...(p.recebimentos || []), rec] }
+    },
       'venda.fiado-recebido', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${valor} (${recebendo.forma})`,
       valor >= x.falta - 0.004 ? t('Parcela recebida. Entrou no caixa.') : t('Pagamento parcial registrado. Falta {valor}.', { valor: brl(x.falta - valor) }))
     if (ok) setRecebendo(null)
@@ -89,28 +89,31 @@ export default function Fiado({ db, executar, irPara }) {
 
   async function naoPagou(x) {
     if (!(await confirmar(t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro da venda e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) }), { botao: t('Não pagou'), perigo: true }))) return
-    gravar(x.v, trocaParcela(x.v, x.p.id, (p) => ({ ...p, naoPaga: true })), 'venda.fiado-nao-pago', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago (perda).'))
+    gravar(x, (p) => ({ ...p, naoPaga: true }), 'venda.fiado-nao-pago', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago (perda).'))
   }
   function reabrir(x) {
-    gravar(x.v, trocaParcela(x.v, x.p.id, (p) => ({ ...p, naoPaga: false })), 'venda.fiado-reaberto', `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
+    gravar(x, (p) => ({ ...p, naoPaga: false }), 'venda.fiado-reaberto', `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
   }
   async function estornar(x) {
     const ultimo = (x.p.recebimentos || []).at(-1)
     if (!ultimo) return
     if (!(await confirmar(t('Estornar o último recebimento de {valor} ({data})? Ele sai do caixa e a parcela volta a ficar em aberto.', { valor: brl(ultimo.valor), data: dataBR(ultimo.dia) })))) return
-    gravar(x.v, trocaParcela(x.v, x.p.id, (p) => ({ ...p, recebimentos: p.recebimentos.slice(0, -1) })), 'venda.fiado-estorno', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${ultimo.valor}`, t('Recebimento estornado.'))
+    gravar(x, (p) => {
+      if ((p.recebimentos || []).at(-1)?.id !== ultimo.id) throw new Error(t('Os recebimentos desta parcela mudaram. Confira e tente de novo.'))
+      return { ...p, recebimentos: p.recebimentos.slice(0, -1) }
+    }, 'venda.fiado-estorno', `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${ultimo.valor}`, t('Recebimento estornado.'))
   }
   async function salvarData(e) {
     e.preventDefault()
     const x = parcelas.find((y) => y.v.id === mudandoData.vendaId && y.p.id === mudandoData.parcelaId)
     if (!x || !mudandoData.data) return setMudandoData(null)
-    const ok = await gravar(x.v, trocaParcela(x.v, x.p.id, (p) => ({ ...p, vencimento: mudandoData.data })), 'venda.fiado-data',
+    const ok = await gravar(x, (p) => ({ ...p, vencimento: mudandoData.data }), 'venda.fiado-data',
       `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${dataBR(x.p.vencimento)} → ${dataBR(mudandoData.data)}`, t('Data alterada.'))
     if (ok) setMudandoData(null)
   }
 
   const mensagem = (x) => t('Olá, {cliente}! Passando para lembrar da parcela {n} de {valor}, combinada para {data}. Obrigado!', {
-    cliente: x.v.fiado.cliente.split(' ')[0], n: `${x.p.n}/${x.total}`, valor: brl(x.falta), data: dataBR(x.p.vencimento),
+    cliente: String(x.v.fiado.cliente || '').split(' ')[0], n: `${x.p.n}/${x.total}`, valor: brl(x.falta), data: dataBR(x.p.vencimento),
   })
 
   return (

@@ -120,7 +120,10 @@ export default function Vendas({ db, executar }) {
     // pagamento: uma forma, dividido e/ou fiado
     const pago = montarPagamento(pg, total, db.clientes || [])
     if (pago.erro) return aviso.alerta(pago.erro)
-    if (pago.novoCliente && !(await executar((A) => A.salvarCliente(pago.novoCliente)))) return
+    if (pago.novoCliente) {
+      if (!(await executar((A) => A.salvarCliente(pago.novoCliente)))) return
+      setPg((x) => ({ ...x, fiado: { ...x.fiado, clienteId: pago.novoCliente.id } }))
+    }
     const extra = { pagamento: pago.pagamento, pagamentos: pago.pagamentos, ...(pago.fiado ? { fiado: pago.fiado } : {}) }
     // editando: mantém id, data e dia originais
     const venda = editando

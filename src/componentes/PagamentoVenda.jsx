@@ -1,5 +1,5 @@
 import { t } from '../i18n.js'
-import { brl, hoje, PAGAMENTOS, uid } from '../utils.js'
+import { brl, hoje, lerValor as numero, norm, PAGAMENTOS, uid } from '../utils.js'
 
 // Pagamento da venda:
 //  - uma forma só (Dinheiro, PIX, Débito, Crédito ou Fiado para o valor todo), ou
@@ -16,7 +16,6 @@ export const novoPagamento = () => ({
   linhas: [{ forma: 'Dinheiro', valor: '' }, { forma: 'PIX', valor: '' }],
   fiado: { clienteId: '', nome: '', telefone: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal' },
 })
-const numero = (s) => Number(String(s ?? '').replace(/\s/g, '').replace(',', '.'))
 const r2 = (x) => Math.round(x * 100) / 100
 
 // Datas das parcelas
@@ -59,6 +58,7 @@ export function montarPagamento(pg, total, clientes) {
   const f = pg.fiado
   let cliente = clientes.find((c) => c.id === f.clienteId)
   let novoCliente = null
+  if (!cliente && f.nome.trim()) cliente = clientes.find((c) => norm(c.nome) === norm(f.nome))
   if (!cliente) {
     if (!f.nome.trim()) return { erro: t('Informe o cliente do fiado.') }
     novoCliente = { id: uid(), nome: f.nome.trim(), telefone: f.telefone.trim() }

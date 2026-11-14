@@ -8,7 +8,7 @@
 
 import { t } from './i18n.js'
 import { supabase } from './supabase.js'
-import { norm } from './utils.js'
+import { norm, resumoFiado } from './utils.js'
 
 const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
 const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [] })
@@ -238,6 +238,9 @@ const copiaListas = (d) => ({ entradas: [...(d.entradas || [])], vendas: [...(d.
 export const salvarVenda = (v) => mudar('venda.salva', (d) => {
   const antes = copiaListas(d)
   const i = d.vendas.findIndex((x) => x.id === v.id)
+  // fiado que já teve recebimento (ou "não pagou"): editar a venda apagaria esse histórico
+  const f = i >= 0 ? resumoFiado(d.vendas[i]) : null
+  if (f && (f.recebido > 0 || f.naoPago > 0)) throw new Error(t('Esta venda tem fiado com pagamento já registrado.') + ' ' + t('Para mudar, use a aba Fiado (receber, mudar data, não pagou) ou exclua a venda.'))
   if (i >= 0) d.vendas[i] = v
   else d.vendas.push(v)
   // cada lote escolhido precisa ter as unidades
@@ -260,10 +263,15 @@ export const salvarVenda = (v) => mudar('venda.salva', (d) => {
 export const excluirVenda = (id) => remover('vendas', 'venda.excluida', id)
 
 // Fiado: recebeu, não pagou, mudar data… (altera a venda, sem mexer nos itens)
-export const salvarFiado = (v, acao, detalhe) => mudar(acao, (d) => {
-  const i = d.vendas.findIndex((x) => x.id === v.id)
-  if (i < 0) throw new Error(t('Venda não encontrada.'))
-  d.vendas[i] = { ...d.vendas[i], fiado: v.fiado }
+// alterar(parcela) devolve a parcela nova; roda sobre os dados mais novos (inclusive se outra pessoa salvou antes)
+export const salvarFiado = (vendaId, parcelaId, alterar, acao, detalhe) => mudar(acao, (d) => {
+  const i = d.vendas.findIndex((x) => x.id === vendaId)
+  const v = d.vendas[i]
+  const k = v?.fiado?.parcelas?.findIndex((p) => p.id === parcelaId) ?? -1
+  if (i < 0 || k < 0) throw new Error(t('Venda não encontrada.'))
+  const parcelas = [...v.fiado.parcelas]
+  parcelas[k] = alterar(parcelas[k])
+  d.vendas[i] = { ...v, fiado: { ...v.fiado, parcelas } }
   return d.vendas[i]
 }, detalhe)
 

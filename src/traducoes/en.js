@@ -1103,4 +1103,5 @@ export default {
   'Pagos': 'Paid',
   'Não pagos': 'Unpaid',
   'Misto': 'Mixed',
+  'Os recebimentos desta parcela mudaram. Confira e tente de novo.': 'The payments on this installment changed. Check and try again.',
 }

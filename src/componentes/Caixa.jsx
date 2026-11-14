@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
-import { brl, dataBR, dataTs, extratoCaixa, hoje, hora, uid } from '../utils.js'
+import { brl, dataBR, dataTs, extratoCaixa, hoje, hora, lerValor as numero, uid } from '../utils.js'
 
 // Caixa (capital de giro): o dinheiro da loja.
 // Entra: vendas e dinheiro colocado. Sai: compras do estoque (custo × quantidade) e dinheiro retirado.
@@ -19,7 +19,6 @@ const ORIGENS = {
   retirar: { nome: 'Dinheiro retirado', classe: 'bad' },
 }
 const novo = { tipo: 'colocar', valor: '', descricao: '' }
-const numero = (s) => Number(String(s).replace(/\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'))
 
 export default function Caixa({ db, executar, irPara }) {
   const ext = extratoCaixa(db)
