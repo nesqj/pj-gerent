@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -261,8 +261,14 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
   const naoPago = somaPerdas(perdasE, de, ate) // marcado "Não pagou" no período (de qualquer empréstimo)
   // Pendências no fim do período: tudo o que foi emprestado até o fim do período e ainda não tinha voltado até essa data
   // (inclui o que foi marcado "Não pagou"). Passa de um mês para o outro e só diminui no mês em que o cliente paga.
-  const pendencias = Math.round(todos.filter((e) => e.dia <= ate).reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) =>
-    a + Math.max(0, (+p.valor || 0) - (p.recebimentos || []).filter((r) => (r.dia || '') <= ate).reduce((b, r) => b + (+r.valor || 0), 0)), 0), 0) * 100) / 100
+  // Com multa e juros de atraso configurados, a parcela atrasada aumenta a pendência (calculado como estava no fim do período).
+  const fimPend = ate < hoje() ? ate : hoje()
+  const pendencias = Math.round(todos.filter((e) => e.dia <= ate).reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => {
+    // a parcela como estava no fim do período: só os recebimentos até lá; "Não pagou" só se já tinha sido marcado
+    const naData = { ...p, recebimentos: (p.recebimentos || []).filter((r) => (r.dia || '') <= ate), naoPaga: !!p.naoPaga && (p.naoPagaEm?.dia || '') <= ate }
+    const falta = Math.max(0, (+p.valor || 0) - naData.recebimentos.reduce((b, r) => b + (+r.valor || 0), 0))
+    return a + falta + encargoAtraso(naData, db.config?.atraso, fimPend).total
+  }, 0), 0) * 100) / 100
   const lucro = Math.round((juros - naoPago) * 100) / 100
   // dinheiro que voltou no período (de qualquer empréstimo), com multa/juros de atraso
   const recebido = todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
