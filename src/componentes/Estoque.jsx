@@ -7,7 +7,7 @@ import { brl, calcularEstoque, classeEstoque, dataBR, hoje, hora, norm, uid } fr
 // O preço de venda é digitado na aba Vendas, na hora de vender.
 const novo = { produto: '', qtd: '1', custo: '', obs: '', doCaixa: true }
 
-export default function Estoque({ db, executar }) {
+export default function Estoque({ db, executar, irPara }) {
   const [form, setForm] = useState(novo)
   const [editando, setEditando] = useState(null) // entrada sendo editada
   const [busca, setBusca] = useState('')
@@ -51,9 +51,14 @@ export default function Estoque({ db, executar }) {
     // entrada que já foi vendida: excluir deixaria o estoque negativo
     const p = estoque.get(norm(en.produto))
     if (p && p.saldo - en.qtd < 0) {
+      // em que dias estão as vendas desse produto (a aba Vendas mostra um dia por vez)
+      const k = norm(en.produto)
+      const dias = [...new Set((db.vendas || []).filter((v) => v.itens.some((i) => i.origem === 'estoque' && norm(i.produto) === k)).map((v) => v.dia))].sort().reverse()
+      const abrirDia = (d) => { try { sessionStorage.setItem('vendas-dia', d) } catch { /* sem acesso */ } irPara?.('vendas') }
       return aviso.alerta(
         t('Não dá para excluir: "{produto}" já foi vendido.', { produto: en.produto }),
-        t('Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Para excluir esta entrada, exclua antes a venda desse produto na aba Vendas.', { n: p.vendidos, saldo: Math.max(0, p.saldo) }),
+        t('Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Exclua antes a venda desse produto em Vendas: {dias}.', { n: p.vendidos, saldo: Math.max(0, p.saldo), dias: dias.map(dataBR).join(', ') }),
+        dias.length && irPara ? { duration: 12000, action: { label: t('Ver venda de {data}', { data: dataBR(dias[0]) }), onClick: () => abrirDia(dias[0]) } } : undefined,
       )
     }
     if (await confirmar(t('Excluir a entrada de {qtd}× "{produto}" de {data}?\nO estoque vai diminuir {qtd} unidade(s).', { qtd: en.qtd, produto: en.produto, data: dataBR(en.dia) }))) {

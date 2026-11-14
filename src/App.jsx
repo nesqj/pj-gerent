@@ -513,7 +513,7 @@ export default function App() {
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} />}
           {!noAdmin && aba === 'caixa' && <Caixa db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'analise' && <Analise db={db} />}
-          {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} />}
+          {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'forn' && <Fornecedores db={db} executar={executar} />}
           {!noAdmin && aba === 'venda' && <PrecosVenda db={db} executar={executar} />}
           {!noAdmin && aba === 'regra' && <RegraPreco db={db} executar={executar} />}

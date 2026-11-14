@@ -983,4 +983,6 @@ export default {
   'Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua ou edite antes a venda desse produto na aba Vendas.': 'Can\'t do it: "{produto}" was already sold and the stock would be {n}. First delete or edit that product\'s sale in the Sales tab.',
   'Não dá para excluir: "{produto}" já foi vendido.': 'Can\'t delete: "{produto}" was already sold.',
   'Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Para excluir esta entrada, exclua antes a venda desse produto na aba Vendas.': '{n} unit(s) were sold and only {saldo} remain in stock. To delete this entry, first delete that product\'s sale in the Sales tab.',
+  'Foram vendidas {n} unidade(s) e só sobram {saldo} no estoque. Exclua antes a venda desse produto em Vendas: {dias}.': '{n} unit(s) were sold and only {saldo} remain in stock. First delete that product\'s sale in Sales: {dias}.',
+  'Ver venda de {data}': 'See sale from {data}',
 }

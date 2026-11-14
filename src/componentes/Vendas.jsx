@@ -11,7 +11,10 @@ export default function Vendas({ db, executar }) {
   const [carrinho, setCarrinho] = useState([])
   const [pagamento, setPagamento] = useState('Dinheiro')
   const [desconto, setDesconto] = useState('') // % de desconto na venda (opcional)
-  const [dia, setDia] = useState(hoje())
+  const [dia, setDia] = useState(() => {
+    try { const d = sessionStorage.getItem('vendas-dia'); sessionStorage.removeItem('vendas-dia'); if (d) return d } catch { /* sem acesso */ }
+    return hoje()
+  })
   const [editando, setEditando] = useState(null) // venda sendo editada (carregada no carrinho)
 
   // Duas origens de produtos:

@@ -12,7 +12,8 @@ export const aviso = {
   ok: (msg, descricao) => toast.success(msg, opcoes(descricao)),
   erro: (msg, descricao) => toast.error(msg, opcoes(descricao, { duration: 6000 })),
   info: (msg, descricao) => toast.info(msg, opcoes(descricao)),
-  alerta: (msg, descricao) => toast.warning(msg, opcoes(descricao, { duration: 6000 })),
+  // extra: opções do sonner, por exemplo { action: { label, onClick } } para um botão no aviso
+  alerta: (msg, descricao, extra) => toast.warning(msg, opcoes(descricao, { duration: 6000, ...extra })),
 }
 
 let abrir = null // a janela é montada uma vez (AvisosNaTela) e recebe os pedidos por aqui
