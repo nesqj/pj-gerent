@@ -140,7 +140,7 @@ export default function Fiado({ db, executar, irPara }) {
             <tr><th>{t('Vencimento')}</th><th>{t('Cliente')}</th><th>{t('Venda')}</th><th className="n">{t('Parcela')}</th><th className="n">{t('Valor')}</th><th className="n">{t('Falta')}</th><th>{t('Situação')}</th><th></th></tr>
           </thead>
           <tbody>
-            {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma venda fiado ainda. Na aba Vendas, escolha "Fiado" ou divida o pagamento.')}</td></tr>}
+            {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma venda fiado ainda. Na aba Novo Registro, escolha "Fiado" ou divida o pagamento.')}</td></tr>}
             {lista.map((x) => {
               const s = SITUACOES[x.situacao]
               const chave = x.v.id + x.p.id

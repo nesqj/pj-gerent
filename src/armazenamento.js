@@ -227,7 +227,7 @@ function ficaNegativo(antes, depois, produtos) {
 }
 function conferirEstoque(antes, depois, produtos) {
   const r = ficaNegativo(antes, depois, produtos)
-  if (r) throw new Error(t('Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua ou edite antes a venda desse produto na aba Vendas.', { produto: r.nome, n: r.novo }))
+  if (r) throw new Error(t('Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua ou edite antes a venda desse produto na aba Novo Registro.', { produto: r.nome, n: r.novo }))
 }
 const doEstoque = (itens) => (itens || []).filter((i) => i.origem === 'estoque').map((i) => [norm(i.produto), i.produto])
 // unidades vendidas que apontam direto para uma entrada (lote)
@@ -240,7 +240,7 @@ export const salvarVenda = (v) => mudar('venda.salva', (d) => {
   const i = d.vendas.findIndex((x) => x.id === v.id)
   // fiado que já teve recebimento (ou "não pagou"): editar a venda apagaria esse histórico
   const f = i >= 0 ? resumoFiado(d.vendas[i]) : null
-  if (f && (f.recebido > 0 || f.naoPago > 0)) throw new Error(t('Esta venda tem fiado com pagamento já registrado.') + ' ' + t('Para mudar, use a aba Fiado (receber, mudar data, não pagou) ou exclua a venda.'))
+  if (f && (f.recebido > 0 || f.naoPago > 0)) throw new Error(t('Esta venda tem fiado com pagamento já registrado.') + ' ' + t('Para mudar, use a aba Cobranças (receber, mudar data, não pagou) ou exclua a venda.'))
   if (i >= 0) d.vendas[i] = v
   else d.vendas.push(v)
   // cada lote escolhido precisa ter as unidades

@@ -3,7 +3,7 @@ import { t } from '../i18n.js'
 
 const TOPICOS = [
   {
-    aba: 'vendas', nome: 'Vendas',
+    aba: 'vendas', nome: 'Novo Registro',
     texto: 'Escolha o produto, a quantidade e clique em Adicionar. Produtos do estoque pedem o preço vendido; produtos dos fornecedores já vêm com o preço da aba Preços de Venda. No fim, escolha a forma de pagamento e clique em Finalizar venda. Na lista do dia dá para editar ou excluir uma venda.',
   },
   {

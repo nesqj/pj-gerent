@@ -164,7 +164,7 @@ export default function PagamentoVenda({ pg, setPg, total, clientes }) {
               {datas.map((d, k) => `${k + 1}ª ${d.split('-').reverse().join('/')}: ${brl(k === n - 1 ? r2(restante - valorParcela * (n - 1)) : valorParcela)}`).join(' · ')}
             </small>
           )}
-          <small>{t('O lucro desta venda só conta quando você confirmar na aba Fiado se o cliente pagou.')}</small>
+          <small>{t('O lucro desta venda só conta quando você confirmar na aba Cobranças se o cliente pagou.')}</small>
         </div>
       )}
     </div>

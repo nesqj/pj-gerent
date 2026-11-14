@@ -156,7 +156,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
                       <button className="del" onClick={() => excluir(m.ref)}>{t('Excluir')}</button>
                     </>
                   ) : (
-                    <button className="link pequeno" onClick={() => irPara(m.origem === 'venda' ? 'vendas' : m.origem === 'fiado' ? 'fiado' : 'estoque')}>{m.origem === 'venda' ? t('Ver em Vendas') : m.origem === 'fiado' ? t('Ver no Fiado') : t('Ver no Estoque')}</button>
+                    <button className="link pequeno" onClick={() => irPara(m.origem === 'venda' ? 'vendas' : m.origem === 'fiado' ? 'fiado' : 'estoque')}>{m.origem === 'venda' ? t('Ver em Novo Registro') : m.origem === 'fiado' ? t('Ver em Cobranças') : t('Ver no Estoque')}</button>
                   )}
                 </td>
               </tr>

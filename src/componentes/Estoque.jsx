@@ -4,7 +4,7 @@ import { t } from '../i18n.js'
 import { brl, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, uid } from '../utils.js'
 
 // Estoque próprio da loja: não tem fornecedor nem marca, e não se mistura com os preços dos fornecedores.
-// O preço de venda é digitado na aba Vendas, na hora de vender.
+// O preço de venda é digitado na aba Novo Registro, na hora de vender.
 const novo = { produto: '', qtd: '1', custo: '', obs: '', doCaixa: true }
 
 export default function Estoque({ db, executar, irPara }) {
@@ -114,7 +114,7 @@ export default function Estoque({ db, executar, irPara }) {
           ? t('Altere os dados e clique em "Salvar alterações". O estoque é recalculado automaticamente.')
           : existente
           ? t('"{produto}" já está no estoque ({n} un.). A quantidade será somada.', { produto: existente.produto, n: existente.saldo })
-          : t('O preço de venda é informado na aba Vendas, na hora de vender.')}
+          : t('O preço de venda é informado na aba Novo Registro, na hora de vender.')}
       </small></p>
 
       {/* ---------- Resumo ---------- */}

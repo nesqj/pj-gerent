@@ -61,7 +61,7 @@ export default function Vendas({ db, executar }) {
     // fiado com pagamento já registrado: a venda não muda mais por aqui (só pela aba Fiado)
     const f = resumoFiado(v)
     if (f && (f.recebido > 0 || f.naoPago > 0)) {
-      return aviso.alerta(t('Esta venda tem fiado com pagamento já registrado.'), t('Para mudar, use a aba Fiado (receber, mudar data, não pagou) ou exclua a venda.'))
+      return aviso.alerta(t('Esta venda tem fiado com pagamento já registrado.'), t('Para mudar, use a aba Cobranças (receber, mudar data, não pagou) ou exclua a venda.'))
     }
     setEditando(v)
     setCarrinho(v.itens.map((i) => ({ ...i })))
@@ -136,7 +136,7 @@ export default function Vendas({ db, executar }) {
       .filter((p) => p.nome && p.resta <= 2)
     if (await executar((A) => A.salvarVenda(venda))) {
       const resultado = lucroVenda(venda)
-      if (venda.fiado) aviso.info(editando ? t('Venda atualizada com fiado.') : t('Venda registrada com fiado.'), t('{valor} a receber de {cliente}. O lucro conta quando você confirmar o pagamento na aba Fiado.', { valor: brl(resumoFiado(venda).aberto), cliente: venda.fiado.cliente }))
+      if (venda.fiado) aviso.info(editando ? t('Venda atualizada com fiado.') : t('Venda registrada com fiado.'), t('{valor} a receber de {cliente}. O lucro conta quando você confirmar o pagamento na aba Cobranças.', { valor: brl(resumoFiado(venda).aberto), cliente: venda.fiado.cliente }))
       else if (resultado.lucro < 0) aviso.alerta(editando ? t('Venda atualizada com prejuízo.') : t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
       else if (resultado.perda > 0) aviso.alerta(editando ? t('Venda atualizada.') : t('Venda registrada.'), t('Atenção: {n} item(ns) vendido(s) abaixo do custo (perda de {valor}).', { n: resultado.itensComPrejuizo, valor: brl(resultado.perda) }))
       else aviso.ok(editando ? t('Venda atualizada.') : t('Venda registrada.'), brl(venda.total))
