@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
@@ -56,17 +56,41 @@ export default function Fiado({ db, executar, irPara }) {
     naoPago: soma(parcelas.filter((x) => x.situacao === 'nao_paga')),
   }
 
+  // uma linha por compra ou empréstimo; a linha mostra a próxima parcela e abre as outras
+  const ABERTA = ['aberta', 'vence_hoje', 'atrasada']
+  const grupos = [...parcelas.reduce((m, x) => { const g = m.get(x.v.id) || { v: x.v, emp: x.emp, parcelas: [] }; g.parcelas.push(x); return m.set(x.v.id, g) }, new Map()).values()]
+    .map((g) => {
+      const tem = (s) => g.parcelas.some((x) => x.situacao === s)
+      const abertasG = g.parcelas.filter((x) => ABERTA.includes(x.situacao)).sort((a, c) => String(a.p.vencimento).localeCompare(String(c.p.vencimento)))
+      const situacao = tem('atrasada') ? 'atrasada' : tem('vence_hoje') ? 'vence_hoje' : tem('aberta') ? 'aberta' : tem('nao_paga') ? 'nao_paga' : 'paga'
+      return {
+        ...g, situacao, abertas: abertasG,
+        proxima: abertasG[0] || g.parcelas.find((x) => x.situacao === 'nao_paga') || g.parcelas.at(-1),
+        falta: soma(abertasG),
+        pagas: g.parcelas.filter((x) => x.situacao === 'paga').length,
+      }
+    })
   const b = norm(busca)
-  const lista = parcelas
-    .filter((x) => !b || norm(x.v.fiado.cliente).includes(b) || norm(x.v.fiado.telefone).includes(b))
-    .filter((x) => ({
-      abertos: ['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao),
-      atrasados: x.situacao === 'atrasada',
-      pagos: x.situacao === 'paga',
-      nao_pagos: x.situacao === 'nao_paga',
+  const lista = grupos
+    .filter((g) => !b || norm(g.v.fiado.cliente).includes(b) || norm(g.v.fiado.telefone).includes(b) || (!g.emp && (g.v.itens || []).some((i) => norm(i.produto).includes(b))))
+    .filter((g) => ({
+      abertos: g.abertas.length > 0,
+      atrasados: g.situacao === 'atrasada',
+      pagos: g.situacao === 'paga',
+      nao_pagos: g.parcelas.some((x) => x.situacao === 'nao_paga'),
       todos: true,
     }[filtro]))
-    .sort((a, c) => String(a.p.vencimento).localeCompare(String(c.p.vencimento)) || String(a.v.fiado.cliente || '').localeCompare(String(c.v.fiado.cliente || '')))
+    .sort((a, c) => (c.abertas.length > 0) - (a.abertas.length > 0) || String(a.proxima.p.vencimento).localeCompare(String(c.proxima.p.vencimento)) || c.v.data - a.v.data)
+  const [abertos, setAbertos] = useState({}) // compras com as parcelas abertas na tela
+  // o motivo da cobrança: os produtos comprados ou o empréstimo
+  const motivo = (g) => {
+    if (g.emp) return { titulo: t('Empréstimo'), detalhe: t('{valor} emprestado · {p}% ao mês', { valor: brl(g.v.valor), p: String(g.v.jurosPct || 0).replace('.', ',') }) }
+    const itens = (g.v.itens || []).map((i) => `${i.qtd > 1 ? i.qtd + '× ' : ''}${i.produto}`)
+    return {
+      titulo: itens.length > 2 ? `${itens.slice(0, 2).join(', ')} ${t('+{n} item(ns)', { n: itens.length - 2 })}` : itens.join(', ') || t('Compra'),
+      detalhe: [t('Compra'), g.v.fiado.jurosPct ? t('juros {p}% ao mês', { p: String(g.v.fiado.jurosPct).replace('.', ',') }) : ''].filter(Boolean).join(' · '),
+    }
+  }
 
   // altera uma parcela (a mudança é aplicada sobre a versão mais nova da venda, no banco)
   const gravar = (x, alterar, acao, detalhe, msgOk) => executar((A) => A.salvarParcela(x.emp ? 'emprestimos' : 'vendas', x.v.id, x.p.id, alterar, acao, detalhe), msgOk)
@@ -135,7 +159,7 @@ export default function Fiado({ db, executar, irPara }) {
       </div>
 
       <div className="linha-titulo">
-        <input className="busca" placeholder={t('Buscar cliente ou telefone...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <input className="busca" placeholder={t('Buscar cliente, telefone ou produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
         <div className="chips">
           {FILTROS.map((f) => <button key={f.id} className={'filtro' + (filtro === f.id ? ' ativo' : '')} onClick={() => setFiltro(f.id)}>{t(f.nome)}</button>)}
         </div>
@@ -144,35 +168,74 @@ export default function Fiado({ db, executar, irPara }) {
       <div className="tw">
         <table>
           <thead>
-            <tr><th>{t('Vencimento')}</th><th>{t('Cliente')}</th><th>{t('Origem')}</th><th className="n">{t('Parcela')}</th><th className="n">{t('Valor')}</th><th className="n">{t('Falta')}</th><th>{t('Situação')}</th><th></th></tr>
+            <tr><th>{t('Próximo vencimento')}</th><th>{t('Cliente')}</th><th>{t('Motivo')}</th><th className="n">{t('Parcelas')}</th><th className="n">{t('Próxima')}</th><th className="n">{t('Falta (total)')}</th><th>{t('Situação')}</th><th></th></tr>
           </thead>
           <tbody>
             {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma venda fiado ainda. Na aba Novo Registro, escolha "Fiado" ou divida o pagamento.')}</td></tr>}
-            {lista.map((x) => {
-              const s = SITUACOES[x.situacao]
-              const chave = x.v.id + x.p.id
-              const whats = ['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao) && linkWhats(x.v.fiado.telefone, mensagem(x))
+            {lista.map((g) => {
+              const x = g.proxima
+              const s = SITUACOES[g.situacao]
+              const m = motivo(g)
+              const aberto = !!abertos[g.v.id]
               return (
-                <tr key={chave} className={x.situacao === 'atrasada' ? 'linha-prejuizo' : ''}>
-                  <td>
-                    {mudandoData?.vendaId === x.v.id && mudandoData.parcelaId === x.p.id ? (
-                      <form className="inline-form" onSubmit={salvarData}>
-                        <input type="date" value={mudandoData.data} onChange={(e) => setMudandoData({ ...mudandoData, data: e.target.value })} />
-                        <button type="submit" className="edit">{t('Salvar')}</button>
-                        <button type="button" className="sec" onClick={() => setMudandoData(null)}>×</button>
-                      </form>
-                    ) : dataBR(x.p.vencimento)}
-                  </td>
-                  <td>{x.v.fiado.cliente}{x.v.fiado.telefone && <small className="sub-linha">{x.v.fiado.telefone}</small>}</td>
-                  <td className="quebra">
-                    <button className="link pequeno" onClick={() => { try { sessionStorage.setItem('vendas-dia', x.v.dia) } catch { /* sem acesso */ } irPara?.('vendas') }}>{dataBR(x.v.dia)}</button>
-                    <small className="sub-linha">{x.emp ? t('Empréstimo de {valor} · {p}% ao mês', { valor: brl(x.v.valor), p: String(x.v.jurosPct || 0).replace('.', ',') }) : (x.v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + (x.v.fiado.jurosPct ? ' · ' + t('juros {p}% ao mês', { p: String(x.v.fiado.jurosPct).replace('.', ',') }) : '')}</small>
-                  </td>
-                  <td className="n">{x.p.n}/{x.total}</td>
-                  <td className="n">{brl(x.p.valor)}{x.recebido > 0 && <small className="sub-linha ok">{t('recebido {valor}', { valor: brl(x.recebido) })}</small>}</td>
-                  <td className="n"><b>{x.situacao === 'paga' ? '-' : brl(x.falta)}</b></td>
-                  <td><span className={s.classe}>{t(s.nome)}</span></td>
-                  <td className="n acoes-fiado">
+                <Fragment key={g.v.id}>
+                  <tr className={'linha-grupo' + (g.situacao === 'atrasada' ? ' linha-prejuizo' : '')}>
+                    <td>{celulaData(x)}</td>
+                    <td>{g.v.fiado.cliente}{g.v.fiado.telefone && <small className="sub-linha">{g.v.fiado.telefone}</small>}</td>
+                    <td className="quebra">
+                      <b className="motivo">{m.titulo}</b>
+                      <small className="sub-linha">{m.detalhe} · <button className="link pequeno" onClick={() => { try { sessionStorage.setItem('vendas-dia', g.v.dia) } catch { /* sem acesso */ } irPara?.('vendas') }}>{dataBR(g.v.dia)}</button></small>
+                    </td>
+                    <td className="n">
+                      {g.parcelas.length > 1
+                        ? <button className="link pequeno" onClick={() => setAbertos({ ...abertos, [g.v.id]: !aberto })} title={t('Ver todas as parcelas')}>{t('{pagas} de {total} pagas', { pagas: g.pagas, total: g.parcelas.length })} {aberto ? '▴' : '▾'}</button>
+                        : t('Parcela única')}
+                    </td>
+                    <td className="n">{g.abertas.length ? <>{brl(x.falta)}<small className="sub-linha">{x.p.n}/{x.total}</small></> : '-'}</td>
+                    <td className="n"><b>{g.falta > 0 ? brl(g.falta) : '-'}</b></td>
+                    <td><span className={s.classe}>{t(s.nome)}</span></td>
+                    <td className="n acoes-fiado">{acoes(x)}</td>
+                  </tr>
+                  {aberto && g.parcelas.map((y) => {
+                    const sy = SITUACOES[y.situacao]
+                    return (
+                      <tr key={y.p.id} className={'linha-parcela' + (y.situacao === 'atrasada' ? ' linha-prejuizo' : '')}>
+                        <td>{celulaData(y)}</td>
+                        <td colSpan="2"><small>{t('Parcela {n} de {total}', { n: y.p.n, total: y.total })}</small></td>
+                        <td className="n"><small>{brl(y.p.valor)}</small>{y.recebido > 0 && <small className="sub-linha ok">{t('recebido {valor}', { valor: brl(y.recebido) })}</small>}</td>
+                        <td className="n"></td>
+                        <td className="n">{y.situacao === 'paga' ? '-' : brl(y.falta)}</td>
+                        <td><span className={sy.classe}>{t(sy.nome)}</span></td>
+                        <td className="n acoes-fiado">{acoes(y)}</td>
+                      </tr>
+                    )
+                  })}
+                </Fragment>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. O lucro da venda (ou os juros do empréstimo) só conta quando todas as parcelas estão resolvidas; o que o cliente não pagou sai do lucro como perda.')}</small></p>
+    </section>
+  )
+
+  // vencimento (ou o campo para mudar a data)
+  function celulaData(x) {
+    return mudandoData?.vendaId === x.v.id && mudandoData.parcelaId === x.p.id ? (
+      <form className="inline-form" onSubmit={salvarData}>
+        <input type="date" value={mudandoData.data} onChange={(e) => setMudandoData({ ...mudandoData, data: e.target.value })} />
+        <button type="submit" className="edit">{t('Salvar')}</button>
+        <button type="button" className="sec" onClick={() => setMudandoData(null)}>×</button>
+      </form>
+    ) : dataBR(x.p.vencimento)
+  }
+
+  // botões de uma parcela
+  function acoes(x) {
+    const whats = ['aberta', 'vence_hoje', 'atrasada'].includes(x.situacao) && linkWhats(x.v.fiado.telefone, mensagem(x))
+    return (
+      <>
                     {recebendo?.vendaId === x.v.id && recebendo.parcelaId === x.p.id ? (
                       <form className="inline-form" onSubmit={confirmarRecebimento}>
                         <input inputMode="decimal" value={recebendo.valor} onChange={(e) => setRecebendo({ ...recebendo, valor: e.target.value })} style={{ width: 90 }} />
@@ -196,14 +259,7 @@ export default function Fiado({ db, executar, irPara }) {
                         {x.recebido > 0 && <>{' '}<button className="link pequeno" onClick={() => estornar(x)}>{t('Estornar')}</button></>}
                       </>
                     )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. O lucro da venda (ou os juros do empréstimo) só conta quando todas as parcelas estão resolvidas; o que o cliente não pagou sai do lucro como perda.')}</small></p>
-    </section>
-  )
+      </>
+    )
+  }
 }

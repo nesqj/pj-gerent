@@ -717,4 +717,8 @@ a.botao-whats:hover { background: color-mix(in srgb, #25d366 12%, transparent) }
   background: color-mix(in srgb, currentColor 8%, transparent) }
 .pg-resumo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px }
 .pg-resumo small { color: var(--mut) }
+/* Cobranças: uma linha por compra; as parcelas abrem embaixo */
+tr.linha-parcela td { background: color-mix(in srgb, var(--txt) 3%, transparent); padding-top: 6px; padding-bottom: 6px; font-size: 13px }
+tr.linha-parcela td:first-child { padding-left: 28px; color: var(--mut) }
+b.motivo { font-weight: 600 }
 

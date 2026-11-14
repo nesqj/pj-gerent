@@ -1200,4 +1200,16 @@ export default {
   '+ {valor} de juros': '+ {valor} interest',
   'de {inicio} a {fim}': 'from {inicio} to {fim}',
   'em {data}': 'on {data}',
+  // Cobranças agrupadas
+  'Próximo vencimento': 'Next due date',
+  'Motivo': 'Reason',
+  'Próxima': 'Next',
+  'Falta (total)': 'Left (total)',
+  'Ver todas as parcelas': 'See all installments',
+  '{pagas} de {total} pagas': '{pagas} of {total} paid',
+  'Parcela única': 'Single installment',
+  'Parcela {n} de {total}': 'Installment {n} of {total}',
+  '+{n} item(ns)': '+{n} item(s)',
+  'Compra': 'Purchase',
+  'Buscar cliente, telefone ou produto...': 'Search customer, phone or product...',
 }
