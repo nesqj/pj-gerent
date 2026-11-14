@@ -126,9 +126,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
   }
   const faltas = lista.map(faltaDe)
   const faltaTotal = faltas.reduce((s, x) => s + x.falta, 0)
-  const atrasoTotal = faltas.reduce((s, x) => s + x.atraso, 0)
-  const combinado = lista.reduce((s, e) => s + (+e.total || 0), 0)
-  const recebidoTotal = lucros.reduce((s, l) => s + (l.recebido || 0), 0)
   const jurosConfirmados = lucros.reduce((s, l) => s + l.lucro, 0)
   const jurosAConfirmar = lucros.reduce((s, l) => s + (l.pendente ? l.lucroPrevisto : 0), 0)
 
@@ -149,10 +146,8 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
       <div className="cards">
         <div className="card"><small>{t('Empréstimos')}</small><b>{lista.length}</b></div>
         <div className="card"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b></div>
-        <div className={'card' + (atrasoTotal > 0 ? ' card-prejuizo' : '')}>
+        <div className="card">
           <small>{t('Falta receber')}</small><b>{brl(faltaTotal)}</b>
-          {atrasoTotal > 0 && <small className="var bad">{t('com {valor} de atraso', { valor: brl(atrasoTotal) })}</small>}
-          {lista.length > 0 && <small className="var">{t('combinado {valor} · recebido {recebido}', { valor: brl(combinado), recebido: brl(recebidoTotal) })}</small>}
         </div>
         <div className={'card' + (jurosConfirmados < 0 ? ' card-prejuizo' : '')}>
           <small>{t('Lucro (juros)')}</small>
@@ -175,8 +170,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
                   <td className="n">{brl(e.valor)}</td>
                   <td className="n">
                     <b>{faltas[lista.indexOf(e)].falta > 0 ? brl(faltas[lista.indexOf(e)].falta) : '-'}</b>
-                    {faltas[lista.indexOf(e)].atraso > 0 && <small className="sub-linha bad">{t('com {valor} de atraso', { valor: brl(faltas[lista.indexOf(e)].atraso) })}</small>}
-                    <small className="sub-linha">{t('combinado {valor}', { valor: brl(e.total) })}</small>
                   </td>
                   <td className="n">{brl(l.recebido)}</td>
                   <td className="n">
