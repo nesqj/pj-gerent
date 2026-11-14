@@ -41,18 +41,27 @@ export default function NovoProduto({ db, executar, aoTerminar }) {
         </select>
       </label>
       <div className="linhas-forn">
-        <small>{t('Fornecedores que têm este produto')} <span>({t('só os que trabalham com a marca {marca}', { marca: f.marca })})</span></small>
+        <div className="lf-titulo">
+          <b>{t('Fornecedores')}</b>
+          <small>{t('só os que trabalham com a marca {marca}', { marca: f.marca })}</small>
+        </div>
+        {fornecedores.length === 0 && <small className="warn">{t('Nenhum fornecedor trabalha com esta marca.')}</small>}
         {f.linhas.map((l, i) => (
-          <div key={i} className="pg-parte">
+          <div key={i} className="lf-linha">
             <select value={l.fornecedorId} onChange={(e) => mudarLinha(i, { fornecedorId: e.target.value })}>
               {fornecedores.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
             </select>
-            <input inputMode="decimal" placeholder={t('Preço (R$)')} value={l.preco} onChange={(e) => mudarLinha(i, { preco: e.target.value })} />
-            {f.linhas.length > 1 && <button type="button" className="del" onClick={() => setF({ ...f, linhas: f.linhas.filter((_, k) => k !== i) })}>×</button>}
+            <div className="lf-preco">
+              <span>R$</span>
+              <input inputMode="decimal" placeholder="0,00" value={l.preco} onChange={(e) => mudarLinha(i, { preco: e.target.value })} />
+            </div>
+            {f.linhas.length > 1
+              ? <button type="button" className="lf-tirar" title={t('Remover')} onClick={() => setF({ ...f, linhas: f.linhas.filter((_, k) => k !== i) })}>×</button>
+              : <span className="lf-tirar-vazio" />}
           </div>
         ))}
         {f.linhas.length < fornecedores.length && (
-          <button type="button" className="link pequeno" onClick={() => setF({ ...f, linhas: [...f.linhas, { fornecedorId: fornecedores.find((x) => !f.linhas.some((l) => l.fornecedorId === x.id))?.id || '', preco: '' }] })}>+ {t('Outro fornecedor')}</button>
+          <button type="button" className="lf-mais" onClick={() => setF({ ...f, linhas: [...f.linhas, { fornecedorId: fornecedores.find((x) => !f.linhas.some((l) => l.fornecedorId === x.id))?.id || '', preco: '' }] })}>+ {t('Outro fornecedor')}</button>
         )}
       </div>
       <button type="submit">{t('Cadastrar produto')}</button>

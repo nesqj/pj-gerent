@@ -730,8 +730,20 @@ small.aguarda { color: var(--mut); font-size: 12px }
 .inline-form { flex-wrap: wrap }
 /* Tabela de Venda: cadastrar produto com vários fornecedores */
 .form-produto { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 14px }
-.linhas-forn { flex: 1 1 100%; display: flex; flex-direction: column; gap: 6px; max-width: 460px }
-.linhas-forn > small { color: var(--mut) }
+.linhas-forn { flex: 1 1 100%; display: flex; flex-direction: column; gap: 8px; max-width: 520px;
+  padding: 12px 14px; border: 1px solid var(--bd); border-radius: 10px; background: color-mix(in srgb, var(--txt) 3%, transparent) }
+.lf-titulo { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap }
+.lf-titulo b { font-size: 14px }
+.lf-titulo small { color: var(--mut); font-size: 12px }
+.lf-linha { display: grid; grid-template-columns: 1fr 140px 32px; gap: 8px; align-items: center }
+.lf-preco { display: flex; align-items: center; border: 1px solid var(--bd); border-radius: 8px; background: var(--campo); padding-left: 10px }
+.lf-preco span { color: var(--mut); font-size: 13px }
+.lf-preco input { border: none !important; background: transparent !important; min-width: 0; width: 100% }
+.lf-tirar { width: 32px; height: 32px; padding: 0; border-radius: 8px; border: 1px solid var(--bd); background: transparent; color: var(--mut); font-size: 18px; line-height: 1; cursor: pointer }
+.lf-tirar:hover { color: var(--bad); border-color: var(--bad-borda) }
+.lf-mais { align-self: flex-start; background: none; border: 1px dashed var(--bd); color: var(--link); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer }
+.lf-mais:hover { border-color: var(--link) }
+@media (max-width: 767px) { .lf-linha { grid-template-columns: 1fr 110px 32px } }
 .adicionar-forn { margin: 10px 0 4px; flex-wrap: wrap; gap: 8px }
 .adicionar-forn small { color: var(--mut) }
 

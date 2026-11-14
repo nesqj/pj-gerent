@@ -1295,4 +1295,5 @@ export default {
   'só os que trabalham com a marca {marca}': 'only those that work with the {marca} brand',
   'Cadastrar produto em vários fornecedores': 'Add product to several suppliers',
   'Cadastre o produto uma vez e marque todos os fornecedores que têm ele, com o preço de cada um.': 'Add the product once and pick every supplier that has it, with each one\'s price.',
+  'Nenhum fornecedor trabalha com esta marca.': 'No supplier works with this brand.',
 }
