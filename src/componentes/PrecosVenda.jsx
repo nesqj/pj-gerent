@@ -7,9 +7,18 @@ import {
 } from '../utils.js'
 
 // ---------- Cadastrar um produto e os fornecedores que têm ele (cada um com o seu preço)
+const trabalhaCom = (forn, marca) => (forn.marcas || []).some((m) => norm(m) === norm(marca))
+// todas as marcas do cadastro dos fornecedores (sem repetir)
+const marcasDisponiveis = (db) => [...(db.fornecedores || []).flatMap((x) => x.marcas || []).reduce((m, x) => (m.has(norm(x)) ? m : m.set(norm(x), x)), new Map()).values()]
+  .sort((a, b) => a.localeCompare(b))
+
 function NovoProduto({ db, executar, aoTerminar }) {
-  const fornecedores = [...(db.fornecedores || [])].sort((a, b) => a.nome.localeCompare(b.nome))
-  const [f, setF] = useState({ produto: '', marca: '', linhas: [{ fornecedorId: fornecedores[0]?.id || '', preco: '' }] })
+  const marcas = marcasDisponiveis(db)
+  const todos = [...(db.fornecedores || [])].sort((a, b) => a.nome.localeCompare(b.nome))
+  const daMarca = (marca) => todos.filter((x) => trabalhaCom(x, marca))
+  const [f, setF] = useState(() => ({ produto: '', marca: marcas[0] || '', linhas: [{ fornecedorId: daMarca(marcas[0] || '')[0]?.id || '', preco: '' }] }))
+  const fornecedores = daMarca(f.marca)
+  const trocarMarca = (marca) => setF({ ...f, marca, linhas: [{ fornecedorId: daMarca(marca)[0]?.id || '', preco: '' }] })
   const mudarLinha = (i, campos) => setF({ ...f, linhas: f.linhas.map((l, k) => (k === i ? { ...l, ...campos } : l)) })
   async function salvar(e) {
     e.preventDefault()
@@ -23,13 +32,18 @@ function NovoProduto({ db, executar, aoTerminar }) {
     }, t('Produto cadastrado em {n} fornecedor(es).', { n: linhas.length }))
     if (ok) aoTerminar(chave(f.produto, f.marca))
   }
-  if (!fornecedores.length) return <p className="warn">{t('Cadastre os fornecedores primeiro, na aba Fornecedores.')}</p>
+  if (!todos.length) return <p className="warn">{t('Cadastre os fornecedores primeiro, na aba Fornecedores.')}</p>
+  if (!marcas.length) return <p className="warn">{t('Cadastre as marcas nos fornecedores primeiro, na aba Fornecedores.')}</p>
   return (
     <form onSubmit={salvar} className="painel form-produto">
       <label style={{ flex: '2 1 240px' }}>{t('Produto')} *<input required maxLength={80} value={f.produto} onChange={(e) => setF({ ...f, produto: e.target.value })} /></label>
-      <label style={{ flex: '1 1 160px' }}>{t('Marca')}<input maxLength={60} value={f.marca} onChange={(e) => setF({ ...f, marca: e.target.value })} /></label>
+      <label style={{ flex: '1 1 160px' }}>{t('Marca')} *
+        <select value={f.marca} onChange={(e) => trocarMarca(e.target.value)}>
+          {marcas.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </label>
       <div className="linhas-forn">
-        <small>{t('Fornecedores que têm este produto')}</small>
+        <small>{t('Fornecedores que têm este produto')} <span>({t('só os que trabalham com a marca {marca}', { marca: f.marca })})</span></small>
         {f.linhas.map((l, i) => (
           <div key={i} className="pg-parte">
             <select value={l.fornecedorId} onChange={(e) => mudarLinha(i, { fornecedorId: e.target.value })}>
@@ -51,7 +65,8 @@ function NovoProduto({ db, executar, aoTerminar }) {
 
 // ---------- Na tela do produto: adicionar um fornecedor ou mudar/remover o preço de um
 function FornecedoresDoProduto({ db, executar, item, ofertas }) {
-  const semEste = (db.fornecedores || []).filter((x) => !ofertas.some((o) => o.fornecedorId === x.id)).sort((a, b) => a.nome.localeCompare(b.nome))
+  const semEste = (db.fornecedores || []).filter((x) => !ofertas.some((o) => o.fornecedorId === x.id) && (!item.marca || trabalhaCom(x, item.marca)))
+    .sort((a, b) => a.nome.localeCompare(b.nome))
   const [novo, setNovo] = useState({ fornecedorId: '', preco: '' })
   const [editando, setEditando] = useState(null) // { id, preco }
   async function adicionar(e) {
