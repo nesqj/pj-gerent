@@ -976,8 +976,8 @@ export default {
   'Prejuízo': 'Loss',
   'perda de {valor} abaixo do custo': 'loss of {valor} below cost',
   'Prejuízo estimado': 'Estimated loss',
-  'Perdas (abaixo do custo)': 'Losses (below cost)',
   '{n} venda(s) com item abaixo do custo': '{n} sale(s) with items below cost',
   'sem custo': 'no cost',
   'prejuízo': 'loss',
+  'Perdas': 'Losses',
 }

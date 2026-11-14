@@ -270,7 +270,7 @@ export default function Vendas({ db, executar }) {
         </div>
         {perdasDia > 0 && (
           <div className="card card-prejuizo">
-            <small>{t('Perdas (abaixo do custo)')}</small>
+            <small>{t('Perdas')}</small>
             <b className="bad">− {brl(perdasDia)}</b>
             <small>{t('{n} venda(s) com item abaixo do custo', { n: vendasComPrejuizo })}</small>
           </div>

@@ -225,7 +225,7 @@ export default function Analise({ db }) {
         <div className="card"><small>{t('Itens vendidos')}</small><b>{r.itens}</b><Variacao atual={r.itens} anterior={ra.itens} /></div>
         {r.perdas > 0 && (
           <div className="card card-prejuizo">
-            <small>{t('Perdas (abaixo do custo)')}</small><b className="bad">− {brl(r.perdas)}</b>
+            <small>{t('Perdas')}</small><b className="bad">− {brl(r.perdas)}</b>
             <small>{t('{n} venda(s) com item abaixo do custo', { n: r.comPrejuizo })}</small>
           </div>
         )}
