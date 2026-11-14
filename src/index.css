@@ -798,4 +798,5 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 .selecionar-todos { white-space: nowrap }
 .titulo-secao h2 { margin: 0 }
 .titulo-secao { margin-bottom: 12px }
+.titulo-secao + .texto-secao { margin-top: -6px }
 
