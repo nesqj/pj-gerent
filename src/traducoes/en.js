@@ -1192,4 +1192,6 @@ export default {
   'com juros de {valor}': 'with interest of {valor}',
   '{valor} + juros {juros}': '{valor} + interest {juros}',
   'Não vale com fiado': 'Not valid with credit',
+  'Escolha um produto.': 'Choose a product.',
+  'Nenhum produto encontrado.': 'No product found.',
 }

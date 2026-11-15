@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
@@ -143,7 +143,7 @@ export default function Vendas({ db, executar, irPara }) {
   function adicionar(e) {
     e.preventDefault()
     const p = selecionado
-    if (!p) return
+    if (!p) return aviso.alerta(t('Escolha um produto.'))
     if (p.origem === 'estoque') {
       const disp = disponivelLote(p.entradaId)
       if (disp <= 0) return aviso.alerta(t('"{produto}" está sem estoque. Registre uma entrada no Estoque para vender.', { produto: p.produto }))
@@ -251,26 +251,9 @@ export default function Vendas({ db, executar, irPara }) {
       ) : (<>
       {/* ---------- Nova venda: produto cadastrado ou avulso (no mesmo quadro) ---------- */}
       {!avulso && <form onSubmit={adicionar}>
-        <label style={{ flex: '2 1 240px' }}>{t('Produto')}
-          <select required value={item.k} onChange={(e) => escolherProduto(e.target.value)}>
-            <option value="">{t('Selecione um produto...')}</option>
-            {doEstoque.length + semEstoque.length > 0 && (
-              <optgroup label={t('Estoque (escolha a unidade/lote)')}>
-                {doEstoque.map((p) => (
-                  <option key={p.id} value={p.id}>{p.produto} · {p.detalhe} — {t('{n} un.', { n: p.disp })}</option>
-                ))}
-                {semEstoque.map((e) => <option key={'sem:' + e.k} value="" disabled>{e.produto} · {t('sem estoque')}</option>)}
-              </optgroup>
-            )}
-            {dosFornecedores.length > 0 && (
-              <optgroup label={t('Produtos dos fornecedores')}>
-                {dosFornecedores.map((p) => (
-                  <option key={p.id} value={p.id}>{p.produto}{p.marca ? ` — ${p.marca}` : ''} ({brl(p.preco)})</option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </label>
+        <div className="campo-custo" style={{ flex: '2 1 240px' }}>{t('Produto')}
+          <BuscaProduto estoque={doEstoque} semEstoque={semEstoque} fornecedores={dosFornecedores} selecionado={selecionado} onEscolher={escolherProduto} nomesForn={(o) => fornecedoresDo(o).map((f) => f.nome)} />
+        </div>
         {selecionado?.origem === 'fornecedor' && (
           <label style={{ flex: '1 1 220px' }}>{t('Fornecedor')}
             <select value={item.forn || fornecedoresDo(selecionado)[0]?.id || ''} onChange={(e) => setItem({ ...item, forn: e.target.value })}>
@@ -484,4 +467,56 @@ function ValorLucro({ valor }) {
   if (valor == null) return <small>{t('sem custo')}</small>
   if (valor < 0) return <span className="bad">− {brl(-valor)}<small className="desconto-linha">{t('prejuízo')}</small></span>
   return <span className="ok">{brl(valor)}</span>
+}
+
+// ---------- Busca de produto: digite parte do nome, da marca ou do fornecedor ----------
+const semAcento = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+function BuscaProduto({ estoque, semEstoque, fornecedores, selecionado, onEscolher, nomesForn }) {
+  const [texto, setTexto] = useState('')
+  const [aberto, setAberto] = useState(false)
+  const [ativo, setAtivo] = useState(0)
+  const lista = useRef(null)
+  const campo = useRef(null)
+  const nomeDe = (o) => o ? o.produto + (o.marca ? ' — ' + o.marca : '') : ''
+  const palavras = semAcento(texto).split(/\s+/).filter(Boolean)
+  const bate = (...campos) => { const h = semAcento(campos.join(' ')); return palavras.every((w) => h.includes(w)) }
+  const doEst = estoque.filter((o) => bate(o.produto, o.detalhe, 'estoque'))
+  const semEst = semEstoque.filter((e) => bate(e.produto, 'estoque'))
+  const doForn = fornecedores.filter((o) => bate(o.produto, o.marca, ...nomesForn(o)))
+  const escolhiveis = [...doEst, ...doForn]
+  const escolher = (o) => { onEscolher(o.id); setTexto(''); setAberto(false); campo.current?.blur() }
+  const mover = (d) => {
+    const n = Math.min(escolhiveis.length - 1, Math.max(0, ativo + d))
+    setAtivo(n)
+    lista.current?.querySelector('[data-i="' + n + '"]')?.scrollIntoView({ block: 'nearest' })
+  }
+  function tecla(e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!aberto) setAberto(true); else mover(1) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); mover(-1) }
+    else if (e.key === 'Enter' && aberto) { e.preventDefault(); if (escolhiveis[ativo]) escolher(escolhiveis[ativo]) }
+    else if (e.key === 'Escape') { setAberto(false); setTexto('') }
+  }
+  let i = -1
+  const linha = (o, titulo, sub, dir) => { i++; const k = i; return (
+    <button type="button" key={o.id} data-i={k} className={'bp-item' + (k === ativo ? ' ativo' : '') + (selecionado?.id === o.id ? ' escolhido' : '')}
+      onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => setAtivo(k)} onClick={() => escolher(o)}>
+      <span className="bp-nome">{titulo}<small>{sub}</small></span><span className="bp-dir">{dir}</span>
+    </button>) }
+  return (
+    <div className="busca-produto">
+      <input ref={campo} value={aberto ? texto : nomeDe(selecionado)} placeholder={aberto && selecionado ? nomeDe(selecionado) : t('Buscar produto...')}
+        onFocus={() => { setAberto(true); setAtivo(0) }} onBlur={() => { setAberto(false); setTexto('') }}
+        onChange={(e) => { setTexto(e.target.value); setAberto(true); setAtivo(0) }} onKeyDown={tecla} autoComplete="off" />
+      {aberto && (
+        <div className="bp-lista" ref={lista}>
+          {doEst.length + semEst.length > 0 && <div className="bp-grupo">{t('Estoque')}</div>}
+          {doEst.map((o) => linha(o, o.produto, o.detalhe, t('{n} un.', { n: o.disp })))}
+          {semEst.map((e) => <div key={'sem:' + e.k} className="bp-item desativado"><span className="bp-nome">{e.produto}<small>{t('sem estoque')}</small></span></div>)}
+          {doForn.length > 0 && <div className="bp-grupo">{t('Fornecedores')}</div>}
+          {doForn.map((o) => linha(o, o.produto, o.marca || '', brl(o.preco)))}
+          {escolhiveis.length + semEst.length === 0 && <div className="bp-vazio">{t('Nenhum produto encontrado.')}</div>}
+        </div>
+      )}
+    </div>
+  )
 }
