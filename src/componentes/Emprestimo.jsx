@@ -11,7 +11,7 @@ import { AvisoCliente } from './Clientes.jsx'
 // O dinheiro sai do caixa (se marcado) e as parcelas vão para a aba Cobranças.
 // O lucro é só o juro, e conta quando todas as parcelas estiverem resolvidas.
 const somarDias = (dia, n) => { const d = new Date(dia + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
-const novo = () => ({ clienteId: '', nome: '', cpf: '', telefone: '', valor: '', juros: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', doCaixa: true, obs: '' })
+const novo = () => ({ clienteId: '', nome: '', cpf: '', telefone: '', valor: '', juros: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', obs: '' })
 
 export function NovoEmprestimo({ db, executar, aoSalvar }) {
   const [f, setF] = useState(novo)
@@ -41,13 +41,12 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
       if (!(await executar((A) => A.salvarCliente(cliente)))) return
       setF((x) => ({ ...x, clienteId: cliente.id }))
     }
-    const usaCaixa = !!db.caixa && f.doCaixa
-    const ext = usaCaixa ? extratoCaixa(db) : null
+    // o dinheiro emprestado sempre sai do caixa (se veio de fora, lance antes em Controle de caixa → Colocar dinheiro)
+    const ext = db.caixa ? extratoCaixa(db) : null
     if (ext && valor > ext.saldo && !(await confirmar(t('O caixa tem {saldo}. Emprestar {valor} vai deixar o saldo negativo. Continuar?', { saldo: brl(ext.saldo), valor: brl(valor) })))) return
     const c = calcularEmprestimo(valor, juros, n)
     const emp = {
       id: uid(), data: Date.now(), dia: hoje(), valor: c.valor, jurosPct: juros, total: c.total, obs: f.obs.trim(),
-      ...(usaCaixa ? {} : { foraDoCaixa: true }),
       fiado: {
         clienteId: cliente.id, cliente: cliente.nome, telefone: cliente.telefone || '',
         parcelas: datas.map((vencimento, k) => ({ id: uid(), n: k + 1, vencimento, valor: c.parcelas[k], recebimentos: [] })),
@@ -91,13 +90,6 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
         </label>
       )}
       <label style={{ flex: '1 1 100%' }}>{t('Observação')}<input maxLength={120} placeholder={t('Ex: combinado por mensagem, garantia, testemunha...')} {...campo('obs')} /></label>
-      {db.caixa && (
-        <label className="check">
-          <input type="checkbox" checked={f.doCaixa} onChange={(e) => setF({ ...f, doCaixa: e.target.checked })} />
-          {t('Pago com o dinheiro do caixa')}
-          {f.doCaixa && valor > 0 && <small> ({t('desconta {valor}', { valor: brl(valor) })})</small>}
-        </label>
-      )}
       {calc && (
         <div className="resumo-emprestimo">
           <div>
