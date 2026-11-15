@@ -136,6 +136,10 @@ export default function Analise({ db }) {
     + db.vendas.filter((v) => v.dia >= a && v.dia <= b).reduce((s, v) => s + (v.itens || [])
       .filter((i) => (i.origem === 'fornecedor' || (i.origem === 'avulso' && !i.foraDoCaixa)) && i.custo != null).reduce((x, i) => x + (+i.qtd || 0) * (+i.custo || 0), 0), 0)) * 100) / 100
   const despesas = despesasEstoque(de, ate), despesasAnt = despesasEstoque(antDe, antAte)
+  // outras despesas: o que saiu do caixa como "Despesa da loja" (luz, aluguel, insumos...). Retirada pessoal não conta.
+  const outrasDespesas = (a, b) => Math.round((db.movCaixa || []).filter((m) => m.tipo === 'retirar' && m.categoria === 'despesa' && m.dia >= a && m.dia <= b)
+    .reduce((s, m) => s + (+m.valor || 0), 0) * 100) / 100
+  const outras = outrasDespesas(de, ate), outrasAnt = outrasDespesas(antDe, antAte)
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
@@ -221,6 +225,10 @@ export default function Analise({ db }) {
         <div className="card">
           <small>{t('Despesas com estoque')}</small><b>{brl(despesas)}</b>
           {despesasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(despesasAnt) })}</small>}
+        </div>
+        <div className="card">
+          <small>{t('Outras despesas')}</small><b>{brl(outras)}</b>
+          {outrasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(outrasAnt) })}</small>}
         </div>
       </div>
 

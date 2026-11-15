@@ -1172,4 +1172,12 @@ export default {
   '(o custo só entra no lucro; os insumos você lança quando comprar)': '(the cost only affects profit; record supplies when you buy them)',
   'Custo {valor}': 'Cost {valor}',
   'Produto ou serviço sem cadastro.': 'Product or service not registered.',
+  'Retirada pessoal': 'Personal withdrawal',
+  'Despesa da loja': 'Store expense',
+  'Despesa da loja registrada.': 'Store expense recorded.',
+  'Retirada pessoal registrada.': 'Personal withdrawal recorded.',
+  'É para quê?': 'What is it for?',
+  'Ex: conta de luz, aluguel, insumos...': 'E.g.: power bill, rent, supplies...',
+  'Ex: pró-labore, uso pessoal...': 'E.g.: owner\'s pay, personal use...',
+  'Outras despesas': 'Other expenses',
 }
