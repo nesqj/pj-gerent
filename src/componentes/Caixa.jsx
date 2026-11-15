@@ -144,7 +144,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
             {lista.map((m) => (
               <tr key={m.id} className={editando?.id === m.ref.id ? 'em-edicao' : ''}>
                 <td>{dataBR(m.dia)} {hora(m.data)}</td>
-                <td><span className={ORIGENS[m.origem].classe}>{t(ORIGENS[m.origem].nome)}</span>{m.pagamento && <small> · {t(m.pagamento)}</small>}</td>
+                <td><span className={ORIGENS[m.origem].classe}>{m.origem === 'avulso' ? t({ servico: 'Custo de serviço avulso', produto: 'Custo de produto avulso', misto: 'Custo de produto e serviço avulsos' }[m.tipoAvulso] || 'Custo de item avulso') : t(ORIGENS[m.origem].nome)}</span>{m.pagamento && <small> · {t(m.pagamento)}</small>}</td>
                 <td className="quebra">{m.descricao || '-'}</td>
                 <td className={'n ' + (m.valor < 0 ? 'bad' : 'ok')}>{m.valor < 0 ? '− ' : '+ '}{brl(Math.abs(m.valor))}</td>
                 <td className="n">{brl(m.saldo)}</td>

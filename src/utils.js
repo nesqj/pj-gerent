@@ -264,6 +264,7 @@ export function extratoCaixa(db) {
     ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'avulso' && +i.custo > 0 && +i.qtd > 0) }))
       .filter((x) => x.itens.length).map(({ v, itens }) => ({
         id: 'pa-' + v.id, ref: v, origem: 'avulso', data: v.data, dia: v.dia,
+        tipoAvulso: itens.every((i) => i.tipo === 'servico') ? 'servico' : itens.every((i) => i.tipo !== 'servico') ? 'produto' : 'misto',
         valor: -Math.round(itens.reduce((s, i) => s + (+i.qtd || 0) * (+i.custo || 0), 0) * 100) / 100,
         descricao: itens.map((i) => `${i.qtd}× ${i.produto}`).join(', '),
       })),

@@ -1163,4 +1163,7 @@ export default {
   'Avulso': 'One-off',
   'Produto ou serviço sem cadastro: o custo entra nas despesas do dia da venda.': 'Product or service not registered: the cost goes into the expenses on the sale day.',
   'Voltar': 'Back',
+  'Custo de serviço avulso': 'One-off service cost',
+  'Custo de produto avulso': 'One-off product cost',
+  'Custo de produto e serviço avulsos': 'One-off product and service cost',
 }
