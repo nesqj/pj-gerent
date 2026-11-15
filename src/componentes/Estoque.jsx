@@ -12,6 +12,7 @@ export default function Estoque({ db, executar }) {
   const [editando, setEditando] = useState(null) // entrada sendo editada
   const [busca, setBusca] = useState('')
   const [soFalta, setSoFalta] = useState(false)
+  const [ordem, setOrdem] = useState('az') // 'az' ou 'recentes'
   const refProduto = useRef(null)
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
 
@@ -67,7 +68,7 @@ export default function Estoque({ db, executar }) {
   const linhas = [...(db.entradas || [])]
     .filter((en) => !b || norm(en.produto).includes(b) || norm(en.obs).includes(b))
     .filter((en) => (soFalta ? saldoDe(en) <= 0 : saldoDe(en) > 0))
-    .sort((a, c) => a.produto.localeCompare(c.produto) || a.data - c.data)
+    .sort((a, c) => (ordem === 'recentes' ? c.data - a.data : a.produto.localeCompare(c.produto) || a.data - c.data))
 
   const unidades = todos.reduce((s, p) => s + Math.max(0, p.saldo), 0)
   const valorCusto = todos.reduce((s, p) => s + (p.valor || 0), 0) // soma exata dos lotes (cada um com o próprio custo)
@@ -123,7 +124,13 @@ export default function Estoque({ db, executar }) {
         <h3>{t('Estoque atual')}</h3>
         <label className="check"><input type="checkbox" checked={soFalta} onChange={(e) => setSoFalta(e.target.checked)} /> {t('Só sem estoque')}</label>
       </div>
-      <input className="busca" placeholder={t('Buscar produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <div className="barra-produtos" style={{ marginBottom: 12 }}>
+        <input className="busca-icone" placeholder={t('Buscar produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <div className="segmentado pequeno">
+          <button className={ordem === 'az' ? 'on' : ''} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
+          <button className={ordem === 'recentes' ? 'on' : ''} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
+        </div>
+      </div>
       <div className="tw">
         <table>
           <thead>
