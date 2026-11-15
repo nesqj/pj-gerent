@@ -4,6 +4,7 @@ import { t } from '../i18n.js'
 import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
 import { brl, calcularEmprestimo, dataBR, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
+import BuscaCliente from './BuscaCliente.jsx'
 import { AvisoCliente } from './Clientes.jsx'
 
 // Empréstimo de dinheiro (crediário) com juros simples ao mês.
@@ -61,12 +62,10 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
 
   return (
     <form onSubmit={salvar} className="form-emprestimo">
-      <label style={{ flex: '2 1 220px' }}>{t('Cliente')} *
-        <select value={f.clienteId} onChange={(e) => setF({ ...f, clienteId: e.target.value })}>
-          <option value="">{t('+ Novo cliente')}</option>
-          {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => <option key={c.id} value={c.id}>{c.nome}{c.telefone ? ` · ${c.telefone}` : ''}</option>)}
-        </select>
-      </label>
+      <div className="campo-custo" style={{ flex: '2 1 220px' }}>{t('Cliente')} *
+        <BuscaCliente clientes={clientes} clienteId={f.clienteId} onEscolher={(id) => setF({ ...f, clienteId: id })}
+          onNovo={(nome) => setF({ ...f, clienteId: '', ...(nome ? { nome } : {}) })} />
+      </div>
       {f.clienteId && <AvisoCliente db={db} clienteId={f.clienteId} />}
       {!f.clienteId && (
         <>

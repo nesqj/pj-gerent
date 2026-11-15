@@ -1194,4 +1194,7 @@ export default {
   'Não vale com fiado': 'Not valid with credit',
   'Escolha um produto.': 'Choose a product.',
   'Nenhum produto encontrado.': 'No product found.',
+  'Buscar cliente ou cadastrar novo...': 'Search customer or add new...',
+  'Nome do cliente novo...': 'New customer name...',
+  '+ Cadastrar "{nome}"': '+ Add "{nome}"',
 }

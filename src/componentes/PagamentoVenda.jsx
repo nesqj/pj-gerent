@@ -1,4 +1,5 @@
 import { t } from '../i18n.js'
+import BuscaCliente from './BuscaCliente.jsx'
 import { AvisoCliente } from './Clientes.jsx'
 import { brl, formatarCPF, hoje, lerCPF, lerValor as numero, norm, PAGAMENTOS, soDigitos, uid } from '../utils.js'
 
@@ -130,12 +131,10 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
         <div className="pg-fiado">
           <b>{t('Fiado')}: {brl(restante)}</b>
           <div className="pg-fiado-campos">
-            <label>{t('Cliente')} *
-              <select value={pg.fiado.clienteId} onChange={(e) => mudarFiado({ clienteId: e.target.value })}>
-                <option value="">{t('+ Novo cliente')}</option>
-                {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome)).map((c) => <option key={c.id} value={c.id}>{c.nome}{c.telefone ? ` · ${c.telefone}` : ''}</option>)}
-              </select>
-            </label>
+            <div className="campo-custo" style={{ flex: '1 1 180px' }}>{t('Cliente')} *
+              <BuscaCliente clientes={clientes} clienteId={pg.fiado.clienteId} onEscolher={(id) => mudarFiado({ clienteId: id })}
+                onNovo={(nome) => mudarFiado({ clienteId: '', ...(nome ? { nome } : {}) })} />
+            </div>
             {!pg.fiado.clienteId && (
               <>
                 <label>{t('Nome do cliente')} *<input maxLength={60} value={pg.fiado.nome} onChange={(e) => mudarFiado({ nome: e.target.value })} /></label>
