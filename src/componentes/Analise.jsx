@@ -217,7 +217,7 @@ export default function Analise({ db }) {
       <div className="cards indicadores">
         <div className="card destaque"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /></div>
         <div className={'card' + (lucroTotal < 0 ? ' card-prejuizo' : '')}>
-          <small>{lucroTotal < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}</small>
+          <small>{lucroTotal < 0 ? t('Prejuízo bruto') : t('Lucro bruto')}</small>
           <b className={lucroTotal < 0 ? 'bad' : 'ok'}>{lucroTotal < 0 ? '− ' + brl(-lucroTotal) : brl(lucroTotal)}</b>
           <small className="var">{t('Margem')} {pct(r.margem)}</small>
         </div>
@@ -283,7 +283,7 @@ export default function Analise({ db }) {
               <Participacao linhas={pagamentos} total={r.faturamento} />
             </div>
           </div>
-          <small>{t('Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Lucro líquido = lucro estimado − outras despesas.')}</small>
+          <small>{t('Lucro bruto = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Lucro líquido = lucro bruto − outras despesas.')}</small>
         </>
       )}
       </>)}
