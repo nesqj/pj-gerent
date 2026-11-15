@@ -388,10 +388,11 @@ export default function Vendas({ db, executar, irPara }) {
             <div className="total-grande">
               {pctDesconto > 0 && <small className="riscado">{brl(subtotalCarrinho)}</small>}
               {pctDesconto > 0 && <small className="bad">− {brl(valorDesconto)} ({t('{p}% de desconto', { p: num(pctDesconto, 2) })})</small>}
-              <small>{t('Total')}</small><b>{brl(totalCarrinho)}</b>
+              <small>{t('Total')}</small><b>{brl(Math.round((totalCarrinho + jurosFiado) * 100) / 100)}</b>
+              {jurosFiado > 0 && <small>{t('{valor} + juros {juros}', { valor: brl(totalCarrinho), juros: brl(jurosFiado) })}</small>}
               {temCusto && (lucroComJuros < 0
                 ? <small className="bad resultado-venda">{t('Prejuízo')}: − {brl(-lucroComJuros)}</small>
-                : <small className="ok resultado-venda">{t('Lucro')}: {brl(lucroComJuros)}{jurosFiado > 0 ? ` (${t('com juros de {valor}', { valor: brl(jurosFiado) })})` : ''}{lucroCarrinho.perda > 0 ? ` · ${t('perda de {valor} abaixo do custo', { valor: brl(lucroCarrinho.perda) })}` : ''}</small>)}
+                : <small className="ok resultado-venda">{t('Lucro')}: {brl(lucroComJuros)}{lucroCarrinho.perda > 0 ? ` · ${t('perda de {valor} abaixo do custo', { valor: brl(lucroCarrinho.perda) })}` : ''}</small>)}
             </div>
             <button onClick={finalizar} disabled={!carrinho.length}>{t('Finalizar venda')}</button>
             <button className="sec" onClick={cancelar}>{t('Cancelar')}</button>

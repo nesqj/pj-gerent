@@ -1190,4 +1190,5 @@ export default {
   'Lucro bruto = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Lucro líquido = lucro bruto − outras despesas.': 'Gross profit = sale price − cost. On credit, each paid installment brings its share of the profit (with interest), plus late fees received. Net profit = gross profit − other expenses.',
   'Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = interest on loans made in the period + late fees received in the period − what was marked "Did not pay" in the period. Result = what came back (with late fees) − what was lent, when the loan closes.',
   'com juros de {valor}': 'with interest of {valor}',
+  '{valor} + juros {juros}': '{valor} + interest {juros}',
 }
