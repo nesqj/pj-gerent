@@ -56,6 +56,9 @@ export default function Vendas({ db, executar, irPara }) {
   // lucro do carrinho (com o desconto) e prejuízo de quem vende abaixo do custo
   const fatorCarrinho = 1 - pctDesconto / 100
   const lucroCarrinho = lucroDe(carrinho, fatorCarrinho)
+  // juros do fiado também são lucro: entram no lucro mostrado no carrinho
+  const jurosFiado = carrinho.length ? (montarPagamento(pg, totalCarrinho, db.clientes || []).fiado?.juros || 0) : 0
+  const lucroComJuros = Math.round((lucroCarrinho.lucro + jurosFiado) * 100) / 100
   const temCusto = carrinho.some((i) => i.custo != null)
   // preço digitado abaixo do custo (produto do estoque)
   const abaixoDoCusto = selecionado?.origem === 'estoque' && selecionado.custo != null && item.preco !== '' && +item.preco < selecionado.custo
@@ -386,9 +389,9 @@ export default function Vendas({ db, executar, irPara }) {
               {pctDesconto > 0 && <small className="riscado">{brl(subtotalCarrinho)}</small>}
               {pctDesconto > 0 && <small className="bad">− {brl(valorDesconto)} ({t('{p}% de desconto', { p: num(pctDesconto, 2) })})</small>}
               <small>{t('Total')}</small><b>{brl(totalCarrinho)}</b>
-              {temCusto && (lucroCarrinho.lucro < 0
-                ? <small className="bad resultado-venda">{t('Prejuízo')}: − {brl(-lucroCarrinho.lucro)}</small>
-                : <small className="ok resultado-venda">{t('Lucro')}: {brl(lucroCarrinho.lucro)}{lucroCarrinho.perda > 0 ? ` · ${t('perda de {valor} abaixo do custo', { valor: brl(lucroCarrinho.perda) })}` : ''}</small>)}
+              {temCusto && (lucroComJuros < 0
+                ? <small className="bad resultado-venda">{t('Prejuízo')}: − {brl(-lucroComJuros)}</small>
+                : <small className="ok resultado-venda">{t('Lucro')}: {brl(lucroComJuros)}{jurosFiado > 0 ? ` (${t('com juros de {valor}', { valor: brl(jurosFiado) })})` : ''}{lucroCarrinho.perda > 0 ? ` · ${t('perda de {valor} abaixo do custo', { valor: brl(lucroCarrinho.perda) })}` : ''}</small>)}
             </div>
             <button onClick={finalizar} disabled={!carrinho.length}>{t('Finalizar venda')}</button>
             <button className="sec" onClick={cancelar}>{t('Cancelar')}</button>
