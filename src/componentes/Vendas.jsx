@@ -50,7 +50,9 @@ export default function Vendas({ db, executar, irPara }) {
   const opcoes = [...doEstoque, ...dosFornecedores]
   const selecionado = opcoes.find((x) => x.id === item.k)
   const subtotalCarrinho = carrinho.reduce((s, i) => s + (+i.qtd || 0) * (+i.preco || 0), 0)
-  const pctDesconto = Math.min(100, Math.max(0, +desconto || 0))
+  // fiado tudo para depois: sem desconto
+  const fiadoTudo = pg.forma === 'Fiado' && !pg.dividir
+  const pctDesconto = fiadoTudo ? 0 : Math.min(100, Math.max(0, +desconto || 0))
   const valorDesconto = Math.round(subtotalCarrinho * pctDesconto) / 100
   const totalCarrinho = Math.round((subtotalCarrinho - valorDesconto) * 100) / 100
   // lucro do carrinho (com o desconto) e prejuízo de quem vende abaixo do custo
@@ -168,7 +170,7 @@ export default function Vendas({ db, executar, irPara }) {
     if (carrinho.some((i) => !(+i.qtd > 0) || i.preco === '' || +i.preco < 0)) return aviso.alerta(t('Confira a quantidade e o preço de todos os itens.'))
     if (carrinho.some((i) => i.origem === 'avulso' && (i.custo === '' || !(+i.custo >= 0)))) return aviso.alerta(t('Informe o custo (0 se não tiver).'))
     const itens = carrinho.map((i) => ({ ...i, qtd: +i.qtd, preco: +i.preco }))
-    if (desconto !== '' && (+desconto < 0 || +desconto > 100)) return aviso.alerta(t('O desconto precisa ser entre 0% e 100%.'))
+    if (!fiadoTudo && desconto !== '' && (+desconto < 0 || +desconto > 100)) return aviso.alerta(t('O desconto precisa ser entre 0% e 100%.'))
     const subtotal = itens.reduce((s, i) => s + i.qtd * i.preco, 0)
     const descontoPct = pctDesconto
     const descontoValor = Math.round(subtotal * descontoPct) / 100
@@ -386,9 +388,9 @@ export default function Vendas({ db, executar, irPara }) {
           </div>
           <PagamentoVenda pg={pg} setPg={setPg} total={totalCarrinho} clientes={db.clientes || []} db={db} />
           <div className="finalizar">
-            <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
+            {fiadoTudo ? <span /> : <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
               <input type="number" min="0" max="100" step="0.01" placeholder={t('Opcional')} value={desconto} onChange={(e) => setDesconto(e.target.value)} />
-            </label>
+            </label>}
             <div className="total-grande">
               {pctDesconto > 0 && <small className="riscado">{brl(subtotalCarrinho)}</small>}
               {pctDesconto > 0 && <small className="bad">− {brl(valorDesconto)} ({t('{p}% de desconto', { p: num(pctDesconto, 2) })})</small>}
