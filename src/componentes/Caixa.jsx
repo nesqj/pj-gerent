@@ -16,6 +16,7 @@ const ORIGENS = {
   fiado: { nome: 'Recebimento de fiado', classe: 'ok' },
   compra: { nome: 'Compra de estoque', classe: 'bad' },
   fornecedor: { nome: 'Pago ao fornecedor', classe: 'bad' },
+  avulso: { nome: 'Custo de item avulso', classe: 'bad' },
   emprestimo: { nome: 'Empréstimo concedido', classe: 'bad' },
   'emprestimo-receb': { nome: 'Recebimento de empréstimo', classe: 'ok' },
   colocar: { nome: 'Dinheiro colocado', classe: 'ok' },
@@ -154,7 +155,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
                       <button className="del" onClick={() => excluir(m.ref)}>{t('Excluir')}</button>
                     </>
                   ) : (
-                    <button className="link pequeno" onClick={() => { if (['venda', 'emprestimo', 'fornecedor'].includes(m.origem)) { try { sessionStorage.setItem('vendas-dia', m.dia) } catch { /* sem acesso */ } } irPara(['venda', 'emprestimo', 'fornecedor'].includes(m.origem) ? 'vendas' : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? 'fiado' : 'estoque') }}>{['venda', 'emprestimo', 'fornecedor'].includes(m.origem) ? t('Ver em Novo Registro') : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? t('Ver em Cobranças') : t('Ver no Estoque')}</button>
+                    <button className="link pequeno" onClick={() => { if (['venda', 'emprestimo', 'fornecedor', 'avulso'].includes(m.origem)) { try { sessionStorage.setItem('vendas-dia', m.dia) } catch { /* sem acesso */ } } irPara(['venda', 'emprestimo', 'fornecedor', 'avulso'].includes(m.origem) ? 'vendas' : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? 'fiado' : 'estoque') }}>{['venda', 'emprestimo', 'fornecedor', 'avulso'].includes(m.origem) ? t('Ver em Novo Registro') : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? t('Ver em Cobranças') : t('Ver no Estoque')}</button>
                   )}
                 </td>
               </tr>

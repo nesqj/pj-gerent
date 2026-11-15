@@ -260,6 +260,13 @@ export function extratoCaixa(db) {
       id: 'pr-' + r.id, ref: e, origem: 'emprestimo-receb', data: r.data, dia: r.dia, valor: (+r.valor || 0) + (+r.encargo || 0),
       descricao: `${e.fiado.cliente || ''} · ${p.n}/${e.fiado.parcelas.length}`, pagamento: r.forma,
     })))),
+    // produto ou serviço avulso: o custo sai do caixa no dia da venda
+    ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'avulso' && +i.custo > 0 && +i.qtd > 0) }))
+      .filter((x) => x.itens.length).map(({ v, itens }) => ({
+        id: 'pa-' + v.id, ref: v, origem: 'avulso', data: v.data, dia: v.dia,
+        valor: -Math.round(itens.reduce((s, i) => s + (+i.qtd || 0) * (+i.custo || 0), 0) * 100) / 100,
+        descricao: itens.map((i) => `${i.qtd}× ${i.produto}`).join(', '),
+      })),
     // produto de fornecedor vendido: o custo é pago ao fornecedor com o dinheiro do caixa, no dia da venda
     ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'fornecedor' && i.custo != null && +i.qtd > 0) }))
       .filter((x) => x.itens.length).map(({ v, itens }) => ({

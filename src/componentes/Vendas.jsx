@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
-import { chave, resolverPreco } from '../utils.js'
+import { chave, lerValor, resolverPreco } from '../utils.js'
 import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
 import PagamentoVenda, { montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
@@ -14,6 +14,9 @@ export default function Vendas({ db, executar, irPara }) {
   const [modo, setModo] = useState('venda') // 'venda' ou 'emprestimo'
   const podeEmprestar = podeFazer('emprestimo.salvo')
   const [item, setItem] = useState(itemNovo)
+  // item avulso: produto ou serviço que não está no estoque nem nos fornecedores (custo vira despesa)
+  const avulsoNovo = { nome: '', tipo: 'produto', qtd: '1', custo: '', preco: '' }
+  const [avulso, setAvulso] = useState(null) // null = formulário fechado
   const [carrinho, setCarrinho] = useState([])
   const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
   const [desconto, setDesconto] = useState('') // % de desconto na venda (opcional)
@@ -79,6 +82,19 @@ export default function Vendas({ db, executar, irPara }) {
 
   function escolherProduto(k) {
     setItem({ ...item, k, preco: '', forn: '' })
+  }
+
+  function adicionarAvulso(e) {
+    e.preventDefault()
+    const nome = avulso.nome.trim()
+    const qtd = parseInt(avulso.qtd, 10)
+    const custo = lerValor(avulso.custo), preco = lerValor(avulso.preco)
+    if (!nome) return aviso.alerta(t('Informe o nome do produto ou serviço.'))
+    if (!(qtd > 0)) return aviso.alerta(t('Confira a quantidade.'))
+    if (String(avulso.custo).trim() === '' || !(custo >= 0)) return aviso.alerta(t('Informe o custo (0 se não tiver).'))
+    if (String(avulso.preco).trim() === '' || !(preco >= 0)) return aviso.alerta(t('Informe o preço de venda.'))
+    setCarrinho([...carrinho, { produto: nome, marca: '', qtd, preco, custo, origem: 'avulso', tipo: avulso.tipo }])
+    setAvulso(null)
   }
 
   function adicionar(e) {
@@ -241,6 +257,29 @@ export default function Vendas({ db, executar, irPara }) {
         )}
         <button type="submit">{t('Adicionar')}</button>
       </form>
+      {!avulso ? (
+        <p className="linha-avulso"><button type="button" className="link pequeno" onClick={() => setAvulso(avulsoNovo)}>+ {t('Produto ou serviço avulso (sem cadastro)')}</button></p>
+      ) : (
+        <form onSubmit={adicionarAvulso} className="form-avulso">
+          <label style={{ flex: '0 1 140px' }}>{t('Tipo')}
+            <select value={avulso.tipo} onChange={(e) => setAvulso({ ...avulso, tipo: e.target.value })}>
+              <option value="produto">{t('Produto')}</option>
+              <option value="servico">{t('Serviço')}</option>
+            </select>
+          </label>
+          <label style={{ flex: '2 1 220px' }}>{t('Nome')} *<input autoFocus maxLength={80} placeholder={avulso.tipo === 'servico' ? t('Ex: troca de tela') : t('Ex: cabo USB-C')} value={avulso.nome} onChange={(e) => setAvulso({ ...avulso, nome: e.target.value })} /></label>
+          <label style={{ flex: '0 1 80px' }}>{t('Qtd.')}<input type="number" min="1" step="1" value={avulso.qtd} onChange={(e) => setAvulso({ ...avulso, qtd: e.target.value })} /></label>
+          <label style={{ flex: '0 1 130px' }}>{t('Custo (R$)')} *<input inputMode="decimal" placeholder="0,00" value={avulso.custo} onChange={(e) => setAvulso({ ...avulso, custo: e.target.value })} /></label>
+          <label style={{ flex: '0 1 140px' }}>{t('Preço de venda (R$)')} *<input inputMode="decimal" placeholder="0,00" value={avulso.preco} onChange={(e) => setAvulso({ ...avulso, preco: e.target.value })} /></label>
+          <button type="submit">{t('Adicionar')}</button>
+          <button type="button" className="sec" onClick={() => setAvulso(null)}>{t('Cancelar')}</button>
+          {String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== '' && (
+            <small className={lerValor(avulso.preco) - lerValor(avulso.custo) < 0 ? 'bad' : 'ok'} style={{ flex: '1 1 100%' }}>
+              {t('Lucro por unidade: {valor}', { valor: brl(lerValor(avulso.preco) - lerValor(avulso.custo)) })} · {t('o custo entra nas despesas do dia da venda')}
+            </small>
+          )}
+        </form>
+      )}
       <p>
         {selecionado?.origem === 'estoque'
           ? <small>{t('Produto do estoque: digite o preço pelo qual está vendendo.')}</small>
@@ -251,7 +290,7 @@ export default function Vendas({ db, executar, irPara }) {
         {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
       </p>
 
-      {doEstoque.length + semEstoque.length + dosFornecedores.length === 0 && <p className="warn">{t('Registre produtos no Estoque ou cadastre produtos nos fornecedores para poder vender.')}</p>}
+      {doEstoque.length + semEstoque.length + dosFornecedores.length === 0 && <p className="warn">{t('Registre produtos no Estoque, cadastre nos fornecedores ou use "Produto ou serviço avulso".')}</p>}
 
       {carrinho.length > 0 && (
         <div className="painel">
@@ -264,14 +303,14 @@ export default function Vendas({ db, executar, irPara }) {
                   const l = lucroItem(i, fatorCarrinho)
                   return (
                   <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
-                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
+                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.origem === 'avulso' && <small className="sub-linha">{i.tipo === 'servico' ? t('serviço avulso') : t('produto avulso')} · {t('custo')} {brl(i.custo)}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
                     <td className="n">
                       <input className={'cel' + (i.origem === 'estoque' && (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
                         max={i.origem === 'estoque' ? (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) + +i.qtd : undefined}
                         value={i.qtd} onChange={(e) => alterarItem(n, 'qtd', e.target.value)} />
                     </td>
                     <td className="n">
-                      {i.origem === 'estoque'
+                      {i.origem === 'estoque' || i.origem === 'avulso'
                         ? <input className={'cel' + (i.custo != null && +i.preco < i.custo ? ' campo-erro' : '')} type="number" min="0" step="0.01" value={i.preco} onChange={(e) => alterarItem(n, 'preco', e.target.value)} />
                         : brl(i.preco)}
                     </td>

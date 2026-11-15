@@ -134,7 +134,7 @@ export default function Analise({ db }) {
   const despesasEstoque = (a, b) => Math.round(((db.entradas || []).filter((e) => e.dia >= a && e.dia <= b && e.custo != null)
     .reduce((s, e) => s + (+e.qtd || 0) * (+e.custo || 0), 0)
     + db.vendas.filter((v) => v.dia >= a && v.dia <= b).reduce((s, v) => s + (v.itens || [])
-      .filter((i) => i.origem === 'fornecedor' && i.custo != null).reduce((x, i) => x + (+i.qtd || 0) * (+i.custo || 0), 0), 0)) * 100) / 100
+      .filter((i) => (i.origem === 'fornecedor' || i.origem === 'avulso') && i.custo != null).reduce((x, i) => x + (+i.qtd || 0) * (+i.custo || 0), 0), 0)) * 100) / 100
   const despesas = despesasEstoque(de, ate), despesasAnt = despesasEstoque(antDe, antAte)
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
