@@ -804,6 +804,5 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 /* listas com nomes compridos não podem passar da largura da tela (no celular a página ia para o lado) */
 label > select { width: 100%; text-overflow: ellipsis }
 /* Novo Registro: item avulso */
-.linha-avulso { margin: -6px 0 6px }
-.form-avulso { border-style: dashed }
+.botao-avulso { white-space: nowrap }
 

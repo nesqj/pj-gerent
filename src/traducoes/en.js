@@ -1159,4 +1159,8 @@ export default {
   'produto avulso': 'one-off product',
   'Registre produtos no Estoque, cadastre nos fornecedores ou use "Produto ou serviço avulso".': 'Add products to Stock, register them with suppliers or use "One-off product or service".',
   'Custo de item avulso': 'One-off item cost',
+  'Produto ou serviço sem cadastro': 'Product or service not registered',
+  'Avulso': 'One-off',
+  'Produto ou serviço sem cadastro: o custo entra nas despesas do dia da venda.': 'Product or service not registered: the cost goes into the expenses on the sale day.',
+  'Voltar': 'Back',
 }

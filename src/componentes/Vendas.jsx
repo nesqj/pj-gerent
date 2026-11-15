@@ -205,8 +205,8 @@ export default function Vendas({ db, executar, irPara }) {
           <p><small>{t('Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças.')}</small></p>
         </>
       ) : (<>
-      {/* ---------- Nova venda ---------- */}
-      <form onSubmit={adicionar}>
+      {/* ---------- Nova venda: produto cadastrado ou avulso (no mesmo quadro) ---------- */}
+      {!avulso && <form onSubmit={adicionar}>
         <label style={{ flex: '2 1 240px' }}>{t('Produto')}
           <select required value={item.k} onChange={(e) => escolherProduto(e.target.value)}>
             <option value="">{t('Selecione um produto...')}</option>
@@ -256,11 +256,10 @@ export default function Vendas({ db, executar, irPara }) {
           </label>
         )}
         <button type="submit">{t('Adicionar')}</button>
-      </form>
-      {!avulso ? (
-        <p className="linha-avulso"><button type="button" className="link pequeno" onClick={() => setAvulso(avulsoNovo)}>+ {t('Produto ou serviço avulso (sem cadastro)')}</button></p>
-      ) : (
-        <form onSubmit={adicionarAvulso} className="form-avulso">
+        <button type="button" className="sec botao-avulso" title={t('Produto ou serviço sem cadastro')} onClick={() => setAvulso(avulsoNovo)}>+ {t('Avulso')}</button>
+      </form>}
+      {avulso && (
+        <form onSubmit={adicionarAvulso}>
           <label style={{ flex: '0 1 140px' }}>{t('Tipo')}
             <select value={avulso.tipo} onChange={(e) => setAvulso({ ...avulso, tipo: e.target.value })}>
               <option value="produto">{t('Produto')}</option>
@@ -272,15 +271,16 @@ export default function Vendas({ db, executar, irPara }) {
           <label style={{ flex: '0 1 130px' }}>{t('Custo (R$)')} *<input inputMode="decimal" placeholder="0,00" value={avulso.custo} onChange={(e) => setAvulso({ ...avulso, custo: e.target.value })} /></label>
           <label style={{ flex: '0 1 140px' }}>{t('Preço de venda (R$)')} *<input inputMode="decimal" placeholder="0,00" value={avulso.preco} onChange={(e) => setAvulso({ ...avulso, preco: e.target.value })} /></label>
           <button type="submit">{t('Adicionar')}</button>
-          <button type="button" className="sec" onClick={() => setAvulso(null)}>{t('Cancelar')}</button>
-          {String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== '' && (
-            <small className={lerValor(avulso.preco) - lerValor(avulso.custo) < 0 ? 'bad' : 'ok'} style={{ flex: '1 1 100%' }}>
-              {t('Lucro por unidade: {valor}', { valor: brl(lerValor(avulso.preco) - lerValor(avulso.custo)) })} · {t('o custo entra nas despesas do dia da venda')}
-            </small>
-          )}
+          <button type="button" className="sec" onClick={() => setAvulso(null)}>{t('Voltar')}</button>
         </form>
       )}
-      <p>
+      {avulso ? (
+        <p><small className={String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== '' && lerValor(avulso.preco) - lerValor(avulso.custo) < 0 ? 'bad' : ''}>
+          {String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== ''
+            ? t('Lucro por unidade: {valor}', { valor: brl(lerValor(avulso.preco) - lerValor(avulso.custo)) }) + ' · '
+            : ''}{t('Produto ou serviço sem cadastro: o custo entra nas despesas do dia da venda.')}
+        </small></p>
+      ) : <p>
         {selecionado?.origem === 'estoque'
           ? <small>{t('Produto do estoque: digite o preço pelo qual está vendendo.')}</small>
           : selecionado
@@ -288,7 +288,7 @@ export default function Vendas({ db, executar, irPara }) {
           : <small>{t('Produtos dos fornecedores usam o preço da aba "Fornecedores".')}</small>}
         {selecionado?.origem === 'fornecedor' && selecionado.resolucao.tipo === 'nenhuma' && <small className="warn"> {t('Este produto está sem preço definido: o preço de venda é igual ao custo. Defina na aba "Fornecedores".')}</small>}
         {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
-      </p>
+      </p>}
 
       {doEstoque.length + semEstoque.length + dosFornecedores.length === 0 && <p className="warn">{t('Registre produtos no Estoque, cadastre nos fornecedores ou use "Produto ou serviço avulso".')}</p>}
 
