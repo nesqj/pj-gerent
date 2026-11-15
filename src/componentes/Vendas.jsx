@@ -63,8 +63,23 @@ export default function Vendas({ db, executar, irPara }) {
   const doEstoqueEm = (itens, k) => itens.filter((i) => i.origem === 'estoque' && norm(i.produto) === k).reduce((s, i) => s + +i.qtd, 0)
   const disponivel = (k) => (estoque.get(k)?.saldo ?? 0) - doEstoqueEm(carrinho, k)
 
+  // avulso com custo em %: o custo acompanha o preço
+  const custoPorPct = (preco, pct) => (preco === '' || pct === '' ? '' : Math.round(+preco * +pct) / 100)
   function alterarItem(n, campo, valor) {
-    setCarrinho(carrinho.map((i, x) => (x === n ? { ...i, [campo]: valor === '' ? '' : +valor } : i)))
+    setCarrinho(carrinho.map((i, x) => {
+      if (x !== n) return i
+      const novo = { ...i, [campo]: valor === '' ? '' : +valor }
+      if (campo === 'preco' && i.origem === 'avulso' && i.custoPct != null) novo.custo = custoPorPct(novo.preco, i.custoPct)
+      return novo
+    }))
+  }
+  // muda o custo do avulso já no carrinho (em R$ ou na %, conforme foi lançado)
+  function alterarCustoAvulso(n, valor) {
+    setCarrinho(carrinho.map((i, x) => {
+      if (x !== n) return i
+      if (i.custoPct != null) return { ...i, custoPct: valor === '' ? '' : +valor, custo: custoPorPct(i.preco, valor) }
+      return { ...i, custo: valor === '' ? '' : +valor }
+    }))
   }
 
   function cancelar() {
@@ -143,6 +158,7 @@ export default function Vendas({ db, executar, irPara }) {
       return aviso.alerta(t('Estoque insuficiente de "{produto}": só há {n} unidade(s).', { produto: nome, n: disponivel(passou) + doEstoqueEm(carrinho, passou) }))
     }
     if (carrinho.some((i) => !(+i.qtd > 0) || i.preco === '' || +i.preco < 0)) return aviso.alerta(t('Confira a quantidade e o preço de todos os itens.'))
+    if (carrinho.some((i) => i.origem === 'avulso' && (i.custo === '' || !(+i.custo >= 0)))) return aviso.alerta(t('Informe o custo (0 se não tiver).'))
     const itens = carrinho.map((i) => ({ ...i, qtd: +i.qtd, preco: +i.preco }))
     if (desconto !== '' && (+desconto < 0 || +desconto > 100)) return aviso.alerta(t('O desconto precisa ser entre 0% e 100%.'))
     const subtotal = itens.reduce((s, i) => s + i.qtd * i.preco, 0)
@@ -329,7 +345,10 @@ export default function Vendas({ db, executar, irPara }) {
                   const l = lucroItem(i, fatorCarrinho)
                   return (
                   <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
-                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.origem === 'avulso' && <small className="sub-linha">{i.tipo === 'servico' ? t('serviço avulso') : t('produto avulso')} · {t('custo')} {brl(i.custo)}{i.custoPct != null ? ` (${String(i.custoPct).replace('.', ',')}%)` : ''}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
+                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.origem === 'avulso' && <small className="sub-linha custo-item">{i.tipo === 'servico' ? t('serviço avulso') : t('produto avulso')} · {t('custo')}
+                      {i.custoPct == null && <span>R$</span>}
+                      <input className="cel mini" type="number" min="0" step="0.01" value={i.custoPct != null ? i.custoPct : i.custo} onChange={(e) => alterarCustoAvulso(n, e.target.value)} aria-label={t('Custo')} />
+                      {i.custoPct != null && <span>% = {i.custo === '' ? '—' : brl(i.custo)}</span>}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
                     <td className="n">
                       <input className={'cel' + (i.origem === 'estoque' && (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
                         max={i.origem === 'estoque' ? (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) + +i.qtd : undefined}

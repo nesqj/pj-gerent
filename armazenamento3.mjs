@@ -1,0 +1,378 @@
+// Camada de armazenamento — Supabase, por loja (organização).
+// Os dados de cada loja ficam numa linha da tabela "dados_org" (campo JSON "conteudo").
+// O app mantém uma cópia em memória; cada alteração é enviada ao banco pela função "salvar_dados".
+// Se outra pessoa (ou outro aparelho) salvou antes, o banco recusa ("conflito"): o app busca a versão
+// nova, refaz a alteração em cima dela e tenta de novo — assim nada do que o outro salvou se perde.
+// O perfil (nome, idioma, tema, fuso, avatar) é de cada pessoa e fica na conta dela, não na loja.
+// As funções têm os mesmos nomes da versão antiga, então as telas não mudaram.
+
+import { t } from './i18n.js'
+import { supabase } from './supabase.js'
+import { chave, norm, resumoFiado } from './utils.js'
+
+const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
+const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [], emprestimos: [] })
+
+let org = null          // loja ativa: { id, nome, papel, suspensa, criada_por_mim }
+let db = vazio()
+let versao = 0
+let carregadoDe = null  // id da loja cujos dados estão na memória
+let perfil = null       // perfil de quem está logado
+
+// ---------- loja ativa e papéis
+
+// O que cada papel pode gravar (o banco também confere: leitor não grava nada)
+const PODE = {
+  admin: () => true,
+  gerente: (acao) => acao !== 'tudo.substituido',
+  vendedor: (acao) => /^(venda|entrada|cliente)\./.test(acao),
+  leitor: () => false,
+}
+export const podeFazer = (acao) => !!org && (PODE[org.papel] || PODE.leitor)(acao)
+
+export function definirOrg(o) {
+  if (o?.id !== carregadoDe) { db = vazio(); versao = 0; carregadoDe = null }
+  org = o
+}
+
+// ---------- leitura
+
+async function idUsuario() {
+  const { data } = await supabase.auth.getSession()
+  const id = data.session?.user?.id
+  if (!id) throw new Error(t('Sua sessão expirou. Entre de novo.'))
+  return data.session.user
+}
+
+async function buscar() {
+  const { data, error } = await supabase.from('dados_org').select('conteudo, versao').eq('org_id', org.id).maybeSingle()
+  if (error) throw new Error(t('Não foi possível carregar os dados do banco. Verifique a internet e tente de novo.'))
+  db = { ...vazio(), ...(data?.conteudo || {}) }
+  versao = data?.versao ?? 0
+  carregadoDe = org.id
+}
+
+// Carrega os dados da loja ativa: { fornecedores, precosForn, vendas, entradas, regras, regraPadraoId, precoProduto, config, perfil }
+// Busca no banco só na primeira vez (ou quando troca de loja); depois usa a cópia em memória.
+export async function carregar() {
+  const usuario = await idUsuario()
+  if (!org) throw new Error(t('Nenhuma loja selecionada.'))
+  if (carregadoDe !== org.id) await buscar()
+  if (!perfil) {
+    // perfil da conta; quem veio da versão antiga ainda tem o perfil guardado dentro dos dados da loja
+    perfil = usuario.user_metadata?.perfil || (org.criada_por_mim && db.perfil) || {}
+  }
+  const copia = structuredClone(db)
+  copia.perfil = { ...perfil }
+  return copia
+}
+
+// Busca de novo se alguém alterou a loja (ao voltar para o app). Retorna true se mudou.
+export async function atualizarSeMudou() {
+  if (!org || carregadoDe !== org.id) return false
+  const { data, error } = await supabase.from('dados_org').select('versao').eq('org_id', org.id).maybeSingle()
+  if (error || (data?.versao ?? 0) === versao) return false
+  await buscar()
+  return true
+}
+
+// Esquece tudo da memória (ao sair da conta)
+export function limpar() {
+  org = null
+  db = vazio()
+  versao = 0
+  carregadoDe = null
+  perfil = null
+}
+
+// ---------- gravação
+
+const MENSAGENS = {
+  'sem-permissao': 'Seu papel nesta loja não permite fazer isso.',
+  'loja-suspensa': 'Esta loja está suspensa. Fale com o administrador da plataforma.',
+}
+function mensagemDoBanco(error) {
+  const codigo = Object.keys(MENSAGENS).find((c) => error?.message?.includes(c))
+  return t(codigo ? MENSAGENS[codigo] : 'Não foi possível salvar no banco de dados. Verifique a internet e tente de novo.')
+}
+
+// Registro na auditoria (se falhar, não atrapalha o que já foi salvo)
+export function registrar(acao, detalhe) {
+  supabase.from('auditoria').insert({ org_id: org?.id ?? null, acao, detalhe: detalhe ? String(detalhe).slice(0, 300) : null })
+    .then(() => {}, () => {})
+}
+
+// Aplica uma alteração numa cópia, envia e só então troca a memória.
+// "acao" diz o que é (para permissões e auditoria); "detalhe" é um resumo legível.
+async function mudar(acao, fn, detalhe) {
+  await idUsuario()
+  if (!org) throw new Error(t('Nenhuma loja selecionada.'))
+  if (!podeFazer(acao)) throw new Error(t(MENSAGENS['sem-permissao']))
+  if (carregadoDe !== org.id) await buscar()
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    const novo = structuredClone(db)
+    delete novo.perfil // o perfil é de cada pessoa, não da loja
+    const r = fn(novo)
+    const { data, error } = await supabase.rpc('salvar_dados', { o: org.id, novo_conteudo: novo, versao_esperada: versao })
+    if (!error) {
+      db = novo
+      versao = data
+      registrar(acao, typeof detalhe === 'function' ? detalhe(r) : detalhe)
+      return r
+    }
+    if (!error.message?.includes('conflito')) throw new Error(mensagemDoBanco(error))
+    await buscar() // alguém salvou antes: pega a versão nova e refaz a alteração
+  }
+  throw new Error(t('Outra pessoa está alterando os dados agora. Tente de novo em instantes.'))
+}
+
+const upsert = (lista, acao, obj, detalhe) => mudar(acao, (d) => {
+  const i = d[lista].findIndex((x) => x.id === obj.id)
+  if (i >= 0) d[lista][i] = obj
+  else d[lista].push(obj)
+  return obj
+}, detalhe)
+
+const remover = (lista, acao, id) => mudar(acao, (d) => {
+  const item = d[lista].find((x) => x.id === id)
+  d[lista] = d[lista].filter((x) => x.id !== id)
+  return item
+}, (item) => resumo(lista, item))
+
+// Resumo legível de um registro, para a auditoria
+function resumo(lista, x) {
+  if (!x) return null
+  if (lista === 'fornecedores') return x.nome
+  if (lista === 'precosForn') return [x.produto, x.marca].filter(Boolean).join(' — ')
+  if (lista === 'vendas') return (x.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + ` = ${x.total}`
+  if (lista === 'entradas') return `${x.qtd}× ${x.produto}`
+  if (lista === 'emprestimos') return `${x.fiado?.cliente || ''}: ${x.valor} → ${x.total} (${x.fiado?.parcelas?.length || 1}×, ${x.jurosPct}% a.m.)`
+  if (lista === 'movCaixa') return `${x.tipo === 'retirar' ? '−' : '+'}${x.valor}${x.descricao ? ' · ' + x.descricao : ''}`
+  return null
+}
+
+// A loja ainda não tem nada salvo?
+export const contaVazia = (d) => !['fornecedores', 'precosForn', 'vendas', 'entradas'].some((k) => d?.[k]?.length) && !d?.regras?.length
+
+// Dados que a versão sem banco deixou guardados neste navegador (ou null)
+export function dadosDoNavegador() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CHAVE_NAVEGADOR))
+    return d && !contaVazia(d) ? d : null
+  } catch {
+    return null
+  }
+}
+export function esquecerDadosDoNavegador() {
+  try { localStorage.removeItem(CHAVE_NAVEGADOR) } catch { /* sem acesso */ }
+}
+
+export const salvarFornecedor = (f) => upsert('fornecedores', 'fornecedor.salvo', f, f.nome)
+export const excluirFornecedor = (id) => mudar('fornecedor.excluido', (d) => {
+  const f = d.fornecedores.find((x) => x.id === id)
+  d.precosForn = d.precosForn.filter((p) => p.fornecedorId !== id) // remove os preços dele também
+  d.fornecedores = d.fornecedores.filter((x) => x.id !== id)
+  return f
+}, (f) => f?.nome)
+
+export const salvarPrecoFornecedor = (p) => upsert('precosForn', 'preco-fornecedor.salvo', p, resumo('precosForn', p))
+export const excluirPrecoFornecedor = (id) => remover('precosForn', 'preco-fornecedor.excluido', id)
+// Muda o nome/marca de um produto em todos os fornecedores. Se o fornecedor já tinha o produto com o nome novo,
+// fica só um (o renomeado). A regra de preço do produto vai junto para o nome novo.
+export const renomearProduto = (k, produto, marca) => mudar('preco-fornecedor.salvo', (d) => {
+  const nk = chave(produto, marca)
+  const doProduto = d.precosForn.filter((p) => chave(p.produto, p.marca) === k)
+  const fornecedores = new Set(doProduto.map((p) => p.fornecedorId))
+  d.precosForn = d.precosForn
+    .filter((p) => !(nk !== k && chave(p.produto, p.marca) === nk && fornecedores.has(p.fornecedorId)))
+    .map((p) => (chave(p.produto, p.marca) === k ? { ...p, produto, marca, atualizado: Date.now() } : p))
+  if (nk !== k && d.precoProduto?.[k]) {
+    d.precoProduto = { ...d.precoProduto }
+    if (!d.precoProduto[nk]) d.precoProduto[nk] = d.precoProduto[k]
+    delete d.precoProduto[k]
+  }
+  return nk
+}, `${k.replace('|', ' — ')} → ${produto}${marca ? ' — ' + marca : ''}`)
+
+// Perfil de quem usa: { nome, idioma, tema, fuso, avatar } — fica na conta da pessoa
+export async function salvarPerfil(p) {
+  const { error } = await supabase.auth.updateUser({ data: { perfil: p, nome: p.nome || undefined } })
+  if (error) throw new Error(t('Não foi possível salvar no banco de dados. Verifique a internet e tente de novo.'))
+  perfil = { ...p }
+  return p
+}
+
+// Configurações da loja: { nomeLoja, cor, corEscuro, logo, logoEscuro, avisosEstoque }
+export const salvarConfig = (c) => mudar('config.salva', (d) => { d.config = c; return c }, c.nomeLoja || null)
+
+
+// Escolha de preço de um produto (chave produto|marca); null volta para a regra padrão
+// vários preços fixos de uma vez: { chave: valor }
+export const fixarPrecos = (mapa) => mudar('preco-venda.salvo', (d) => {
+  d.precoProduto = { ...d.precoProduto }
+  for (const [k, valor] of Object.entries(mapa)) d.precoProduto[k] = { tipo: 'fixo', valor: Math.round(+valor * 100) / 100 }
+}, t('{n} preço(s) fixo(s)', { n: Object.keys(mapa).length }))
+
+export const salvarPrecoProduto = (k, escolha) => mudar('preco-venda.salvo', (d) => {
+  d.precoProduto = { ...d.precoProduto }
+  if (!escolha || escolha.tipo === 'padrao') delete d.precoProduto[k]
+  else d.precoProduto[k] = escolha
+}, k.replace('|', ' — ') + ': ' + (escolha?.tipo === 'fixo' ? escolha.valor : escolha?.tipo || 'padrao'))
+
+// Vendas: { id, data, dia 'AAAA-MM-DD', itens: [{ produto, marca, qtd, preco, custo, origem }], pagamento, subtotal, descontoPct, descontoValor, total }
+// ---------- estoque nunca negativo
+// Saldo de um produto do estoque (nome normalizado): entradas − vendas
+function saldoDe(d, k) {
+  const entrou = (d.entradas || []).filter((e) => norm(e.produto) === k).reduce((s, e) => s + (+e.qtd || 0), 0)
+  const saiu = (d.vendas || []).reduce((s, v) => s + (v.itens || []).filter((i) => i.origem === 'estoque' && norm(i.produto) === k)
+    .reduce((x, i) => x + (+i.qtd || 0), 0), 0)
+  return entrou - saiu
+}
+// Produto que ficaria negativo (e pior do que já estava) depois da alteração, ou null.
+// Roda dentro da gravação: se outro aparelho vendeu antes, a conta é refeita com os dados novos.
+function ficaNegativo(antes, depois, produtos) {
+  for (const [k, nome] of produtos) {
+    const novo = saldoDe(depois, k)
+    if (novo < 0 && novo < saldoDe(antes, k)) return { k, nome, novo }
+  }
+  return null
+}
+function conferirEstoque(antes, depois, produtos) {
+  const r = ficaNegativo(antes, depois, produtos)
+  if (r) throw new Error(t('Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua ou edite antes a venda desse produto na aba Novo Registro.', { produto: r.nome, n: r.novo }))
+}
+const doEstoque = (itens) => (itens || []).filter((i) => i.origem === 'estoque').map((i) => [norm(i.produto), i.produto])
+// unidades vendidas que apontam direto para uma entrada (lote)
+const vendidoDoLote = (d, id) => (d.vendas || []).reduce((s, v) => s + (v.itens || []).filter((i) => i.origem === 'estoque' && i.entradaId === id)
+  .reduce((x, i) => x + (+i.qtd || 0), 0), 0)
+const copiaListas = (d) => ({ entradas: [...(d.entradas || [])], vendas: [...(d.vendas || [])] })
+
+export const salvarVenda = (v) => mudar('venda.salva', (d) => {
+  const antes = copiaListas(d)
+  const i = d.vendas.findIndex((x) => x.id === v.id)
+  // fiado que já teve recebimento (ou "não pagou"): editar a venda apagaria esse histórico
+  const f = i >= 0 ? resumoFiado(d.vendas[i]) : null
+  if (f && (f.recebido > 0 || f.naoPago > 0)) throw new Error(t('Esta venda tem fiado com pagamento já registrado.') + ' ' + t('Para mudar, use a aba Cobranças (receber, mudar data, não pagou) ou exclua a venda.'))
+  if (i >= 0) d.vendas[i] = v
+  else d.vendas.push(v)
+  // cada lote escolhido precisa ter as unidades
+  for (const id of new Set((v.itens || []).filter((i) => i.origem === 'estoque' && i.entradaId).map((i) => i.entradaId))) {
+    const e = d.entradas.find((x) => x.id === id)
+    const sobra = (e ? +e.qtd || 0 : 0) - vendidoDoLote(d, id)
+    if (sobra < 0 && sobra < (e ? +e.qtd || 0 : 0) - vendidoDoLote(antes, id)) {
+      throw new Error(t('Estoque insuficiente nesta entrada de "{produto}": só há {n} unidade(s). A venda não foi salva.', {
+        produto: e?.produto || '', n: Math.max(0, (e ? +e.qtd || 0 : 0) - vendidoDoLote({ vendas: antes.vendas.filter((x) => x.id !== v.id) }, id)) }))
+    }
+  }
+  const r = ficaNegativo(antes, d, doEstoque(v.itens))
+  if (r) {
+    // quanto havia para esta venda = saldo sem contar esta venda (nem a versão antiga dela, se for edição)
+    const n = Math.max(0, saldoDe({ entradas: antes.entradas, vendas: antes.vendas.filter((x) => x.id !== v.id) }, r.k))
+    throw new Error(t('Estoque insuficiente de "{produto}": só há {n} unidade(s). A venda não foi salva.', { produto: r.nome, n }))
+  }
+  return v
+}, resumo('vendas', v))
+export const excluirVenda = (id) => remover('vendas', 'venda.excluida', id)
+
+// Fiado: recebeu, não pagou, mudar data… (altera a venda, sem mexer nos itens)
+// alterar(parcela) devolve a parcela nova; roda sobre os dados mais novos (inclusive se outra pessoa salvou antes)
+// lista: 'vendas' (fiado) ou 'emprestimos'
+export const salvarParcela = (lista, id, parcelaId, alterar, acao, detalhe) => mudar(acao, (d) => {
+  d[lista] = d[lista] || []
+  const i = d[lista].findIndex((x) => x.id === id)
+  const v = d[lista][i]
+  const k = v?.fiado?.parcelas?.findIndex((p) => p.id === parcelaId) ?? -1
+  if (i < 0 || k < 0) throw new Error(lista === 'vendas' ? t('Venda não encontrada.') : t('Empréstimo não encontrado.'))
+  const parcelas = [...v.fiado.parcelas]
+  parcelas[k] = alterar(parcelas[k])
+  d[lista][i] = { ...v, fiado: { ...v.fiado, parcelas } }
+  return d[lista][i]
+}, detalhe)
+// alterar(parcelas) devolve a lista nova de parcelas (para recebimentos que pagam mais de uma)
+export const alterarParcelas = (lista, id, alterar, acao, detalhe) => mudar(acao, (d) => {
+  d[lista] = d[lista] || []
+  const i = d[lista].findIndex((x) => x.id === id)
+  const v = d[lista][i]
+  if (i < 0 || !v?.fiado?.parcelas) throw new Error(lista === 'vendas' ? t('Venda não encontrada.') : t('Empréstimo não encontrado.'))
+  d[lista][i] = { ...v, fiado: { ...v.fiado, parcelas: alterar([...v.fiado.parcelas]) } }
+  return d[lista][i]
+}, detalhe)
+
+// Empréstimos (crediário de dinheiro): ver calcularEmprestimo em utils.js
+export const salvarEmprestimo = (e) => mudar('emprestimo.salvo', (d) => {
+  d.emprestimos = d.emprestimos || []
+  const i = d.emprestimos.findIndex((x) => x.id === e.id)
+  if (i >= 0) {
+    const f = resumoFiado(d.emprestimos[i])
+    if (f && (f.recebido > 0 || f.naoPago > 0)) throw new Error(t('Este empréstimo já tem parcela recebida. Para mudar, use a aba Cobranças ou exclua o empréstimo.'))
+    d.emprestimos[i] = e
+  } else d.emprestimos.push(e)
+  return e
+}, resumo('emprestimos', e))
+export const excluirEmprestimo = (id) => mudar('emprestimo.excluido', (d) => {
+  d.emprestimos = d.emprestimos || []
+  const item = d.emprestimos.find((x) => x.id === id)
+  d.emprestimos = d.emprestimos.filter((x) => x.id !== id)
+  return item
+}, (item) => resumo('emprestimos', item))
+
+// Clientes (para o fiado): { id, nome, telefone, obs }
+export const salvarCliente = (c) => upsert('clientes', 'cliente.salvo', c, c.nome)
+// Editar: o nome e o telefone também mudam no fiado e nos empréstimos dele (usados no WhatsApp)
+export const atualizarCliente = (c) => mudar('cliente.salvo', (d) => {
+  d.clientes = d.clientes || []
+  const i = d.clientes.findIndex((x) => x.id === c.id)
+  if (i >= 0) d.clientes[i] = c
+  else d.clientes.push(c)
+  for (const lista of ['vendas', 'emprestimos']) {
+    d[lista] = (d[lista] || []).map((v) => (v.fiado?.clienteId === c.id ? { ...v, fiado: { ...v.fiado, cliente: c.nome, telefone: c.telefone || '' } } : v))
+  }
+  return c
+}, c.nome)
+// Excluir: só sem nada em aberto (as vendas e empréstimos antigos continuam com o nome)
+export const excluirCliente = (id) => mudar('cliente.excluido', (d) => {
+  d.clientes = d.clientes || []
+  const c = d.clientes.find((x) => x.id === id)
+  const emAberto = ['vendas', 'emprestimos'].some((l) => (d[l] || []).some((v) => v.fiado?.clienteId === id && resumoFiado(v)?.pendente))
+  if (emAberto) throw new Error(t('Este cliente ainda tem parcelas em aberto. Receba ou marque como não pagas antes de excluir.'))
+  d.clientes = d.clientes.filter((x) => x.id !== id)
+  return c
+}, (c) => c?.nome)
+
+// Entradas de estoque: { id, data, dia, produto, qtd, custo, obs }
+export const salvarEntrada = (e) => mudar('entrada.salva', (d) => {
+  const antes = copiaListas(d)
+  const i = d.entradas.findIndex((x) => x.id === e.id)
+  const velha = i >= 0 ? d.entradas[i] : null
+  // entrada com vendas apontando para ela: não pode ficar com menos unidades do que já saíram, nem mudar de produto
+  const ja = velha ? vendidoDoLote(d, e.id) : 0
+  if (ja > 0 && ((+e.qtd || 0) < ja || norm(e.produto) !== norm(velha.produto))) {
+    throw new Error(t('Não dá: esta entrada já tem {n} unidade(s) vendida(s). A quantidade não pode ficar menor que isso, e o produto não pode mudar de nome.', { n: ja }))
+  }
+  if (i >= 0) d.entradas[i] = e
+  else d.entradas.push(e)
+  // editar pode diminuir a quantidade ou trocar o nome do produto: confere os dois
+  conferirEstoque(antes, d, [[norm(e.produto), e.produto], ...(velha ? [[norm(velha.produto), velha.produto]] : [])])
+  return e
+}, resumo('entradas', e))
+export const excluirEntrada = (id) => mudar('entrada.excluida', (d) => {
+  const antes = copiaListas(d)
+  const e = d.entradas.find((x) => x.id === id)
+  if (vendidoDoLote(d, id) > 0) throw new Error(t('Não dá para excluir: esta entrada já foi vendida.'))
+  d.entradas = d.entradas.filter((x) => x.id !== id)
+  if (e) conferirEstoque(antes, d, [[norm(e.produto), e.produto]])
+  return e
+}, (e) => resumo('entradas', e))
+
+// Caixa: início do controle { inicio, saldoInicial } e movimentos de dinheiro colocado/retirado
+// { id, data, dia, tipo: 'colocar' | 'retirar', valor, descricao }
+export const salvarCaixa = (c) => mudar('caixa.config', (d) => { d.caixa = c; return c }, `saldo inicial ${c.saldoInicial}`)
+export const salvarMovCaixa = (m) => upsert('movCaixa', 'caixa.mov-salvo', m, resumo('movCaixa', m))
+export const excluirMovCaixa = (id) => remover('movCaixa', 'caixa.mov-excluido', id)
+
+// Substitui todos os dados da loja (restaurar backup ou trazer os dados do navegador)
+export const substituirTudo = (dados) => mudar('tudo.substituido', (d) => {
+  for (const k of Object.keys(d)) delete d[k]
+  Object.assign(d, vazio(), structuredClone(dados))
+  delete d.perfil
+}, null)
