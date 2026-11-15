@@ -233,9 +233,9 @@ export default function Analise({ db }) {
           <small>{t('Outras despesas')}</small><b>{brl(outras)}</b>
           {outrasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(outrasAnt) })}</small>}
         </div>
-        <div className={'card' + (resultado < 0 ? ' card-prejuizo' : '')}>
+        <div className="card">
           <small>{t('Resultado')}</small>
-          <b className={resultado < 0 ? 'bad' : 'ok'}>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
+          <b>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
           <small className="var">{t('lucro − outras despesas')}{resultadoAnt !== 0 ? ' · ' + t('anterior: {valor}', { valor: (resultadoAnt < 0 ? '− ' : '') + brl(Math.abs(resultadoAnt)) }) : ''}</small>
         </div>
       </div>
