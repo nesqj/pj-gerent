@@ -1191,4 +1191,5 @@ export default {
   'Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = interest on loans made in the period + late fees received in the period − what was marked "Did not pay" in the period. Result = what came back (with late fees) − what was lent, when the loan closes.',
   'com juros de {valor}': 'with interest of {valor}',
   '{valor} + juros {juros}': '{valor} + interest {juros}',
+  'Não vale com fiado': 'Not valid with credit',
 }

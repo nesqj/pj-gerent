@@ -50,9 +50,13 @@ export default function Vendas({ db, executar, irPara }) {
   const opcoes = [...doEstoque, ...dosFornecedores]
   const selecionado = opcoes.find((x) => x.id === item.k)
   const subtotalCarrinho = carrinho.reduce((s, i) => s + (+i.qtd || 0) * (+i.preco || 0), 0)
-  // fiado tudo para depois: sem desconto
-  const fiadoTudo = pg.forma === 'Fiado' && !pg.dividir
-  const pctDesconto = fiadoTudo ? 0 : Math.min(100, Math.max(0, +desconto || 0))
+  // venda com fiado (tudo para depois, ou entrada + fiado): sem desconto.
+  // No pagamento dividido, há fiado quando o que foi pago não cobre o total com o desconto.
+  const pctDigitado = Math.min(100, Math.max(0, +desconto || 0))
+  const pagoDividido = pg.dividir ? pg.linhas.reduce((s, l) => s + (lerValor(l.valor) || 0), 0) : 0
+  const comDesconto = Math.round(subtotalCarrinho * (100 - pctDigitado)) / 100
+  const fiadoTudo = pg.dividir ? pagoDividido < comDesconto - 0.004 : pg.forma === 'Fiado'
+  const pctDesconto = fiadoTudo ? 0 : pctDigitado
   const valorDesconto = Math.round(subtotalCarrinho * pctDesconto) / 100
   const totalCarrinho = Math.round((subtotalCarrinho - valorDesconto) * 100) / 100
   // lucro do carrinho (com o desconto) e prejuízo de quem vende abaixo do custo
@@ -388,8 +392,9 @@ export default function Vendas({ db, executar, irPara }) {
           </div>
           <PagamentoVenda pg={pg} setPg={setPg} total={totalCarrinho} clientes={db.clientes || []} db={db} />
           <div className="finalizar">
-            {fiadoTudo ? <span /> : <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
+            {pg.forma === 'Fiado' && !pg.dividir ? <span /> : <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
               <input type="number" min="0" max="100" step="0.01" placeholder={t('Opcional')} value={desconto} onChange={(e) => setDesconto(e.target.value)} />
+              {fiadoTudo && pctDigitado > 0 && <small className="bad">{t('Não vale com fiado')}</small>}
             </label>}
             <div className="total-grande">
               {pctDesconto > 0 && <small className="riscado">{brl(subtotalCarrinho)}</small>}
