@@ -57,7 +57,11 @@ export default function Vendas({ db, executar, irPara }) {
   const fatorCarrinho = 1 - pctDesconto / 100
   const lucroCarrinho = lucroDe(carrinho, fatorCarrinho)
   // juros do fiado também são lucro: entram no lucro mostrado no carrinho
-  const jurosFiado = carrinho.length ? (montarPagamento(pg, totalCarrinho, db.clientes || []).fiado?.juros || 0) : 0
+  const pagPrevia = carrinho.length ? montarPagamento(pg, totalCarrinho, db.clientes || []) : null
+  const jurosFiado = pagPrevia?.fiado?.juros || 0
+  const parcelasPrevia = pagPrevia?.fiado?.parcelas || []
+  const entradaPrevia = (pagPrevia?.pagamentos || []).reduce((s, x) => s + (+x.valor || 0), 0)
+  const totalComJuros = Math.round((totalCarrinho + jurosFiado) * 100) / 100
   const lucroComJuros = Math.round((lucroCarrinho.lucro + jurosFiado) * 100) / 100
   const temCusto = carrinho.some((i) => i.custo != null)
   // preço digitado abaixo do custo (produto do estoque)
@@ -388,8 +392,11 @@ export default function Vendas({ db, executar, irPara }) {
             <div className="total-grande">
               {pctDesconto > 0 && <small className="riscado">{brl(subtotalCarrinho)}</small>}
               {pctDesconto > 0 && <small className="bad">− {brl(valorDesconto)} ({t('{p}% de desconto', { p: num(pctDesconto, 2) })})</small>}
-              <small>{t('Total')}</small><b>{brl(Math.round((totalCarrinho + jurosFiado) * 100) / 100)}</b>
-              {jurosFiado > 0 && <small>{t('{valor} + juros {juros}', { valor: brl(totalCarrinho), juros: brl(jurosFiado) })}</small>}
+              <small>{t('Total')}</small>
+              {parcelasPrevia.length
+                ? <b className="total-parcelas">{entradaPrevia > 0 && <span>{brl(entradaPrevia)} + </span>}{parcelasPrevia.length}× {brl(parcelasPrevia[0].valor)} <span>= {brl(totalComJuros)}</span></b>
+                : <b>{brl(totalComJuros)}</b>}
+              {jurosFiado > 0 && <small>{t('Juros')}: {brl(jurosFiado)}</small>}
               {temCusto && (lucroComJuros < 0
                 ? <small className="bad resultado-venda">{t('Prejuízo')}: − {brl(-lucroComJuros)}</small>
                 : <small className="ok resultado-venda">{t('Lucro')}: {brl(lucroComJuros)}{lucroCarrinho.perda > 0 ? ` · ${t('perda de {valor} abaixo do custo', { valor: brl(lucroCarrinho.perda) })}` : ''}</small>)}
