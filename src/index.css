@@ -805,4 +805,10 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 label > select { width: 100%; text-overflow: ellipsis }
 /* Novo Registro: item avulso */
 .botao-avulso { white-space: nowrap }
+/* avulso: custo em R$ ou % */
+.rotulo-custo { display: flex; align-items: center; justify-content: space-between; gap: 6px }
+.modo-custo { display: inline-flex; border: 1px solid var(--bd); border-radius: 6px; overflow: hidden }
+.modo-custo button { background: transparent; border: none; color: var(--mut); padding: 1px 8px; font-size: 11px; cursor: pointer; border-radius: 0 }
+.modo-custo button.ativo { background: var(--pri); color: #fff }
 
+.campo-custo { display: flex; flex-direction: column; font-size: 13px; color: var(--mut); gap: 6px; min-width: 0 }

@@ -15,7 +15,10 @@ export default function Vendas({ db, executar, irPara }) {
   const podeEmprestar = podeFazer('emprestimo.salvo')
   const [item, setItem] = useState(itemNovo)
   // item avulso: produto ou serviço que não está no estoque nem nos fornecedores (custo vira despesa)
-  const avulsoNovo = { nome: '', tipo: 'produto', qtd: '1', custo: '', preco: '' }
+  // lembra (neste aparelho) o último jeito de lançar o custo do avulso: R$ ou %, o valor da % e se tira do caixa
+  const lembrado = (() => { try { return JSON.parse(localStorage.getItem('avulso-custo') || '{}') } catch { return {} } })()
+  const avulsoNovo = { nome: '', tipo: lembrado.tipo || 'produto', qtd: '1', preco: '',
+    modoCusto: lembrado.modoCusto || 'valor', custo: lembrado.modoCusto === 'pct' ? (lembrado.pct ?? '') : '', doCaixa: lembrado.doCaixa ?? true }
   const [avulso, setAvulso] = useState(null) // null = formulário fechado
   const [carrinho, setCarrinho] = useState([])
   const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
@@ -84,16 +87,27 @@ export default function Vendas({ db, executar, irPara }) {
     setItem({ ...item, k, preco: '', forn: '' })
   }
 
+  // custo do avulso em R$: digitado direto ou % do preço de venda
+  const custoAvulso = (a) => {
+    const v = lerValor(a.custo)
+    if (a.modoCusto !== 'pct') return v
+    const p = lerValor(a.preco)
+    return Number.isFinite(v) && Number.isFinite(p) ? Math.round(p * v) / 100 : NaN
+  }
+
   function adicionarAvulso(e) {
     e.preventDefault()
     const nome = avulso.nome.trim()
     const qtd = parseInt(avulso.qtd, 10)
-    const custo = lerValor(avulso.custo), preco = lerValor(avulso.preco)
+    const preco = lerValor(avulso.preco)
     if (!nome) return aviso.alerta(t('Informe o nome do produto ou serviço.'))
     if (!(qtd > 0)) return aviso.alerta(t('Confira a quantidade.'))
-    if (String(avulso.custo).trim() === '' || !(custo >= 0)) return aviso.alerta(t('Informe o custo (0 se não tiver).'))
     if (String(avulso.preco).trim() === '' || !(preco >= 0)) return aviso.alerta(t('Informe o preço de venda.'))
-    setCarrinho([...carrinho, { produto: nome, marca: '', qtd, preco, custo, origem: 'avulso', tipo: avulso.tipo }])
+    const custo = custoAvulso(avulso)
+    if (String(avulso.custo).trim() === '' || !(custo >= 0)) return aviso.alerta(t('Informe o custo (0 se não tiver).'))
+    setCarrinho([...carrinho, { produto: nome, marca: '', qtd, preco, custo, origem: 'avulso', tipo: avulso.tipo,
+      ...(avulso.modoCusto === 'pct' ? { custoPct: lerValor(avulso.custo) } : {}), ...(avulso.doCaixa ? {} : { foraDoCaixa: true }) }])
+    try { localStorage.setItem('avulso-custo', JSON.stringify({ tipo: avulso.tipo, modoCusto: avulso.modoCusto, pct: avulso.modoCusto === 'pct' ? avulso.custo : undefined, doCaixa: avulso.doCaixa })) } catch { /* sem acesso */ }
     setAvulso(null)
   }
 
@@ -268,17 +282,34 @@ export default function Vendas({ db, executar, irPara }) {
           </label>
           <label style={{ flex: '2 1 220px' }}>{t('Nome')} *<input autoFocus maxLength={80} placeholder={avulso.tipo === 'servico' ? t('Ex: troca de tela') : t('Ex: cabo USB-C')} value={avulso.nome} onChange={(e) => setAvulso({ ...avulso, nome: e.target.value })} /></label>
           <label style={{ flex: '0 1 80px' }}>{t('Qtd.')}<input type="number" min="1" step="1" value={avulso.qtd} onChange={(e) => setAvulso({ ...avulso, qtd: e.target.value })} /></label>
-          <label style={{ flex: '0 1 130px' }}>{t('Custo (R$)')} *<input inputMode="decimal" placeholder="0,00" value={avulso.custo} onChange={(e) => setAvulso({ ...avulso, custo: e.target.value })} /></label>
           <label style={{ flex: '0 1 140px' }}>{t('Preço de venda (R$)')} *<input inputMode="decimal" placeholder="0,00" value={avulso.preco} onChange={(e) => setAvulso({ ...avulso, preco: e.target.value })} /></label>
+          <div className="campo-custo" style={{ flex: '0 1 170px' }}>
+            <span className="rotulo-custo">{t('Custo')} *
+              <span className="modo-custo">
+                <button type="button" className={avulso.modoCusto !== 'pct' ? 'ativo' : ''} onClick={() => setAvulso({ ...avulso, modoCusto: 'valor', custo: '' })}>R$</button>
+                <button type="button" className={avulso.modoCusto === 'pct' ? 'ativo' : ''} onClick={() => setAvulso({ ...avulso, modoCusto: 'pct', custo: '' })}>%</button>
+              </span>
+            </span>
+            <span className="lf-preco">
+              {avulso.modoCusto !== 'pct' && <span>R$</span>}
+              <input inputMode="decimal" placeholder={avulso.modoCusto === 'pct' ? t('% do preço') : '0,00'} value={avulso.custo} onChange={(e) => setAvulso({ ...avulso, custo: e.target.value })} />
+              {avulso.modoCusto === 'pct' && <span className="sufixo">%</span>}
+            </span>
+          </div>
           <button type="submit">{t('Adicionar')}</button>
           <button type="button" className="sec" onClick={() => setAvulso(null)}>{t('Voltar')}</button>
+          <label className="check" style={{ flex: '1 1 100%' }}>
+            <input type="checkbox" checked={avulso.doCaixa} onChange={(e) => setAvulso({ ...avulso, doCaixa: e.target.checked })} />
+            {t('Tirar o custo do caixa')}
+            <small>{avulso.doCaixa ? t('(o custo sai do caixa e entra nas despesas no dia da venda)') : t('(o custo só entra no lucro; os insumos você lança quando comprar)')}</small>
+          </label>
         </form>
       )}
       {avulso ? (
-        <p><small className={String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== '' && lerValor(avulso.preco) - lerValor(avulso.custo) < 0 ? 'bad' : ''}>
-          {String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== ''
-            ? t('Lucro por unidade: {valor}', { valor: brl(lerValor(avulso.preco) - lerValor(avulso.custo)) }) + ' · '
-            : ''}{t('Produto ou serviço sem cadastro: o custo entra nas despesas do dia da venda.')}
+        <p><small className={Number.isFinite(custoAvulso(avulso)) && lerValor(avulso.preco) - custoAvulso(avulso) < 0 ? 'bad' : ''}>
+          {String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== '' && Number.isFinite(custoAvulso(avulso))
+            ? (avulso.modoCusto === 'pct' ? t('Custo {valor}', { valor: brl(custoAvulso(avulso)) }) + ' · ' : '') + t('Lucro por unidade: {valor}', { valor: brl(lerValor(avulso.preco) - custoAvulso(avulso)) })
+            : t('Produto ou serviço sem cadastro.')}
         </small></p>
       ) : <p>
         {selecionado?.origem === 'estoque'
@@ -303,7 +334,7 @@ export default function Vendas({ db, executar, irPara }) {
                   const l = lucroItem(i, fatorCarrinho)
                   return (
                   <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
-                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.origem === 'avulso' && <small className="sub-linha">{i.tipo === 'servico' ? t('serviço avulso') : t('produto avulso')} · {t('custo')} {brl(i.custo)}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
+                    <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.origem === 'avulso' && <small className="sub-linha">{i.tipo === 'servico' ? t('serviço avulso') : t('produto avulso')} · {t('custo')} {brl(i.custo)}{i.custoPct != null ? ` (${String(i.custoPct).replace('.', ',')}%)` : ''}{i.foraDoCaixa ? ' · ' + t('fora do caixa') : ''}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
                     <td className="n">
                       <input className={'cel' + (i.origem === 'estoque' && (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
                         max={i.origem === 'estoque' ? (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) + +i.qtd : undefined}

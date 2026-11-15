@@ -1166,4 +1166,10 @@ export default {
   'Custo de serviço avulso': 'One-off service cost',
   'Custo de produto avulso': 'One-off product cost',
   'Custo de produto e serviço avulsos': 'One-off product and service cost',
+  '% do preço': '% of price',
+  'Tirar o custo do caixa': 'Take the cost out of the cash',
+  '(o custo sai do caixa e entra nas despesas no dia da venda)': '(the cost leaves the cash and goes into expenses on the sale day)',
+  '(o custo só entra no lucro; os insumos você lança quando comprar)': '(the cost only affects profit; record supplies when you buy them)',
+  'Custo {valor}': 'Cost {valor}',
+  'Produto ou serviço sem cadastro.': 'Product or service not registered.',
 }

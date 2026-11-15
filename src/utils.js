@@ -261,7 +261,7 @@ export function extratoCaixa(db) {
       descricao: `${e.fiado.cliente || ''} · ${p.n}/${e.fiado.parcelas.length}`, pagamento: r.forma,
     })))),
     // produto ou serviço avulso: o custo sai do caixa no dia da venda
-    ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'avulso' && +i.custo > 0 && +i.qtd > 0) }))
+    ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'avulso' && !i.foraDoCaixa && +i.custo > 0 && +i.qtd > 0) }))
       .filter((x) => x.itens.length).map(({ v, itens }) => ({
         id: 'pa-' + v.id, ref: v, origem: 'avulso', data: v.data, dia: v.dia,
         tipoAvulso: itens.every((i) => i.tipo === 'servico') ? 'servico' : itens.every((i) => i.tipo !== 'servico') ? 'produto' : 'misto',
