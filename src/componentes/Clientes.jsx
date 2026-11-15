@@ -26,6 +26,7 @@ export function AvisoCliente({ db, clienteId }) {
 
 export default function Clientes({ db, executar }) {
   const [busca, setBusca] = useState('')
+  const [ordem, setOrdem] = useState('az') // 'az' ou 'recentes'
   const [form, setForm] = useState(vazio)
   const clientes = db.clientes || []
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
@@ -54,8 +55,9 @@ export default function Clientes({ db, executar }) {
 
   const b = norm(busca)
   const lista = clientes
+    .map((c, i) => ({ ...c, _i: i }))
     .filter((c) => !b || norm(c.nome).includes(b) || norm(c.telefone).includes(b) || (soDigitos(b) && soDigitos(c.cpf).includes(soDigitos(b))))
-    .sort((x, y) => x.nome.localeCompare(y.nome))
+    .sort((x, y) => (ordem === 'recentes' ? y._i - x._i : x.nome.localeCompare(y.nome)))
 
   return (
     <section>
@@ -71,9 +73,13 @@ export default function Clientes({ db, executar }) {
         {form.id && <button type="button" className="sec" onClick={() => setForm(vazio)}>{t('Cancelar edição')}</button>}
       </form>
 
-      <div className="linha-titulo">
-        <h3>{t('Cadastrados ({n})', { n: clientes.length })}</h3>
-        <input className="busca" placeholder={t('Buscar nome, CPF ou telefone...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <div className="linha-titulo"><h3>{t('Cadastrados ({n})', { n: clientes.length })}</h3></div>
+      <div className="barra-produtos" style={{ marginBottom: 12 }}>
+        <input className="busca-icone" placeholder={t('Buscar nome, CPF ou telefone...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <div className="segmentado pequeno">
+          <button className={ordem === 'az' ? 'on' : ''} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
+          <button className={ordem === 'recentes' ? 'on' : ''} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
+        </div>
       </div>
       <div className="tw">
         <table>
