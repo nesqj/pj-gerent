@@ -1073,6 +1073,7 @@ export default {
   'Juros': 'Interest',
   'Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período.': 'Profit (interest) = interest on loans made in the period − what was marked "Did not pay" in the period.',
   'Resultado': 'Result',
+  'Lucro líquido': 'Net profit',
   'em aberto': 'open',
   'Resultado por cliente (empréstimos fechados)': 'Result per customer (closed loans)',
   'Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = interest on loans made in the period − what was marked "Did not pay" in the period. Result = what came back (with late fees) − what was lent, once the loan closes.',
@@ -1184,6 +1185,6 @@ export default {
   'Mudar o custo': 'Change the cost',
   'lucro − outras despesas': 'profit − other expenses',
   'anterior: {valor}': 'previous: {valor}',
-  'Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Resultado = lucro estimado − outras despesas.': 'Estimated profit = sale price − cost. On credit, each paid installment brings its share of the profit (with interest), plus late fees received. Result = estimated profit − other expenses.',
+  'Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Lucro líquido = lucro estimado − outras despesas.': 'Estimated profit = sale price − cost. On credit, each paid installment brings its share of the profit (with interest), plus late fees received. Net profit = estimated profit − other expenses.',
   'Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = interest on loans made in the period + late fees received in the period − what was marked "Did not pay" in the period. Result = what came back (with late fees) − what was lent, when the loan closes.',
 }
