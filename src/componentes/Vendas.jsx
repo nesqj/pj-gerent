@@ -392,9 +392,8 @@ export default function Vendas({ db, executar, irPara }) {
           </div>
           <PagamentoVenda pg={pg} setPg={setPg} total={totalCarrinho} clientes={db.clientes || []} db={db} />
           <div className="finalizar">
-            {pg.forma === 'Fiado' && !pg.dividir ? <span /> : <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
+            {fiadoTudo ? <span /> : <label style={{ flex: '0 1 140px' }}>{t('Desconto (%)')}
               <input type="number" min="0" max="100" step="0.01" placeholder={t('Opcional')} value={desconto} onChange={(e) => setDesconto(e.target.value)} />
-              {fiadoTudo && pctDigitado > 0 && <small className="bad">{t('Não vale com fiado')}</small>}
             </label>}
             <div className="total-grande">
               {pctDesconto > 0 && <small className="riscado">{brl(subtotalCarrinho)}</small>}
