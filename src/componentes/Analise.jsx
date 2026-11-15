@@ -37,14 +37,14 @@ const PERIODOS = [
 const lucroVenda0 = (v) => lucroDe(v.itens, fatorDesconto(v))
 
 // Lucro das vendas pelo que foi pago: a parte paga na hora conta no dia da venda; no fiado, cada parcela paga traz
-// a % do lucro da venda proporcional ao que entrou (sem os juros do fiado). O que não foi pago não traz lucro.
+// a % do lucro da venda proporcional ao que entrou (com os juros combinados do fiado). O que não foi pago não traz lucro.
 // Devolve [{ dia, data, lucro }] para somar por período, dia ou hora.
 function lucrosPagos(todas) {
   const ev = []
   for (const v of todas) {
     const aReceber = pagoNaHora(v) + totalFiado(v)
     if (!(aReceber > 0)) continue
-    const porReal = lucroVenda0(v).lucro / aReceber // lucro de cada real que entra
+    const porReal = (lucroVenda0(v).lucro + (+v.fiado?.juros || 0)) / aReceber // lucro de cada real que entra (os juros do fiado são lucro inteiro)
     const naHora = pagoNaHora(v)
     if (naHora > 0) ev.push({ dia: v.dia, data: v.data, lucro: naHora * porReal })
     for (const p of v.fiado?.parcelas || []) for (const r of p.recebimentos || []) {
@@ -129,9 +129,9 @@ export default function Analise({ db }) {
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
   ra.margem = ra.faturamento ? (ra.lucro / ra.faturamento) * 100 : 0
   const lucroTotal = Math.round(r.lucro * 100) / 100
-  // despesas com estoque: compras (quantidade × custo) feitas no período
+  // despesas com estoque: compras (quantidade × custo) feitas no período com o dinheiro do caixa (as "fora do caixa" não contam)
   // + o custo dos produtos de fornecedor vendidos no período (não passam pelo estoque: são comprados para a venda)
-  const despesasEstoque = (a, b) => Math.round(((db.entradas || []).filter((e) => e.dia >= a && e.dia <= b && e.custo != null)
+  const despesasEstoque = (a, b) => Math.round(((db.entradas || []).filter((e) => e.dia >= a && e.dia <= b && e.custo != null && !e.foraDoCaixa)
     .reduce((s, e) => s + (+e.qtd || 0) * (+e.custo || 0), 0)
     + db.vendas.filter((v) => v.dia >= a && v.dia <= b).reduce((s, v) => s + (v.itens || [])
       .filter((i) => (i.origem === 'fornecedor' || (i.origem === 'avulso' && !i.foraDoCaixa)) && i.custo != null).reduce((x, i) => x + (+i.qtd || 0) * (+i.custo || 0), 0), 0)) * 100) / 100
@@ -140,6 +140,9 @@ export default function Analise({ db }) {
   const outrasDespesas = (a, b) => Math.round((db.movCaixa || []).filter((m) => m.tipo === 'retirar' && m.categoria === 'despesa' && m.dia >= a && m.dia <= b)
     .reduce((s, m) => s + (+m.valor || 0), 0) * 100) / 100
   const outras = outrasDespesas(de, ate), outrasAnt = outrasDespesas(antDe, antAte)
+  // resultado: o que sobrou de verdade. Não desconta as despesas com estoque, porque o custo dos produtos já sai do lucro.
+  const resultado = Math.round((lucroTotal - outras) * 100) / 100
+  const resultadoAnt = Math.round((ra.lucro - outrasAnt) * 100) / 100
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
@@ -230,6 +233,11 @@ export default function Analise({ db }) {
           <small>{t('Outras despesas')}</small><b>{brl(outras)}</b>
           {outrasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(outrasAnt) })}</small>}
         </div>
+        <div className={'card' + (resultado < 0 ? ' card-prejuizo' : '')}>
+          <small>{t('Resultado')}</small>
+          <b className={resultado < 0 ? 'bad' : 'ok'}>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
+          <small className="var">{t('lucro − outras despesas')}{resultadoAnt !== 0 ? ' · ' + t('anterior: {valor}', { valor: (resultadoAnt < 0 ? '− ' : '') + brl(Math.abs(resultadoAnt)) }) : ''}</small>
+        </div>
       </div>
 
       {vendas.length === 0 ? (
@@ -275,7 +283,7 @@ export default function Analise({ db }) {
               <Participacao linhas={pagamentos} total={r.faturamento} />
             </div>
           </div>
-          <small>{t('Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos.')}</small>
+          <small>{t('Lucro estimado = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Resultado = lucro estimado − outras despesas.')}</small>
         </>
       )}
       </>)}
@@ -296,7 +304,10 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
   const todos = db.emprestimos || []
   const lista = todos.filter((e) => e.dia >= de && e.dia <= ate).sort((a, b) => b.data - a.data)
   const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
-  const juros = lista.reduce((s, e) => s + lucroEmprestimo(e).lucro, 0)
+  // juros combinados: no dia do empréstimo; multa/juros de atraso: no dia em que foram recebidos (de qualquer empréstimo)
+  const juros = lista.reduce((s, e) => s + (+e.total || 0) - (+e.valor || 0), 0)
+    + todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
+      .filter((r) => r.dia >= de && r.dia <= ate).reduce((b, r) => b + (+r.encargo || 0), 0), 0), 0)
   const naoPago = somaPerdas(perdasE, de, ate) // marcado "Não pagou" no período (de qualquer empréstimo)
   // Pendências no fim do período: tudo o que foi emprestado até o fim do período e ainda não tinha voltado até essa data
   // (inclui o que foi marcado "Não pagou"). Passa de um mês para o outro e só diminui no mês em que o cliente paga.
@@ -385,7 +396,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
           </div>
         </div>
       )}
-      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.')}</small>
+      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos no período − o que foi marcado "Não pagou" no período. Resultado = o que voltou (com multa e juros de atraso) − o que foi emprestado, quando o empréstimo fecha.')}</small>
     </>
   )
 }
