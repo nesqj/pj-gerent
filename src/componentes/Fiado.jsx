@@ -33,7 +33,10 @@ function linkWhats(telefone, texto) {
 }
 
 export default function Fiado({ db, executar, irPara }) {
-  const [filtro, setFiltro] = useState('abertos')
+  const [filtro, setFiltro] = useState(() => {
+    try { const f = sessionStorage.getItem('cobrancas-filtro'); sessionStorage.removeItem('cobrancas-filtro'); if (f) return f } catch { /* sem acesso */ }
+    return 'abertos'
+  })
   const [busca, setBusca] = useState('')
   const [recebendo, setRecebendo] = useState(null) // { vendaId, parcelaId, valor, forma }
   const [mudandoData, setMudandoData] = useState(null) // { vendaId, parcelaId, data }

@@ -59,6 +59,9 @@ export const IconeMenu = () => (
 export const IconeLoja = () => (
   <Svg><path d="M4 9.5V20h16V9.5" /><path d="M3 9.5l1.6-5.5h14.8L21 9.5a2.6 2.6 0 0 1-4.5 1.6 2.6 2.6 0 0 1-4.5 0 2.6 2.6 0 0 1-4.5 0A2.6 2.6 0 0 1 3 9.5z" /><path d="M10 20v-5h4v5" /></Svg>
 )
+export const IconeInicio = () => (
+  <Svg><path d="M4 11l8-7 8 7" /><path d="M6 9.5V20h12V9.5" /><path d="M10 20v-5h4v5" /></Svg>
+)
 export const IconePainel = () => (
   <Svg><path d="M4 16a8 8 0 1 1 16 0" /><path d="M12 16l4-5" /><circle cx="12" cy="16" r="1.2" /><path d="M3 20h18" /></Svg>
 )

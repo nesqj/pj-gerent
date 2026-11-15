@@ -5,6 +5,7 @@ import * as Org from './organizacoes.js'
 import Fornecedores from './componentes/Fornecedores.jsx'
 import Vendas from './componentes/Vendas.jsx'
 import Analise from './componentes/Analise.jsx'
+import Inicio from './componentes/Inicio.jsx'
 import Estoque from './componentes/Estoque.jsx'
 import Caixa from './componentes/Caixa.jsx'
 import Fiado from './componentes/Fiado.jsx'
@@ -25,7 +26,7 @@ import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from
 import {
   IconeAjuda, IconeCaixaProduto, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
   IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
-  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado,
+  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado, IconeInicio,
 } from './icones.jsx'
 
 // Grupos e itens da barra lateral (dentro de uma loja)
@@ -33,6 +34,7 @@ const GRUPOS = [
   {
     nome: 'Operações',
     itens: [
+      { id: 'inicio', nome: 'Início', icone: IconeInicio },
       { id: 'vendas', nome: 'Novo Registro', icone: IconeCarrinho },
       { id: 'fiado', nome: 'Cobranças', icone: IconeFiado },
       { id: 'caixa', nome: 'Controle de caixa', icone: IconeCaixa },
@@ -84,14 +86,14 @@ const RODAPE = [
 ]
 
 // Abas que o vendedor vê (o banco também confere o que cada papel pode gravar)
-const ABAS_DO_VENDEDOR = ['vendas', 'fiado', 'clientes', 'estoque', 'forn', 'config', 'ajuda']
+const ABAS_DO_VENDEDOR = ['inicio', 'vendas', 'fiado', 'clientes', 'estoque', 'forn', 'config', 'ajuda']
 const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.includes(aba)
 
 const chaveLoja = (uid) => 'pjgerent-loja-' + uid
 
 export default function App() {
   const [db, setDb] = useState(null)
-  const [aba, setAba] = useState('vendas')
+  const [aba, setAba] = useState('inicio')
   const [fechados, setFechados] = useState({})       // grupos recolhidos
   const [recolhida, setRecolhida] = useState(false)  // barra lateral só com ícones
   const [menuAberto, setMenuAberto] = useState(false) // menu no celular
@@ -161,7 +163,7 @@ export default function App() {
         d = await Armazenamento.carregar()
       }
       setDb(d)
-      setAba((a) => (podeVer(ativa.papel, a) ? a : 'vendas'))
+      setAba((a) => (podeVer(ativa.papel, a) ? a : 'inicio'))
       setModo('loja')
       verFaixa(ativa)
     } catch (e) {
@@ -234,7 +236,7 @@ export default function App() {
 
   function entrou(s) {
     setSessao(s)
-    setAba('vendas')
+    setAba('inicio')
     carregarConta(s)
   }
 
@@ -501,6 +503,7 @@ export default function App() {
         )}
         <main>
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
+          {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'clientes' && <Clientes db={db} executar={executar} irPara={irPara} />}

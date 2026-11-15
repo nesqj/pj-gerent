@@ -11,7 +11,10 @@ import { podeFazer } from '../armazenamento.js'
 const itemNovo = { k: '', qtd: '1', preco: '', forn: '' } // preco: digitado só para produtos do estoque; forn: fornecedor escolhido
 
 export default function Vendas({ db, executar, irPara }) {
-  const [modo, setModo] = useState('venda') // 'venda' ou 'emprestimo'
+  const [modo, setModo] = useState(() => { // 'venda' ou 'emprestimo'
+    try { const m = sessionStorage.getItem('registro-modo'); sessionStorage.removeItem('registro-modo'); if (m === 'emprestimo' && podeFazer('emprestimo.salvo')) return m } catch { /* sem acesso */ }
+    return 'venda'
+  })
   const podeEmprestar = podeFazer('emprestimo.salvo')
   const [item, setItem] = useState(itemNovo)
   // item avulso: produto ou serviço que não está no estoque nem nos fornecedores (custo vira despesa)

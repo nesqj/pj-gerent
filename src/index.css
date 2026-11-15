@@ -809,3 +809,26 @@ label.chave input:focus-visible + .trilho { outline: 2px solid var(--pri); outli
 .chave-texto small { color: var(--mut); font-size: 12px }
 /* campos de busca: todos com a lupa */
 input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239b9890' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 11px center }
+/* Início */
+.inicio-data { margin: -6px 0 12px }
+.inicio-atalhos { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px }
+.inicio-atalhos button { padding: 11px 18px; font-size: 15px }
+button.card.card-link { text-align: left; font: inherit; color: inherit; cursor: pointer; align-items: stretch }
+button.card.card-link small { color: var(--mut) }
+button.card.card-link:hover { border-color: var(--pri); filter: none }
+.card b.mut { color: var(--mut) }
+.inicio-alertas { display: flex; flex-direction: column; gap: 8px }
+.inicio-alerta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px }
+.inicio-alerta-texto { flex: 1 1 200px; min-width: 0 }
+.ponto-alerta { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--warn) }
+.ponto-alerta.bad { background: var(--bad) }
+.inicio-titulo { display: flex; justify-content: space-between; align-items: center; gap: 10px }
+.inicio-titulo h3 { margin: 0 }
+.inicio-vendas { display: flex; flex-direction: column }
+.inicio-venda { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--bd) }
+.inicio-venda:first-child { border-top: none }
+.iv-hora { color: var(--mut); font-size: 13px }
+.iv-itens { display: flex; flex-direction: column; min-width: 0; font-size: 14px }
+.iv-itens small { color: var(--mut); font-size: 12px }
+.iv-total { white-space: nowrap }
+
