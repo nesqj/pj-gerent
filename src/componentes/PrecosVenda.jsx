@@ -137,14 +137,18 @@ export default function PrecosVenda({ db, executar, embutido }) {
       {/* ---------- Tabela com todos os produtos ---------- */}
       {itens.length > 0 && (
         <>
-          <div className="linha-titulo">
-            <input className="busca" style={{ marginBottom: 0 }} placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
-            <small className="qtd-produtos">{b ? t('{n} de {total} produto(s)', { n: tabela.length, total: itens.length }) : t('{n} produto(s) cadastrado(s)', { n: itens.length })}</small>
-            {tabela.length > 0 && <button className="link pequeno selecionar-todos" onClick={() => setMarcados(todosMarcados ? {} : Object.fromEntries(tabela.map((i) => [i.k, true])))}>{todosMarcados ? t('Desmarcar todos') : t('Selecionar todos')}</button>}
-            <div className="chips">
-              <button className={'filtro' + (ordem === 'az' ? ' ativo' : '')} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
-              <button className={'filtro' + (ordem === 'recentes' ? ' ativo' : '')} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
+          <div className="barra-produtos">
+            <input className="busca-icone" placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+            <div className="segmentado pequeno">
+              <button className={ordem === 'az' ? 'on' : ''} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
+              <button className={ordem === 'recentes' ? 'on' : ''} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
             </div>
+          </div>
+          <div className="info-produtos">
+            <small className="qtd-produtos">{b ? t('{n} de {total} produto(s)', { n: tabela.length, total: itens.length }) : t('{n} produto(s) cadastrado(s)', { n: itens.length })}</small>
+            {tabela.length > 0 && <><span className="ponto">·</span><button className="link pequeno selecionar-todos" onClick={() => setMarcados(todosMarcados ? {} : Object.fromEntries(tabela.map((i) => [i.k, true])))}>{todosMarcados ? t('Desmarcar todos') : t('Selecionar todos')}</button></>}
+          </div>
+          {qtdMarcados > 0 && <div className="linha-titulo">
             {qtdMarcados > 0 && (
               <div className="aplicar-lote">
                 <small>{t('{n} de {total} selecionado(s):', { n: qtdMarcados, total: tabela.length })}</small>
@@ -155,7 +159,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
                 <button className="del" onClick={excluirMarcados}>{t('Excluir selecionados')}</button>
               </div>
             )}
-          </div>
+          </div>}
           <div className="tw">
             <table className="tabela-calc">
               <thead>
