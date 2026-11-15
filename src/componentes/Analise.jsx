@@ -235,7 +235,7 @@ export default function Analise({ db }) {
         </div>
         <div className="card">
           <small>{t('Resultado')}</small>
-          <b>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
+          <b className={resultado < 0 ? 'bad' : 'ok'}>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
           <small className="var">{t('lucro − outras despesas')}{resultadoAnt !== 0 ? ' · ' + t('anterior: {valor}', { valor: (resultadoAnt < 0 ? '− ' : '') + brl(Math.abs(resultadoAnt)) }) : ''}</small>
         </div>
       </div>
