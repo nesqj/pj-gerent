@@ -394,7 +394,7 @@ export default function Vendas({ db, executar, irPara }) {
               {pctDesconto > 0 && <small className="bad">− {brl(valorDesconto)} ({t('{p}% de desconto', { p: num(pctDesconto, 2) })})</small>}
               <small>{t('Total')}</small>
               {parcelasPrevia.length
-                ? <b className="total-parcelas">{entradaPrevia > 0 && <span>{brl(entradaPrevia)} + </span>}{parcelasPrevia.length}× {brl(parcelasPrevia[0].valor)} <span>= {brl(totalComJuros)}</span></b>
+                ? <b className="total-parcelas"><span>{entradaPrevia > 0 ? brl(entradaPrevia) + ' + ' : ''}{parcelasPrevia.length}× {brl(parcelasPrevia[0].valor)} = </span>{brl(totalComJuros)}</b>
                 : <b>{brl(totalComJuros)}</b>}
               {jurosFiado > 0 && <small>{t('Juros')}: {brl(jurosFiado)}</small>}
               {temCusto && (lucroComJuros < 0
