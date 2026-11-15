@@ -18,6 +18,7 @@ export const novoPagamento = () => ({
   fiado: { clienteId: '', nome: '', cpf: '', telefone: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', juros: '' },
 })
 const r2 = (x) => Math.round(x * 100) / 100
+const dataCurta = (d) => d.split('-').reverse().join('/')
 
 // Datas das parcelas
 export function vencimentos(primeira, n, intervalo) {
@@ -86,6 +87,7 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
   const restante = r2(total - pago)
   const temFiado = restante > 0.004
   const n = Math.max(1, Math.min(24, parseInt(pg.fiado.parcelas, 10) || 1))
+  const datas = temFiado && pg.fiado.primeira ? vencimentos(pg.fiado.primeira, n, pg.fiado.intervalo) : []
   const jurosPct = String(pg.fiado.juros ?? '').trim() === '' ? 0 : numero(pg.fiado.juros)
 
   return (
@@ -161,6 +163,7 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
           </div>
           {!(jurosPct >= 0) && <small className="bad">{t('Confira os juros.')}</small>}
           {db && pg.fiado.clienteId && <AvisoCliente db={db} clienteId={pg.fiado.clienteId} />}
+          {datas.length > 0 && <small className="pg-resumo">{n > 1 ? t('de {inicio} a {fim}', { inicio: dataCurta(datas[0]), fim: dataCurta(datas[n - 1]) }) : t('em {data}', { data: dataCurta(datas[0]) })}</small>}
         </div>
       )}
     </div>
