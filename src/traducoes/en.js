@@ -1197,4 +1197,7 @@ export default {
   'Buscar cliente ou cadastrar novo...': 'Search customer or add new...',
   'Nome do cliente novo...': 'New customer name...',
   '+ Cadastrar "{nome}"': '+ Add "{nome}"',
+  'não mexe no caixa': 'does not touch the cash',
+  'sai {valor} do caixa': '{valor} leaves the cash',
+  'o valor sai do caixa': 'the amount leaves the cash',
 }

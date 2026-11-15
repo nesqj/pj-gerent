@@ -99,10 +99,12 @@ export default function Estoque({ db, executar, irPara }) {
         </label>
         <label style={{ flex: '1 1 100%' }}>{t('Observação')}<input placeholder={t('Ex: nota fiscal 123, IMEI, de quem comprou...')} {...campo('obs')} /></label>
         {db.caixa && (
-          <label className="check">
+          <label className="chave">
             <input type="checkbox" checked={form.doCaixa} onChange={(e) => setForm({ ...form, doCaixa: e.target.checked })} />
-            {t('Pago com o dinheiro do caixa')}
-            {form.doCaixa && +form.qtd > 0 && +form.custo > 0 && <small> ({t('desconta {valor}', { valor: brl(+form.qtd * +form.custo) })})</small>}
+            <span className="trilho" />
+            <span className="chave-texto">{t('Pago com o dinheiro do caixa')}
+              <small>{!form.doCaixa ? t('não mexe no caixa') : +form.qtd > 0 && +form.custo > 0 ? t('sai {valor} do caixa', { valor: brl(+form.qtd * +form.custo) }) : t('o valor sai do caixa')}</small>
+            </span>
           </label>
         )}
         <button type="submit">{editando ? t('Salvar alterações') : t('Registrar entrada')}</button>

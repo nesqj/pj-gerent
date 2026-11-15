@@ -838,4 +838,14 @@ label > select { width: 100%; text-overflow: ellipsis }
 .info-produtos { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px }
 .info-produtos .ponto { color: var(--mut) }
 .info-produtos .link.pequeno { padding: 0 }
+/* chave liga/desliga (ex.: Pago com o dinheiro do caixa) */
+label.chave { flex-direction: row; align-items: center; gap: 10px; flex: 1 1 auto; cursor: pointer; color: var(--txt); position: relative }
+label.chave input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none }
+label.chave .trilho { position: relative; flex: 0 0 auto; width: 36px; height: 20px; border-radius: 999px; background: var(--bd-forte); transition: background .15s }
+label.chave .trilho::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0004; transition: left .15s }
+label.chave input:checked + .trilho { background: var(--pri) }
+label.chave input:checked + .trilho::after { left: 18px }
+label.chave input:focus-visible + .trilho { outline: 2px solid var(--pri); outline-offset: 2px }
+.chave-texto { display: flex; flex-direction: column; gap: 1px; font-size: 14px }
+.chave-texto small { color: var(--mut); font-size: 12px }
 
