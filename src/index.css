@@ -75,10 +75,6 @@ section > h2 { display: none } /* o título já aparece na barra do topo */
 /* ---------- Barra lateral ---------- */
 .topo { display: flex; align-items: center; justify-content: space-between; padding: 16px 14px 14px 16px; border-bottom: 1px solid var(--bd) }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap; overflow: hidden }
-.logo-marca {
-  display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px;
-  background: linear-gradient(135deg, #fff 0 55%, var(--pri) 55%); color: #111; font-weight: 800; font-size: 13px;
-}
 .icone-btn { background: none; border: none; color: var(--mut); padding: 6px; border-radius: 6px; cursor: pointer; display: grid; place-items: center }
 .icone-btn:hover { background: var(--hover); color: var(--txt) }
 
@@ -184,9 +180,6 @@ h3 { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: c
 .card.destaque { border-color: var(--ok-borda); background: var(--verde-fundo) }
 .card.destaque b { color: var(--ok); font-size: 20px }
 .status { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 10px }
-.fechamento { display: flex; flex-wrap: wrap; gap: 20px; align-items: center }
-.fechamento > div { display: flex; flex-direction: column; gap: 4px }
-.fechamento b { font-size: 18px }
 td.quebra { white-space: normal; min-width: 220px }
 @media (max-width: 767px) { .total-grande { margin-left: 0 } }
 
@@ -262,8 +255,6 @@ input.somente-leitura.estoque-warn { color: var(--warn) }
 
 /* ---------- Edição de registros ---------- */
 input.cel { width: 90px; padding: 5px 8px; text-align: right }
-.painel-edicao { border-color: var(--warn-borda) }
-.aviso-edicao { color: var(--warn); font-size: 13px; margin: 0 0 12px }
 tr.em-edicao { background: var(--warn-suave) }
 form.form-edicao { border-color: var(--warn-borda) }
 .chip .chip-nome { background: none; border: none; color: inherit; padding: 0; font-size: 13px; cursor: pointer }
@@ -296,8 +287,6 @@ button.link:hover { text-decoration: underline; filter: none }
 .config-card b { display: block; font-size: 15px; margin-bottom: 6px }
 .config-card small { display: block; line-height: 1.45 }
 .config-icone { color: var(--mut); display: grid; place-items: center; padding-top: 1px }
-.config-cabecalho { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px }
-.config-cabecalho h3 { margin-bottom: 4px }
 
 /* ---------- Perfil, Marca e App no celular ---------- */
 .config-titulo { margin: 0 0 16px }
@@ -329,16 +318,11 @@ input.hex { width: 130px; font-family: Consolas, monospace }
 @media (max-width: 767px) { form.form-config { grid-template-columns: 1fr; padding: 16px } .usuario-nome { display: none } }
 
 /* ---------- Ajustes do tema claro ---------- */
-:root[data-theme="light"] .logo-marca { box-shadow: inset 0 0 0 1px var(--bd-forte) }
 :root[data-theme="light"] .config-card:hover, :root[data-theme="light"] .card-forn:hover { box-shadow: 0 2px 10px var(--sombra) }
 
 /* ---------- Prévia da marca nos dois temas ---------- */
 .previas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px }
 .previas .previa-marca { margin-top: 0; flex-direction: column; align-items: flex-start; gap: 12px }
-.previa-claro { background: #efeee9 !important; border-color: #e3e1db !important; color: #1f1e1b }
-.previa-escuro { background: #1f1e1b !important; border-color: #34322d !important; color: #e7e5e0 }
-.previa-claro small, .previa-escuro small { color: inherit; opacity: .65 }
-.previa-claro .logo-marca { box-shadow: inset 0 0 0 1px #cdcac2 }
 @media (max-width: 767px) { .previas { grid-template-columns: 1fr } }
 
 /* ---------- Logo padrão do sistema ---------- */
@@ -365,16 +349,12 @@ input.hex { width: 130px; font-family: Consolas, monospace }
 .login-botao { width: 100%; padding: 11px; font-size: 15px; margin-top: 4px }
 .login-erro { margin: 0; color: var(--bad); font-size: 13px }
 .login-aviso { margin: 0; color: var(--ok); font-size: 13px }
-.login-nota { color: var(--mut); font-size: 12px; line-height: 1.5; margin: 18px 0 10px }
 button.link.pequeno { font-size: 13px; font-weight: 500 }
 
 /* ---------- Regra por produto ---------- */
-.seletor-preco { display: inline-flex; gap: 6px; align-items: center }
-.seletor-preco select { padding: 5px 8px; font-size: 13px; max-width: 220px }
 .aplicar-lote { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--pri-suave); border: 1px solid var(--pri-borda); border-radius: 10px; padding: 8px 10px }
 .aplicar-lote select { padding: 6px 8px; font-size: 13px }
 .aplicar-lote button { padding: 6px 12px }
-.resultado .seletor-preco select { max-width: 260px }
 
 /* ---------- Desconto na venda ---------- */
 .riscado { text-decoration: line-through }
@@ -388,7 +368,7 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
 @media (max-width: 767px) {
   /* campos com 16px: abaixo disso o iPhone dá zoom ao tocar */
   input, select, textarea { font-size: 16px }
-  input.cel, .seletor-preco select, .aplicar-lote select { font-size: 16px }
+  input.cel, .aplicar-lote select { font-size: 16px }
 
   /* botões mais fáceis de tocar */
   button { min-height: 40px }
@@ -417,7 +397,6 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
   .linha-titulo { align-items: stretch }
   .linha-titulo > input, .linha-titulo > .aplicar-lote { width: 100% }
   .resultado > div { min-width: 0; flex: 1 1 45% }
-  .resultado .seletor-preco select { max-width: 100% }
 
   /* cartões de números: 2 por linha */
   .cards { grid-template-columns: 1fr 1fr; gap: 8px }
@@ -460,7 +439,6 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
   .tw td > b, .tw td > span, .tw td > small { text-align: right }
   .desconto-linha { display: inline; margin-left: 6px }
   .tw td input.cel { width: 120px }
-  .seletor-preco { flex-wrap: wrap; justify-content: flex-end }
   /* linha só com a caixinha de seleção: compacta, no canto */
   .tw td:has(> input[type=checkbox]:only-child) { border-bottom: none !important; padding: 8px 0 0 }
   .tw td > input[type=checkbox] { width: 20px; height: 20px }
@@ -611,12 +589,8 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 :root { --neon: #22d3ee }
 :root[data-theme="light"] { --neon: #0891b2 }
 .grafico .grade.zero { stroke: var(--bd-forte) }
-.grafico .guia line { stroke: var(--mut); stroke-dasharray: 3 3; opacity: .6 }
-.grafico .ponto-pri { fill: var(--card); stroke: var(--pri); stroke-width: 2.5 }
-.grafico .ponto-neon { fill: var(--card); stroke: var(--neon); stroke-width: 2.5 }
 .grafico .legenda { display: flex; gap: 16px; justify-content: flex-end; font-size: 12px; color: var(--mut); margin-top: 2px }
 .grafico .legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px }
-.dica small.neon { color: var(--neon) }
 .lista-produtos { display: flex; flex-direction: column }
 .lp-linha { display: grid; grid-template-columns: minmax(0, 2fr) 50px minmax(90px, 1fr) minmax(90px, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bd); font-size: 14px; align-items: center }
 .lp-linha > span:not(:first-child) { text-align: right }
@@ -626,7 +600,6 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 .lp-nome small { color: var(--mut) }
 @media (max-width: 767px) { .lp-linha { grid-template-columns: minmax(0, 1fr) 36px 84px 84px; font-size: 13px; gap: 6px } }
 
-.grafico .legenda .leg-linha { width: 18px; height: 0; border-top: 2.5px solid; border-radius: 0; vertical-align: 3px }
 
 /* ---------- Gráfico diário: faturamento e lucro (colunas) + vendas (pontos) ---------- */
 :root { --cor-lucro: var(--ok); --cor-vendas: #f5a524 }
@@ -638,11 +611,6 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 .grafico.diario .eixo { fill: var(--mut); font-size: 11px; font-variant-numeric: tabular-nums }
 .grafico.diario .eixo-vendas { fill: var(--cor-vendas); opacity: .75 }
 .grafico.diario .faixa-hover { fill: var(--txt); opacity: .05 }
-.grafico.diario .barra-fat { fill: var(--pri) }
-.grafico.diario .barra-luc { fill: var(--cor-lucro) }
-.grafico.diario .barra-preju { fill: var(--bad) }
-.grafico.diario .linha-vendas { fill: none; stroke: var(--cor-vendas); stroke-width: 1.5; opacity: .75 }
-.grafico.diario .ponto-vendas { fill: var(--card); stroke: var(--cor-vendas); stroke-width: 2 }
 .legenda-topo { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--mut); margin: 0 0 8px }
 .legenda-topo small { opacity: .75 }
 .grafico.diario i.q, .dica-diario i.q { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px }
@@ -686,7 +654,6 @@ i.q.ven { background: var(--cor-vendas); opacity: .7 }
 .pg-fiado-campos { display: flex; flex-wrap: wrap; gap: 10px }
 .pg-fiado-campos label { flex: 1 1 180px }
 .pg-fiado-campos label.pg-curto { flex: 0 1 100px }
-.pg-parcelas { color: var(--txt) }
 td .pendente { color: var(--warn, #f59e0b); font-weight: 600 }
 .inline-form { display: inline-flex; gap: 6px; align-items: center; background: none; border: none; padding: 0; margin: 0; flex-wrap: nowrap }
 .inline-form input, .inline-form select { padding: 5px 8px; font-size: 13px }
@@ -730,8 +697,6 @@ small.aguarda { color: var(--mut); font-size: 12px }
 .inline-form { flex-wrap: wrap }
 /* Tabela de Venda: cadastrar produto com vários fornecedores */
 .form-produto { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 14px }
-.linhas-forn { flex: 1 1 100%; display: flex; flex-direction: column; gap: 8px; max-width: 520px;
-  padding: 12px 14px; border: 1px solid var(--bd); border-radius: 10px; background: color-mix(in srgb, var(--txt) 3%, transparent) }
 .lf-titulo { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap }
 .lf-titulo b { font-size: 14px }
 .lf-titulo small { color: var(--mut); font-size: 12px }
@@ -744,8 +709,6 @@ small.aguarda { color: var(--mut); font-size: 12px }
 .lf-mais { align-self: flex-start; background: none; border: 1px dashed var(--bd); color: var(--link); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer }
 .lf-mais:hover { border-color: var(--link) }
 @media (max-width: 767px) { .lf-linha { grid-template-columns: 1fr 110px 32px } }
-.adicionar-forn { margin: 10px 0 4px; flex-wrap: wrap; gap: 8px }
-.adicionar-forn small { color: var(--mut) }
 .titulo-produtos { margin: 28px 0 6px; padding-top: 18px; border-top: 1px solid var(--bd) }
 .titulo-produtos h3 { margin: 0 }
 /* produtos: edição na própria linha */
@@ -756,7 +719,6 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 .ep-linha.best { border-color: var(--ok-borda) }
 .ep-nome small { color: var(--ok) }
 .ep-preco { text-align: right; font-weight: 600 }
-.ep-venda { color: var(--mut); text-align: right }
 @media (max-width: 767px) { .ep-linha { grid-template-columns: 1fr 100px; } .ep-linha .acoes-fiado { grid-column: 1 / -1 } }
 .ep-nome-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; background: none; border: none; padding: 0 0 6px; margin: 0 }
 .ep-nome-form label { flex: 0 1 260px }
@@ -768,9 +730,6 @@ tr.linha-edicao-produto > td { background: color-mix(in srgb, var(--pri) 4%, tra
 /* Calculadora de preço */
 .tabela-calc .calc-campo { display: inline-flex; width: 120px; vertical-align: middle }
 .tabela-calc .calc-campo input { text-align: right; padding: 6px 8px }
-.bloco-venda .venda-linha { grid-template-columns: 120px 140px 1fr }
-.bloco-venda .venda-linha small { font-size: 12px }
-@media (max-width: 767px) { .bloco-venda .venda-linha { grid-template-columns: 1fr 1fr } .bloco-venda .venda-linha small { grid-column: 1 / -1 } }
 /* Cadastrar produto: layout em blocos */
 .form-produto.np { display: flex; flex-direction: column; gap: 14px; align-items: stretch }
 .np-titulo b { font-size: 15px }

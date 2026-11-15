@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, lucroVenda, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -56,21 +56,10 @@ function lucrosPagos(todas) {
 }
 const somaLucros = (ev, de, ate) => Math.round(ev.filter((x) => x.dia >= de && x.dia <= ate).reduce((s, x) => s + x.lucro, 0) * 100) / 100
 
+// faturamento, nº de vendas e ticket médio do período (o lucro vem de lucrosPagos)
 function resumo(vendas) {
-  let faturamento = 0, itens = 0, perdas = 0, comPrejuizo = 0, lucro = 0, naoPago = 0, jurosFiado = 0
-  for (const v of vendas) {
-    faturamento += v.total
-    for (const i of v.itens) itens += i.qtd
-    const base = lucroVenda0(v) // lucro de vender (preço − custo), sem os juros do fiado
-    lucro += base.lucro
-    jurosFiado += lucroVenda(v).lucro - base.lucro // juros do fiado (e multa/juros de atraso recebidos)
-    if (base.perda > 0) { perdas += base.perda; comPrejuizo++ }
-  }
-  return {
-    faturamento, lucro, itens, vendas: vendas.length, perdas, comPrejuizo, naoPago, jurosFiado: Math.round(jurosFiado * 100) / 100,
-    ticket: vendas.length ? faturamento / vendas.length : 0,
-    margem: faturamento ? (lucro / faturamento) * 100 : 0,
-  }
+  const faturamento = vendas.reduce((s, v) => s + v.total, 0)
+  return { faturamento, vendas: vendas.length, ticket: vendas.length ? faturamento / vendas.length : 0 }
 }
 
 function Variacao({ atual, anterior, pontos, semAnterior }) {
@@ -121,13 +110,12 @@ export default function Analise({ db }) {
   const vendas = db.vendas.filter((v) => v.dia >= de && v.dia <= ate)
   const anteriores = db.vendas.filter((v) => v.dia >= antDe && v.dia <= antAte)
   const r = resumo(vendas), ra = resumo(anteriores)
-  // "Não pagou" (fiado e empréstimo): perda no dia em que foi marcado
-  const perdasV = perdasNaoPago(db.vendas), perdasE = perdasNaoPago(db.emprestimos || [])
+  // "Não pagou" do empréstimo: perda no dia em que foi marcado
+  const perdasE = perdasNaoPago(db.emprestimos || [])
   const evLucro = lucrosPagos(db.vendas)
-  r.naoPago = somaPerdas(perdasV, de, ate); r.lucro = somaLucros(evLucro, de, ate)
-  ra.naoPago = somaPerdas(perdasV, antDe, antAte); ra.lucro = somaLucros(evLucro, antDe, antAte)
+  r.lucro = somaLucros(evLucro, de, ate)
+  ra.lucro = somaLucros(evLucro, antDe, antAte)
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
-  ra.margem = ra.faturamento ? (ra.lucro / ra.faturamento) * 100 : 0
   const lucroTotal = Math.round(r.lucro * 100) / 100
   // despesas com estoque: compras (quantidade × custo) feitas no período com o dinheiro do caixa (as "fora do caixa" não contam)
   // + o custo dos produtos de fornecedor vendidos no período (não passam pelo estoque: são comprados para a venda)
@@ -167,14 +155,10 @@ export default function Analise({ db }) {
   const prod = new Map()
   for (const v of vendas) {
     const fator = 1 - (+v.descontoPct || 0) / 100
-    // fiado: em aberto não entra no lucro; o que não foi pago sai do lucro proporcionalmente
-    const lv = lucroVenda(v)
-    const ajusteLucro = 1
-    const calotePorReal = 0 // o não pago é perda do dia em que foi marcado, não do produto
     for (const i of v.itens) {
       const k = (i.produto + '|' + (i.marca || '')).toLowerCase()
       const p = prod.get(k) || { produto: i.produto, marca: i.marca, qtd: 0, faturamento: 0, lucro: 0 }
-      p.qtd += i.qtd; p.faturamento += i.qtd * i.preco * fator; p.lucro += ajusteLucro * (i.qtd * (i.preco * fator - (i.custo ?? 0)) - i.qtd * i.preco * fator * calotePorReal)
+      p.qtd += i.qtd; p.faturamento += i.qtd * i.preco * fator; p.lucro += i.qtd * (i.preco * fator - (i.custo ?? 0))
       prod.set(k, p)
     }
   }

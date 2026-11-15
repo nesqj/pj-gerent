@@ -4,7 +4,7 @@ import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
 import { chave, lerValor, resolverPreco } from '../utils.js'
 import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
-import PagamentoVenda, { montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
+import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
 
@@ -63,10 +63,15 @@ export default function Vendas({ db, executar, irPara }) {
   const fatorCarrinho = 1 - pctDesconto / 100
   const lucroCarrinho = lucroDe(carrinho, fatorCarrinho)
   // juros do fiado também são lucro: entram no lucro mostrado no carrinho
-  const pagPrevia = carrinho.length ? montarPagamento(pg, totalCarrinho, db.clientes || []) : null
-  const jurosFiado = pagPrevia?.fiado?.juros || 0
-  const parcelasPrevia = pagPrevia?.fiado?.parcelas || []
-  const entradaPrevia = (pagPrevia?.pagamentos || []).reduce((s, x) => s + (+x.valor || 0), 0)
+  // prévia do fiado (parcelas e juros), mesmo antes de escolher o cliente
+  const entradaPrevia = pg.dividir ? pagoDividido : pg.forma === 'Fiado' ? 0 : totalCarrinho
+  const restantePrevia = Math.round((totalCarrinho - entradaPrevia) * 100) / 100
+  const jurosPctPrevia = String(pg.fiado.juros ?? '').trim() === '' ? 0 : lerValor(pg.fiado.juros)
+  const fiadoPrevia = carrinho.length && restantePrevia > 0.004
+    ? calcularFiado(restantePrevia, Math.max(1, Math.min(24, parseInt(pg.fiado.parcelas, 10) || 1)), jurosPctPrevia >= 0 ? jurosPctPrevia : 0, pg.fiado.intervalo)
+    : null
+  const jurosFiado = fiadoPrevia?.juros || 0
+  const parcelasPrevia = fiadoPrevia?.valores || []
   const totalComJuros = Math.round((totalCarrinho + jurosFiado) * 100) / 100
   const lucroComJuros = Math.round((lucroCarrinho.lucro + jurosFiado) * 100) / 100
   const temCusto = carrinho.some((i) => i.custo != null)
@@ -222,7 +227,6 @@ export default function Vendas({ db, executar, irPara }) {
   // Vendas do dia escolhido
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
   const totalDia = vendasDia.reduce((s, v) => s + v.total, 0)
-  const custoDia = vendasDia.reduce((s, v) => s + v.itens.reduce((c, i) => c + (i.custo ?? 0) * i.qtd, 0), 0)
   // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
   const lucroDia = Math.round(vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) * 100) / 100
   const perdasDia = vendasDia.reduce((s, v) => s + lucroVenda(v).perda, 0)
@@ -383,7 +387,7 @@ export default function Vendas({ db, executar, irPara }) {
               {pctDesconto > 0 && <small className="bad">− {brl(valorDesconto)} ({t('{p}% de desconto', { p: num(pctDesconto, 2) })})</small>}
               <small>{t('Total')}</small>
               {parcelasPrevia.length
-                ? <b className="total-parcelas"><span>{entradaPrevia > 0 ? brl(entradaPrevia) + ' + ' : ''}{parcelasPrevia.length}× {brl(parcelasPrevia[0].valor)} = </span>{brl(totalComJuros)}</b>
+                ? <b className="total-parcelas"><span>{entradaPrevia > 0 ? brl(entradaPrevia) + ' + ' : ''}{parcelasPrevia.length}× {brl(parcelasPrevia[0])} = </span>{brl(totalComJuros)}</b>
                 : <b>{brl(totalComJuros)}</b>}
               {jurosFiado > 0 && <small>{t('Juros')}: {brl(jurosFiado)}</small>}
               {temCusto && (lucroComJuros < 0
