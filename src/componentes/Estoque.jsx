@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { aviso, confirmar } from '../avisos-tela.jsx'
+import { confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, uid } from '../utils.js'
 
@@ -7,7 +7,7 @@ import { brl, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora,
 // O preço de venda é digitado na aba Novo Registro, na hora de vender.
 const novo = { produto: '', qtd: '1', custo: '', obs: '', doCaixa: true }
 
-export default function Estoque({ db, executar, irPara }) {
+export default function Estoque({ db, executar }) {
   const [form, setForm] = useState(novo)
   const [editando, setEditando] = useState(null) // entrada sendo editada
   const [busca, setBusca] = useState('')
@@ -18,12 +18,14 @@ export default function Estoque({ db, executar, irPara }) {
   const estoque = calcularEstoque(db)
   const lotes = calcularLotes(db)
   const existente = estoque.get(norm(form.produto)) // produto que já está no estoque
+  const vendidosDe = (en) => lotes.get(en.id)?.vendidos ?? 0 // unidades desta entrada que já foram vendidas
+  const saldoDe = (en) => Math.max(0, lotes.get(en.id)?.saldo ?? 0)
 
   async function registrar(e) {
     e.preventDefault()
     const dados = {
       produto: existente ? existente.produto : form.produto.trim(), // mantém o mesmo nome já cadastrado
-      qtd: +form.qtd,
+      qtd: +form.qtd + (editando ? vendidosDe(editando) : 0),
       custo: +form.custo,
       obs: form.obs.trim(),
       foraDoCaixa: !form.doCaixa || undefined, // não desconta do caixa (comprado com outro dinheiro)
@@ -39,7 +41,7 @@ export default function Estoque({ db, executar, irPara }) {
 
   function editarEntrada(en) {
     setEditando(en)
-    setForm({ produto: en.produto, qtd: String(en.qtd), custo: en.custo != null ? String(en.custo) : '', obs: en.obs || '', doCaixa: !en.foraDoCaixa })
+    setForm({ produto: en.produto, qtd: String(saldoDe(en)), custo: en.custo != null ? String(en.custo) : '', obs: en.obs || '', doCaixa: !en.foraDoCaixa })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -48,39 +50,29 @@ export default function Estoque({ db, executar, irPara }) {
     setForm(novo)
   }
 
+  // Excluir tira do estoque o que ainda resta desta entrada. As vendas nunca são apagadas:
+  // se parte já foi vendida, a entrada fica só com as unidades vendidas (o resto volta para o caixa, se saiu dele).
   async function excluirEntrada(en) {
-    // entrada (lote) que já teve unidades vendidas: excluir deixaria o estoque negativo
-    const lote = lotes.get(en.id)
-    const k = norm(en.produto)
-    const vendidoDireto = (db.vendas || []).reduce((s, v) => s + v.itens.filter((i) => i.origem === 'estoque' && i.entradaId === en.id).reduce((x, i) => x + (+i.qtd || 0), 0), 0)
-    if (lote && (vendidoDireto > 0 || (estoque.get(k)?.saldo ?? 0) - en.qtd < 0)) {
-      // em que dias estão as vendas que usaram esta entrada (ou o produto, nas vendas antigas sem lote)
-      const usa = (i) => i.origem === 'estoque' && (i.entradaId ? i.entradaId === en.id : norm(i.produto) === k)
-      const dias = [...new Set((db.vendas || []).filter((v) => v.itens.some(usa)).map((v) => v.dia))].sort().reverse()
-      const abrirDia = (d) => { try { sessionStorage.setItem('vendas-dia', d) } catch { /* sem acesso */ } irPara?.('vendas') }
-      return aviso.alerta(
-        t('Não dá para excluir: esta entrada já foi vendida.'),
-        t('Desta entrada já saíram {n} unidade(s). Exclua antes a venda em Vendas: {dias}.', { n: lote.vendidos, dias: dias.map(dataBR).join(', ') }),
-        dias.length && irPara ? { duration: 12000, action: { label: t('Ver venda de {data}', { data: dataBR(dias[0]) }), onClick: () => abrirDia(dias[0]) } } : undefined,
-      )
-    }
-    if (await confirmar(t('Excluir a entrada de {qtd}× "{produto}" de {data}?\nO estoque vai diminuir {qtd} unidade(s).', { qtd: en.qtd, produto: en.produto, data: dataBR(en.dia) }))) {
-      executar((A) => A.excluirEntrada(en.id), t('Entrada excluída.')).then((ok) => ok && editando?.id === en.id && cancelarEdicao())
-    }
+    const vendidos = vendidosDe(en)
+    const resta = saldoDe(en)
+    if (!(await confirmar(t('Tirar {n} un. de "{produto}" do estoque?', { n: resta, produto: en.produto }) + (vendidos > 0 ? '\n' + t('As vendas já feitas continuam registradas.') : '')))) return
+    const ok = vendidos > 0
+      ? await executar((A) => A.salvarEntrada({ ...en, qtd: vendidos }), t('Produto tirado do estoque.'))
+      : await executar((A) => A.excluirEntrada(en.id), t('Produto tirado do estoque.'))
+    if (ok && editando?.id === en.id) cancelarEdicao()
   }
 
   const todos = [...estoque.values()]
   const b = norm(busca)
-  const linhas = todos
-    .filter((p) => !b || norm(p.produto).includes(b))
-    .filter((p) => !soFalta || p.saldo <= 0)
-    .sort((a, c) => a.produto.localeCompare(c.produto))
+  const linhas = [...(db.entradas || [])]
+    .filter((en) => !b || norm(en.produto).includes(b) || norm(en.obs).includes(b))
+    .filter((en) => (soFalta ? saldoDe(en) <= 0 : saldoDe(en) > 0))
+    .sort((a, c) => a.produto.localeCompare(c.produto) || a.data - c.data)
 
   const unidades = todos.reduce((s, p) => s + Math.max(0, p.saldo), 0)
   const valorCusto = todos.reduce((s, p) => s + (p.valor || 0), 0) // soma exata dos lotes (cada um com o próprio custo)
   const semEstoque = todos.filter((p) => p.saldo <= 0).length
 
-  const entradas = [...(db.entradas || [])].sort((a, c) => c.data - a.data).slice(0, 50)
 
   return (
     <section>
@@ -92,7 +84,7 @@ export default function Estoque({ db, executar, irPara }) {
         <label style={{ flex: '2 1 240px' }}>{t('Produto')} *
           <input ref={refProduto} required list="dlProdEstoque" placeholder={t('Ex: iPhone 11 64GB preto')} {...campo('produto')} />
         </label>
-        <label style={{ flex: '0 1 110px' }}>{t('Quantidade')} *<input type="number" min="1" step="1" required {...campo('qtd')} /></label>
+        <label style={{ flex: '0 1 110px' }}>{editando ? t('Em estoque') : t('Quantidade')} *<input type="number" min={editando ? 0 : 1} step="1" required {...campo('qtd')} /></label>
         <label style={{ flex: '0 1 160px' }}>{t('Custo unit. (R$)')} *
           <input type="number" min="0" step="0.01" required
             placeholder={existente?.ultimoCusto != null ? `${t('último')}: ${brl(existente.ultimoCusto)}` : ''} {...campo('custo')} />
@@ -103,7 +95,7 @@ export default function Estoque({ db, executar, irPara }) {
             <input type="checkbox" checked={form.doCaixa} onChange={(e) => setForm({ ...form, doCaixa: e.target.checked })} />
             <span className="trilho" />
             <span className="chave-texto">{t('Pago pelo caixa')}
-              {form.doCaixa && +form.qtd > 0 && +form.custo > 0 && <small>− {brl(+form.qtd * +form.custo)}</small>}
+              {form.doCaixa && !editando && +form.qtd > 0 && +form.custo > 0 && <small>− {brl(+form.qtd * +form.custo)}</small>}
             </span>
           </label>
         )}
@@ -135,48 +127,26 @@ export default function Estoque({ db, executar, irPara }) {
       <div className="tw">
         <table>
           <thead>
-            <tr><th>{t('Produto')}</th><th className="n" title={t('Média do custo das unidades em estoque, pesando a quantidade de cada entrada.')}>{t('Custo médio')}</th><th className="n">{t('Entradas')}</th><th className="n">{t('Vendidos')}</th><th className="n">{t('Em estoque')}</th><th className="n">{t('Valor (custo)')}</th></tr>
+            <tr><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Custo unit.')}</th><th className="n">{t('Total')}</th><th>{t('Obs.')}</th><th></th></tr>
           </thead>
           <tbody>
-            {linhas.length === 0 && <tr><td colSpan="6" className="vazio">{todos.length ? t('Nada encontrado.') : t('Nenhum produto no estoque. Registre uma entrada acima.')}</td></tr>}
-            {linhas.map((p) => (
-              <tr key={p.k}>
-                <td>{p.produto}</td>
-                <td className="n">{p.custo != null ? brl(p.custo) : '-'}</td>
-                <td className="n">{p.entradas}</td>
-                <td className="n">{p.vendidos}</td>
-                <td className="n"><b className={classeEstoque(p.saldo)}>{Math.max(0, p.saldo)}</b>{p.saldo < 0 && <small className="bad" title={t('Vendeu {n} a mais do que entrou (antes do bloqueio). Registre uma entrada para acertar.', { n: -p.saldo })}> ({p.saldo})</small>}</td>
-                <td className="n">{p.saldo > 0 && p.valor > 0 ? brl(p.valor) : '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ---------- Histórico ---------- */}
-      <div className="linha-titulo"><h3>{t('Últimas entradas')}</h3></div>
-      <div className="tw">
-        <table>
-          <thead>
-            <tr><th>{t('Data')}</th><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Restam')}</th><th className="n">{t('Custo unit.')}</th><th className="n">{t('Total')}</th><th>{t('Obs.')}</th><th></th></tr>
-          </thead>
-          <tbody>
-            {entradas.length === 0 && <tr><td colSpan="8" className="vazio">{t('Nenhuma entrada registrada.')}</td></tr>}
-            {entradas.map((en) => (
-              <tr key={en.id} className={editando?.id === en.id ? 'em-edicao' : ''}>
-                <td>{dataBR(en.dia)} {hora(en.data)}</td>
-                <td>{en.produto}</td>
-                <td className="n">{en.qtd}</td>
-                <td className="n"><b className={classeEstoque(lotes.get(en.id)?.saldo ?? 0)}>{Math.max(0, lotes.get(en.id)?.saldo ?? 0)}</b></td>
-                <td className="n">{en.custo != null ? brl(en.custo) : '-'}</td>
-                <td className="n">{en.custo != null ? brl(en.qtd * en.custo) : '-'}</td>
-                <td className="quebra">{en.obs || '-'}{en.foraDoCaixa && <span className="tag">{t('fora do caixa')}</span>}</td>
-                <td>
-                  <button className="edit" onClick={() => editarEntrada(en)}>{t('Editar')}</button>{' '}
-                  <button className="del" onClick={() => excluirEntrada(en)}>{t('Excluir')}</button>
-                </td>
-              </tr>
-            ))}
+            {linhas.length === 0 && <tr><td colSpan="6" className="vazio">{(db.entradas || []).length ? t('Nada encontrado.') : t('Nenhum produto no estoque. Registre uma entrada acima.')}</td></tr>}
+            {linhas.map((en) => {
+              const resta = saldoDe(en)
+              return (
+                <tr key={en.id} className={editando?.id === en.id ? 'em-edicao' : ''}>
+                  <td>{en.produto}</td>
+                  <td className="n"><b className={classeEstoque(resta)}>{resta}</b></td>
+                  <td className="n">{en.custo != null ? brl(en.custo) : '-'}</td>
+                  <td className="n">{en.custo != null && resta > 0 ? brl(resta * en.custo) : '-'}</td>
+                  <td className="quebra">{en.obs || '-'}{en.foraDoCaixa && <span className="tag">{t('fora do caixa')}</span>}</td>
+                  <td className="acoes">
+                    <button className="edit" onClick={() => editarEntrada(en)}>{t('Editar')}</button>{' '}
+                    {resta > 0 && <button className="del" onClick={() => excluirEntrada(en)}>{t('Excluir')}</button>}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

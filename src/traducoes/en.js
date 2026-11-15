@@ -1201,4 +1201,7 @@ export default {
   'sai {valor} do caixa': '{valor} leaves the cash',
   'o valor sai do caixa': 'the amount leaves the cash',
   'Pago pelo caixa': 'Paid from cash',
+  'Tirar {n} un. de "{produto}" do estoque?': 'Remove {n} unit(s) of "{produto}" from inventory?',
+  'As vendas já feitas continuam registradas.': 'Sales already made stay recorded.',
+  'Produto tirado do estoque.': 'Product removed from inventory.',
 }
