@@ -102,8 +102,8 @@ export default function Estoque({ db, executar, irPara }) {
           <label className="chave">
             <input type="checkbox" checked={form.doCaixa} onChange={(e) => setForm({ ...form, doCaixa: e.target.checked })} />
             <span className="trilho" />
-            <span className="chave-texto">{t('Pago com o dinheiro do caixa')}
-              <small>{!form.doCaixa ? t('não mexe no caixa') : +form.qtd > 0 && +form.custo > 0 ? t('sai {valor} do caixa', { valor: brl(+form.qtd * +form.custo) }) : t('o valor sai do caixa')}</small>
+            <span className="chave-texto">{t('Pago pelo caixa')}
+              {form.doCaixa && +form.qtd > 0 && +form.custo > 0 && <small>− {brl(+form.qtd * +form.custo)}</small>}
             </span>
           </label>
         )}

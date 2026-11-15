@@ -1200,4 +1200,5 @@ export default {
   'não mexe no caixa': 'does not touch the cash',
   'sai {valor} do caixa': '{valor} leaves the cash',
   'o valor sai do caixa': 'the amount leaves the cash',
+  'Pago pelo caixa': 'Paid from cash',
 }
