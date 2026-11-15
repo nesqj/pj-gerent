@@ -21,6 +21,7 @@ export default function Vendas({ db, executar, irPara }) {
     modoCusto: lembrado.modoCusto || 'valor', custo: lembrado.modoCusto === 'pct' ? (lembrado.pct ?? '') : '' }
   const [avulso, setAvulso] = useState(null) // null = formulário fechado
   const [carrinho, setCarrinho] = useState([])
+  const [editandoCusto, setEditandoCusto] = useState(null) // linha do carrinho com o custo do avulso aberto para editar
   const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
   const [desconto, setDesconto] = useState('') // % de desconto na venda (opcional)
   const [dia, setDia] = useState(() => {
@@ -346,9 +347,17 @@ export default function Vendas({ db, executar, irPara }) {
                   return (
                   <tr key={n} className={l != null && l < 0 ? 'linha-prejuizo' : ''}>
                     <td>{i.produto}{i.marca ? ` — ${i.marca}` : ''}{i.lote && <small className="sub-linha">{i.lote}</small>}{i.origem === 'avulso' && <small className="sub-linha custo-item">{i.tipo === 'servico' ? t('serviço avulso') : t('produto avulso')} · {t('custo')}
-                      {i.custoPct == null && <span>R$</span>}
-                      <input className="cel mini" type="number" min="0" step="0.01" value={i.custoPct != null ? i.custoPct : i.custo} onChange={(e) => alterarCustoAvulso(n, e.target.value)} aria-label={t('Custo')} />
-                      {i.custoPct != null && <span>% = {i.custo === '' ? '—' : brl(i.custo)}</span>}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
+                      {editandoCusto === n ? (<>
+                        {i.custoPct == null && <span>R$</span>}
+                        <input className="cel mini" type="number" min="0" step="0.01" autoFocus value={i.custoPct != null ? i.custoPct : i.custo}
+                          onChange={(e) => alterarCustoAvulso(n, e.target.value)} onBlur={() => setEditandoCusto(null)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); setEditandoCusto(null) } }} aria-label={t('Custo')} />
+                        {i.custoPct != null && <span>% = {i.custo === '' ? '—' : brl(i.custo)}</span>}
+                      </>) : (
+                        <button type="button" className="custo-link" title={t('Mudar o custo')} onClick={() => setEditandoCusto(n)}>
+                          {i.custo === '' ? '—' : brl(i.custo)}{i.custoPct != null && i.custoPct !== '' ? ` (${String(i.custoPct).replace('.', ',')}%)` : ''} ✎
+                        </button>
+                      )}</small>}{i.fornecedor && <small className="sub-linha">{t('Fornecedor')}: {i.fornecedor} · {t('custo')} {brl(i.custo)}</small>}</td>
                     <td className="n">
                       <input className={'cel' + (i.origem === 'estoque' && (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) < 0 ? ' campo-erro' : '')} type="number" min="1" step="1"
                         max={i.origem === 'estoque' ? (i.entradaId ? disponivelLote(i.entradaId) : disponivel(norm(i.produto))) + +i.qtd : undefined}
@@ -361,7 +370,7 @@ export default function Vendas({ db, executar, irPara }) {
                     </td>
                     <td className="n">{brl((+i.qtd || 0) * (+i.preco || 0))}</td>
                     <td className="n"><ValorLucro valor={l} /></td>
-                    <td><button className="del" onClick={() => setCarrinho(carrinho.filter((_, x) => x !== n))}>{t('Remover')}</button></td>
+                    <td><button className="del" onClick={() => { setEditandoCusto(null); setCarrinho(carrinho.filter((_, x) => x !== n)) }}>{t('Remover')}</button></td>
                   </tr>
                   )
                 })}
