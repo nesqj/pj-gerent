@@ -287,7 +287,6 @@ export default function Fiado({ db, executar, irPara }) {
           </tbody>
         </table>
       </div>
-      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. "Não pagou" só vira prejuízo no que faltar para voltar o valor emprestado ou o custo dos produtos; o resto é lucro que você deixou de ganhar.')}</small></p>
     </section>
   )
 
