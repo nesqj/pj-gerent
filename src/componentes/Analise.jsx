@@ -120,10 +120,9 @@ export default function Analise({ db }) {
   // outras despesas: o que saiu do caixa como "Despesa da loja" (luz, aluguel, insumos...). Retirada pessoal não conta.
   const outrasDespesas = (a, b) => Math.round((db.movCaixa || []).filter((m) => m.tipo === 'retirar' && m.categoria === 'despesa' && m.dia >= a && m.dia <= b)
     .reduce((s, m) => s + (+m.valor || 0), 0) * 100) / 100
-  const outras = outrasDespesas(de, ate), outrasAnt = outrasDespesas(antDe, antAte)
+  const outras = outrasDespesas(de, ate)
   // lucro líquido: o que sobrou de verdade (o custo dos produtos já sai do lucro bruto)
   const resultado = Math.round((lucroTotal - outras) * 100) / 100
-  const resultadoAnt = Math.round((ra.lucro - outrasAnt) * 100) / 100
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
@@ -203,13 +202,9 @@ export default function Analise({ db }) {
           <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
         </div>
         <div className="card">
-          <small>{t('Outras despesas')}</small><b>{brl(outras)}</b>
-          {outrasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(outrasAnt) })}</small>}
-        </div>
-        <div className="card">
           <small>{t('Lucro líquido')}</small>
           <b className={resultado < 0 ? 'bad' : 'ok'}>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
-          <small className="var">{t('lucro − outras despesas')}{resultadoAnt !== 0 ? ' · ' + t('anterior: {valor}', { valor: (resultadoAnt < 0 ? '− ' : '') + brl(Math.abs(resultadoAnt)) }) : ''}</small>
+          <small className="var">{t('lucro bruto − {valor} de despesas', { valor: brl(outras) })}</small>
         </div>
       </div>
 
