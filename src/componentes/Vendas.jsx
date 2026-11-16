@@ -278,10 +278,8 @@ export default function Vendas({ db, executar, irPara }) {
         </>
       ) : (<>
       {/* registrando em outro dia (histórico) */}
-      {dia !== hoje() && (
-        <p className="aviso-data">⚠ {podeRegistrar
-          ? t('Registrando em {data}', { data: dataBR(dia) })
-          : t('{data} é só para consulta: dá para registrar vendas de até {n} dias atrás.', { data: dataBR(dia), n: DIAS_PARA_TRAS })} · <button className="link pequeno" onClick={() => setDia(hoje())}>{t('Voltar para hoje')}</button></p>
+      {dia !== hoje() && podeRegistrar && (
+        <p className="aviso-data">⚠ {t('Registrando em {data}', { data: dataBR(dia) })} · <button className="link pequeno" onClick={() => setDia(hoje())}>{t('Voltar para hoje')}</button></p>
       )}
       {podeRegistrar && <>
       {/* ---------- Nova venda: produto cadastrado ou avulso (no mesmo quadro) ---------- */}
