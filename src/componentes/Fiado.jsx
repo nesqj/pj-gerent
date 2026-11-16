@@ -216,7 +216,7 @@ export default function Fiado({ db, executar, irPara }) {
       <div className="tw">
         <table>
           <thead>
-            <tr><th>{t('Próximo vencimento')}</th><th>{t('Cliente')}</th><th>{t('Motivo')}</th><th className="n">{t('Parcelas')}</th>{naoPagos ? <><th className="n">{t('Faltou receber')}</th><th className="n">{t('Prejuízo')}</th></> : <><th className="n">{t('Próxima')}</th><th className="n">{t('Falta (total)')}</th></>}<th>{t('Situação')}</th><th></th></tr>
+            <tr><th>{t('Próximo vencimento')}</th><th>{t('Cliente')}</th><th>{t('Motivo')}</th><th className="n">{t('Parcelas')}</th>{naoPagos ? <><th className="n">{t('Faltou receber')}</th><th className="c">{t('Prejuízo')}</th></> : <><th className="n">{t('Próxima')}</th><th className="n">{t('Falta (total)')}</th></>}<th className={naoPagos ? 'c' : ''}>{t('Situação')}</th><th></th></tr>
           </thead>
           <tbody>
             {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma venda fiado ainda. Na aba Novo Registro, escolha "Fiado" ou divida o pagamento.')}</td></tr>}
@@ -244,13 +244,13 @@ export default function Fiado({ db, executar, irPara }) {
                       const pj = prejuizoDe(g.v)
                       return <>
                         <td className="n"><b>{brl(resumoFiado(g.v)?.naoPago || 0)}</b></td>
-                        <td className="n">{pj > 0 ? <span className="selo selo-bad">− {brl(pj)}</span> : <span className="selo selo-ok">{t('Sem prejuízo')}</span>}</td>
+                        <td className="c">{pj > 0 ? <span className="selo selo-bad">− {brl(pj)}</span> : <span className="selo selo-ok">{t('Sem prejuízo')}</span>}</td>
                       </>
                     })() : <>
                     <td className="n">{g.abertas.length ? <>{brl(x.falta)}<small className="sub-linha">{x.p.n}/{x.total}</small>{x.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(x.enc), n: x.atraso.dias })}</small>}</> : '-'}</td>
                     <td className="n"><b>{g.falta > 0 ? brl(g.falta + g.encargo) : '-'}</b>{g.encargo > 0 && <small className="sub-linha bad">{t('com {valor} de atraso', { valor: brl(g.encargo) })}</small>}</td>
                     </>}
-                    <td><span className={s.classe}>{t(s.nome)}</span></td>
+                    <td className={naoPagos ? 'c' : ''}><span className={s.classe}>{t(s.nome)}</span></td>
                     <td className="n acoes-fiado">{acoes(x)}</td>
                   </tr>
                   {aberto && g.parcelas.map((y) => {
@@ -264,7 +264,7 @@ export default function Fiado({ db, executar, irPara }) {
                         <td className="n"></td>
                         <td className="n">{y.situacao === 'paga' ? '-' : brl(y.falta + y.enc)}{y.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(y.enc), n: y.atraso.dias })}</small>}</td>
                         </>}
-                        <td><span className={sy.classe}>{t(sy.nome)}</span></td>
+                        <td className={naoPagos ? 'c' : ''}><span className={sy.classe}>{t(sy.nome)}</span></td>
                         <td className="n acoes-fiado">{acoes(y)}</td>
                       </tr>
                     )

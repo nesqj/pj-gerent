@@ -137,6 +137,7 @@ tbody tr:last-child td { border-bottom: none }
 th { color: var(--mut); font-weight: 500; font-size: 13px }
 tbody tr:hover { background: var(--hover) }
 td.n, th.n { text-align: right }
+td.c, th.c { text-align: center; padding-left: 18px; padding-right: 18px }
 tr.best { background: var(--verde-fundo) }
 .tag { display: inline-block; background: var(--pri-suave); color: var(--link); border-radius: 10px; padding: 2px 9px; margin: 1px; font-size: 12px }
 .ok { color: var(--ok); font-weight: 600 }
