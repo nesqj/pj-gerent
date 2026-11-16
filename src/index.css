@@ -1134,7 +1134,6 @@ i.q.fat { background: var(--bd-forte) } i.q.luc { background: var(--verde) } i.q
 .calc-resultado span { color: var(--mut) }
 .calc-resultado small { color: var(--mut) }
 .calc-resultado b { font-size: 17px }
-.calc-recebe b { color: var(--verde); font-size: 20px }
 .calc-linha { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--bd) }
 .calc-linha > span { display: flex; flex-direction: column; gap: 2px; font-weight: 600 }
 .calc-linha > span small { color: var(--mut); font-weight: 400; font-size: 12px }

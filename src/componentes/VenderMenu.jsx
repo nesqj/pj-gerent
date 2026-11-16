@@ -139,8 +139,8 @@ export function Calculadora({ onFechar }) {
         <div className="calc-resultado">
           <div><span>{t('Seu cliente paga')}</span><b>{brl(clientePaga)}</b></div>
           {nParc > 1 && <div className="calc-parc"><span /><small>{t('{n}x de {valor}', { n: nParc, valor: brl(r2(clientePaga / nParc)) })}</small></div>}
-          <div><span>{t('Taxa ({p})', { p: pctTxt(taxa) })}</span><b className={custo > 0 ? 'bad' : ''}>{custo > 0 ? '− ' + brl(custo) : brl(0)}</b></div>
-          <div className="calc-recebe"><span>{t('Você recebe')}</span><b>{brl(voceRecebe)}</b></div>
+          <div><span>{t('Taxa ({p})', { p: pctTxt(taxa) })}</span><b>{custo > 0 ? '− ' + brl(custo) : brl(0)}</b></div>
+          <div><span>{t('Você recebe')}</span><b>{brl(voceRecebe)}</b></div>
         </div>
       </div>
     </div>,
