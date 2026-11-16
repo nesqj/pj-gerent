@@ -304,7 +304,7 @@ export function extratoCaixa(db) {
       descricao: `${e.qtd}× ${e.produto}`,
     })),
     ...(db.movCaixa || []).filter(depois).map((m) => ({
-      id: 'm-' + m.id, ref: m, origem: m.tipo === 'retirar' && m.categoria === 'despesa' ? 'despesa' : m.tipo, data: m.data, dia: m.dia, valor: m.tipo === 'retirar' ? -(+m.valor || 0) : +m.valor || 0,
+      id: 'm-' + m.id, ref: m, origem: m.tipo, data: m.data, dia: m.dia, valor: m.tipo === 'retirar' ? -(+m.valor || 0) : +m.valor || 0,
       descricao: m.descricao || '',
     })),
   ].sort((a, b) => a.data - b.data)

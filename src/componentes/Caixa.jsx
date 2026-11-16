@@ -21,11 +21,10 @@ const ORIGENS = {
   emprestimo: { nome: 'Empréstimo concedido', classe: 'bad' },
   'emprestimo-receb': { nome: 'Recebimento de empréstimo', classe: 'ok' },
   colocar: { nome: 'Dinheiro colocado', classe: 'ok' },
-  retirar: { nome: 'Retirada pessoal', classe: 'bad' },
-  despesa: { nome: 'Despesa da loja', classe: 'bad' },
+  retirar: { nome: 'Dinheiro retirado', classe: 'bad' },
   custo: { nome: 'Custo pago', classe: 'bad' },
 }
-const novo = { tipo: 'colocar', categoria: 'despesa', valor: '', descricao: '' }
+const novo = { tipo: 'colocar', valor: '', descricao: '' }
 
 export default function Caixa({ db, executar, irPara, nomeLoja }) {
   const ext = extratoCaixa(db)
@@ -90,17 +89,19 @@ function ControleCaixa({ db, ext, executar, irPara, nomeLoja }) {
     e.preventDefault()
     const v = numero(form.valor)
     if (!(v > 0)) return aviso.alerta(t('Informe um valor maior que zero.'))
-    // retirada pessoal maior que o livre: mexe no dinheiro reservado para pagar custos
-    if (form.tipo === 'retirar' && form.categoria === 'pessoal' && !editando && reservado > 0 && v > livre && v <= ext.saldo
+    // retirada maior que o livre: mexe no dinheiro reservado para pagar custos
+    if (form.tipo === 'retirar' && !editando && reservado > 0 && v > livre && v <= ext.saldo
       && !await confirmar(t('Você vai mexer no dinheiro reservado para pagar custos. Saldo disponível: {livre}. Retirar {valor} mesmo assim?', { livre: brl(livre), valor: brl(v) }))) return
     if (form.tipo === 'retirar' && !editando && v > ext.saldo && !await confirmar(t('O caixa tem {saldo}. Retirar {valor} vai deixar o saldo negativo. Continuar?', { saldo: brl(ext.saldo), valor: brl(v) }))) return
-    const dados = { tipo: form.tipo, valor: Math.round(v * 100) / 100, descricao: form.descricao.trim(), ...(form.tipo === 'retirar' ? { categoria: form.categoria } : {}) }
-    const m = editando ? { ...editando, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
-    if (await executar((A) => A.salvarMovCaixa(m), m.tipo === 'retirar' ? (m.categoria === 'despesa' ? t('Despesa da loja registrada.') : t('Retirada pessoal registrada.')) : t('Dinheiro colocado no caixa.'))) cancelar()
+    const dados = { tipo: form.tipo, valor: Math.round(v * 100) / 100, descricao: form.descricao.trim() }
+    // (a retirada não tem mais "despesa da loja" ou "retirada pessoal")
+    const { categoria: _semCategoria, ...anterior } = editando || {}
+    const m = editando ? { ...anterior, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
+    if (await executar((A) => A.salvarMovCaixa(m), m.tipo === 'retirar' ? t('Dinheiro retirado do caixa.') : t('Dinheiro colocado no caixa.'))) cancelar()
   }
   function editar(m) {
     setEditando(m)
-    setForm({ tipo: m.tipo, categoria: m.categoria || 'pessoal', valor: String(m.valor).replace('.', ','), descricao: m.descricao || '' })
+    setForm({ tipo: m.tipo, valor: String(m.valor).replace('.', ','), descricao: m.descricao || '' })
     setFormAberto(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -150,7 +151,7 @@ function ControleCaixa({ db, ext, executar, irPara, nomeLoja }) {
   // tocar num movimento: editar (dinheiro colocado/retirado), desfazer (custo pago) ou abrir de onde veio
   function abrirMovimento(m) {
     if (m.origem === 'custo') return desfazerPagamento(m.ref)
-    if (['colocar', 'retirar', 'despesa'].includes(m.origem)) return editar(m.ref)
+    if (['colocar', 'retirar'].includes(m.origem)) return editar(m.ref)
     const venda = ['venda', 'emprestimo', 'fornecedor', 'avulso'].includes(m.origem)
     if (venda) { try { sessionStorage.setItem('vendas-dia', m.dia) } catch { /* sem acesso */ } }
     irPara(venda ? 'vendas' : m.origem === 'fiado' || m.origem === 'emprestimo-receb' ? 'fiado' : 'estoque')
@@ -201,17 +202,9 @@ function ControleCaixa({ db, ext, executar, irPara, nomeLoja }) {
                 </select>
               </label>
             )}
-            {form.tipo === 'retirar' && (
-              <label style={{ flex: '0 1 200px' }}>{t('É para quê?')}
-                <select {...campo('categoria')}>
-                  <option value="despesa">{t('Despesa da loja')}</option>
-                  <option value="pessoal">{t('Retirada pessoal')}</option>
-                </select>
-              </label>
-            )}
             <label style={{ flex: '0 1 160px' }}>{t('Valor (R$)')} *<input ref={refValor} required inputMode="decimal" placeholder="0,00" {...campo('valor')} /></label>
             <label style={{ flex: '2 1 240px' }}>{t('Descrição')}
-              <input maxLength={120} placeholder={form.tipo === 'retirar' ? (form.categoria === 'despesa' ? t('Ex: conta de luz, aluguel, insumos...') : t('Ex: pró-labore, uso pessoal...')) : t('Ex: aporte do sócio, empréstimo, troco inicial...')} {...campo('descricao')} />
+              <input maxLength={120} placeholder={form.tipo === 'retirar' ? t('Ex: conta de luz, aluguel, uso pessoal...') : t('Ex: aporte do sócio, empréstimo, troco inicial...')} {...campo('descricao')} />
             </label>
             <button type="submit">{editando ? t('Salvar alterações') : form.tipo === 'retirar' ? t('Retirar') : t('Colocar')}</button>
             {editando && <button type="button" className="del" onClick={() => excluir(editando)}>{t('Excluir')}</button>}
