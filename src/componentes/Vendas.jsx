@@ -5,7 +5,7 @@ import { t } from '../i18n.js'
 import { chave, lerValor, resolverPreco } from '../utils.js'
 import { TROCA } from '../utils.js'
 import { brl, num, faturamentoVenda, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
-import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento, pagamentoDaVenda } from './PagamentoVenda.jsx'
+import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
 
@@ -25,7 +25,6 @@ export default function Vendas({ db, executar, irPara }) {
     modoCusto: lembrado.modoCusto || 'valor', custo: lembrado.modoCusto === 'pct' ? (lembrado.pct ?? '') : '' }
   const [avulso, setAvulso] = useState(null) // null = formulário fechado
   const [carrinho, setCarrinho] = useState([])
-  const [editando, setEditando] = useState(null) // venda sendo editada (carregada no carrinho)
   const [editandoCusto, setEditandoCusto] = useState(null) // linha do carrinho com o custo do avulso aberto para editar
   const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
   const [desconto, setDesconto] = useState('') // % de desconto na venda (opcional)
@@ -44,7 +43,7 @@ export default function Vendas({ db, executar, irPara }) {
   const lotes = calcularLotes(db)
   // quanto de um lote já está no carrinho (ou na venda em edição, que devolve o que tinha tirado)
   const doLoteEm = (itens, id) => itens.filter((i) => i.origem === 'estoque' && i.entradaId === id).reduce((x, i) => x + (+i.qtd || 0), 0)
-  const disponivelLote = (id) => (lotes.get(id)?.saldo ?? 0) + (editando ? doLoteEm(editando.itens, id) : 0) - doLoteEm(carrinho, id)
+  const disponivelLote = (id) => (lotes.get(id)?.saldo ?? 0) - doLoteEm(carrinho, id)
   const detalheLote = (l) => [`${t('custo')} ${l.custo != null ? brl(l.custo) : '-'}`, l.obs].filter(Boolean).join(' · ')
   const doEstoque = [...lotes.values()]
     .map((l) => ({ id: 'l:' + l.id, entradaId: l.id, origem: 'estoque', k: l.k, produto: l.produto, marca: '', preco: null, custo: l.custo,
@@ -87,7 +86,7 @@ export default function Vendas({ db, executar, irPara }) {
 
   // estoque disponível = estoque salvo + o que a venda em edição já tinha tirado − o que está no carrinho
   const doEstoqueEm = (itens, k) => itens.filter((i) => i.origem === 'estoque' && norm(i.produto) === k).reduce((s, i) => s + +i.qtd, 0)
-  const disponivel = (k) => (estoque.get(k)?.saldo ?? 0) + (editando ? doEstoqueEm(editando.itens, k) : 0) - doEstoqueEm(carrinho, k)
+  const disponivel = (k) => (estoque.get(k)?.saldo ?? 0) - doEstoqueEm(carrinho, k)
 
   // avulso com custo em %: o custo acompanha o preço
   const custoPorPct = (preco, pct) => (preco === '' || pct === '' ? '' : Math.round(+preco * +pct) / 100)
@@ -108,27 +107,7 @@ export default function Vendas({ db, executar, irPara }) {
     }))
   }
 
-  function editarVenda(v) {
-    // fiado com pagamento já registrado: a venda não muda mais por aqui (só por Cobranças)
-    const f = resumoFiado(v)
-    if (f && (f.recebido > 0 || f.naoPago > 0)) {
-      return aviso.alerta(t('Esta venda tem fiado com pagamento já registrado.'), t('Para mudar, use a aba Cobranças (receber, mudar data, não pagou) ou exclua a venda.'))
-    }
-    // produto recebido na troca que já foi vendido: não dá para mudar a troca
-    const trocaVendida = (db.entradas || []).find((e) => e.vendaTroca === v.id && (lotes.get(e.id)?.vendidos || 0) > 0)
-    if (trocaVendida) return aviso.alerta(t('O produto recebido na troca ({produto}) já foi vendido.', { produto: trocaVendida.produto }), t('Para mudar esta venda, exclua antes a venda dele.'))
-    setModo('venda')
-    setAvulso(null)
-    setEditando(v)
-    setCarrinho(v.itens.map((i) => ({ ...i })))
-    setPg(pagamentoDaVenda(v, db.clientes || []))
-    setDesconto(v.descontoPct ? String(v.descontoPct) : '')
-    setItem(itemNovo)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   function cancelar() {
-    setEditando(null)
     setCarrinho([])
     setPg(novoPagamento())
     setDesconto('')
@@ -219,21 +198,17 @@ export default function Vendas({ db, executar, irPara }) {
       setPg((x) => ({ ...x, fiado: { ...x.fiado, clienteId: pago.novoCliente.id } }))
     }
     const extra = { pagamento: pago.pagamento, pagamentos: pago.pagamentos, ...(pago.fiado ? { fiado: pago.fiado } : {}) }
-    if (!editando && dia > hoje()) return aviso.alerta(t('Não dá para registrar venda em data futura.'))
-    if (!editando && !podeRegistrar) return aviso.alerta(t('Só dá para registrar vendas de até {n} dias atrás.', { n: DIAS_PARA_TRAS }))
+    if (dia > hoje()) return aviso.alerta(t('Não dá para registrar venda em data futura.'))
+    if (!podeRegistrar) return aviso.alerta(t('Só dá para registrar vendas de até {n} dias atrás.', { n: DIAS_PARA_TRAS }))
     // dia escolhido no calendário "Vendas de ...": hoje usa a hora atual; dia passado, a hora atual naquele dia
     const quando = dia === hoje() ? Date.now() : new Date(`${dia}T${new Date().toTimeString().slice(0, 8)}`).getTime()
-    const venda = editando
-      ? { ...editando, itens, subtotal, descontoPct, descontoValor, total, ...extra }
-      : { id: uid(), data: quando, dia, itens, subtotal, descontoPct, descontoValor, total, ...extra }
+    const venda = { id: uid(), data: quando, dia, itens, subtotal, descontoPct, descontoValor, total, ...extra }
     if (!pago.fiado) delete venda.fiado
     // produtos do estoque que vão ficar com 2 ou menos depois desta venda
     const baixos = [...new Set(itens.filter((i) => i.origem === 'estoque').map((i) => norm(i.produto)))]
       .map((k) => ({ nome: estoque.get(k)?.produto, resta: disponivel(k) }))
       .filter((p) => p.nome && p.resta <= 2)
     if (await executar((A) => A.salvarVenda(venda))) {
-      // editando: o produto da troca antiga sai do estoque (a troca nova entra logo abaixo)
-      if (editando) for (const e of (db.entradas || []).filter((x) => x.vendaTroca === venda.id)) await executar((A) => A.excluirEntrada(e.id))
       // produto recebido na troca: entra no Estoque (custo = valor da troca, sem sair do caixa)
       for (const p of (venda.pagamentos || []).filter((x) => x.forma === TROCA && x.item)) {
         const nome = estoque.get(norm(p.item))?.produto || p.item // mesmo nome de um produto que já está no estoque
@@ -244,7 +219,7 @@ export default function Vendas({ db, executar, irPara }) {
       if (venda.fiado) aviso.info(t('Venda registrada com fiado.'), t('{valor} a receber de {cliente}. Acompanhe na aba Cobranças.', { valor: brl(resumoFiado(venda).aberto), cliente: venda.fiado.cliente }))
       else if (resultado.lucro < 0) aviso.alerta(t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
       else if (resultado.perda > 0) aviso.alerta(t('Venda registrada.'), t('Atenção: {n} item(ns) vendido(s) abaixo do custo (perda de {valor}).', { n: resultado.itensComPrejuizo, valor: brl(resultado.perda) }))
-      else aviso.ok(editando ? t('Venda atualizada.') : t('Venda registrada.'), brl(venda.total))
+      else aviso.ok(t('Venda registrada.'), brl(venda.total))
       cancelar()
       if (db.config?.avisosEstoque !== false) {
         for (const p of baixos) {
@@ -263,7 +238,6 @@ export default function Vendas({ db, executar, irPara }) {
     const extraTroca = daTroca.length ? '\n' + t('O produto recebido na troca ({produto}) sai do estoque.', { produto: daTroca.map((e) => e.produto).join(', ') }) : ''
     if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }) + extra + extraTroca)) {
       if (await executar((A) => A.excluirVenda(v.id), t('Venda excluída.'))) {
-        if (editando?.id === v.id) cancelar()
         for (const e of daTroca) await executar((A) => A.excluirEntrada(e.id))
       }
     }
@@ -304,10 +278,10 @@ export default function Vendas({ db, executar, irPara }) {
         </>
       ) : (<>
       {/* registrando em outro dia (histórico) */}
-      {dia !== hoje() && podeRegistrar && !editando && (
+      {dia !== hoje() && podeRegistrar && (
         <p className="aviso-data">⚠ {t('Registrando em {data}', { data: dataBR(dia) })} · <button className="link pequeno" onClick={() => setDia(hoje())}>{t('Voltar para hoje')}</button></p>
       )}
-      {(podeRegistrar || editando) && <>
+      {podeRegistrar && <>
       {/* ---------- Nova venda: produto cadastrado ou avulso (no mesmo quadro) ---------- */}
       {!avulso && <form onSubmit={adicionar}>
         <div className="campo-custo" style={{ flex: '2 1 240px' }}>{t('Produto')}
@@ -390,10 +364,7 @@ export default function Vendas({ db, executar, irPara }) {
 
       {doEstoque.length + semEstoque.length + dosFornecedores.length === 0 && <p className="warn">{t('Registre produtos no Estoque, cadastre nos fornecedores ou use "Produto ou serviço avulso".')}</p>}
 
-      {editando && (
-        <p className="aviso-data">✎ {t('Editando a venda de {data} às {hora}. Mude o que precisar e clique em "Salvar alterações".', { data: dataBR(editando.dia), hora: hora(editando.data) })}</p>
-      )}
-      {(carrinho.length > 0 || editando) && (
+      {carrinho.length > 0 && (
         <div className="painel">
           <div className="tw">
             <table>
@@ -452,8 +423,8 @@ export default function Vendas({ db, executar, irPara }) {
                 ? <small className="bad resultado-venda">{t('Prejuízo')}: − {brl(-lucroComJuros)}</small>
                 : <small className="ok resultado-venda">{t('Lucro')}: {brl(lucroComJuros)}{lucroCarrinho.perda > 0 ? ` · ${t('perda de {valor} abaixo do custo', { valor: brl(lucroCarrinho.perda) })}` : ''}</small>)}
             </div>
-            <button onClick={finalizar} disabled={!carrinho.length}>{editando ? t('Salvar alterações') : t('Finalizar venda')}</button>
-            <button className="sec" onClick={cancelar}>{editando ? t('Cancelar edição') : t('Cancelar')}</button>
+            <button onClick={finalizar} disabled={!carrinho.length}>{t('Finalizar venda')}</button>
+            <button className="sec" onClick={cancelar}>{t('Cancelar')}</button>
           </div>
         </div>
       )}
@@ -498,7 +469,7 @@ export default function Vendas({ db, executar, irPara }) {
               const res = lucroVenda(v)
               const temCustoV = v.itens.some((i) => i.custo != null)
               return (
-              <tr key={v.id} className={(editando?.id === v.id ? 'em-edicao' : '') + (res.lucro < 0 ? ' linha-prejuizo' : '')}>
+              <tr key={v.id} className={res.lucro < 0 ? 'linha-prejuizo' : ''}>
                 <td>{hora(v.data)}</td>
                 <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}
                   {obsDaVenda(v) && <small className="sub-linha">{obsDaVenda(v)}</small>}</td>
@@ -515,7 +486,6 @@ export default function Vendas({ db, executar, irPara }) {
                   {res.perda > 0 && res.lucro >= 0 && <small className="desconto-linha bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
                 </td>
                 <td>
-                  <button className="edit" onClick={() => editarVenda(v)}>{t('Editar')}</button>{' '}
                   <button className="del" onClick={() => excluir(v)}>{t('Excluir')}</button>
                 </td>
               </tr>
