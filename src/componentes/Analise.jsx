@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, faturamentoVenda, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
+import { brl, dataBR, faturamentoVenda, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -111,7 +111,6 @@ export default function Analise({ db }) {
   const anteriores = db.vendas.filter((v) => v.dia >= antDe && v.dia <= antAte)
   const r = resumo(vendas), ra = resumo(anteriores)
   // "Não pagou" do empréstimo: perda no dia em que foi marcado
-  const perdasE = perdasNaoPago(db.emprestimos || [])
   const evLucro = lucrosPagos(db.vendas)
   r.lucro = somaLucros(evLucro, de, ate)
   ra.lucro = somaLucros(evLucro, antDe, antAte)
@@ -188,7 +187,7 @@ export default function Analise({ db }) {
       </div>
 
       {aba === 'emprestimos' && comEmprestimos ? (
-        <AnaliseEmprestimos db={db} de={de} ate={ate} perdasE={perdasE} />
+        <AnaliseEmprestimos db={db} de={de} ate={ate} />
       ) : (<>
       {/* ---------- Indicadores ---------- */}
       <div className="cards indicadores">
@@ -273,16 +272,18 @@ function resultadoEmprestimo(e) {
   return Math.round((voltou - (+e.valor || 0)) * 100) / 100
 }
 
-function AnaliseEmprestimos({ db, de, ate, perdasE }) {
+function AnaliseEmprestimos({ db, de, ate }) {
   const todos = db.emprestimos || []
   const lista = todos.filter((e) => e.dia >= de && e.dia <= ate).sort((a, b) => b.data - a.data)
   const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
-  // juros combinados: no dia do empréstimo; multa/juros de atraso: no dia em que foram recebidos (de qualquer empréstimo)
-  const juros = lista.reduce((s, e) => s + (+e.total || 0) - (+e.valor || 0), 0)
-    + todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
-      .filter((r) => r.dia >= de && r.dia <= ate).reduce((b, r) => b + (+r.encargo || 0), 0), 0), 0)
-  // marcado "Não pagou" no período (de qualquer empréstimo): sai do lucro do mês em que foi marcado
-  const naoPago = somaPerdas(perdasE, de, ate)
+  // Lucro igual ao das vendas fiado: entra quando o cliente paga. Cada parcela recebida traz a parte dos juros
+  // proporcional ao que entrou (ex.: 1.000 com 300 de juros → de cada R$ 1.300 que voltam, R$ 300 são lucro);
+  // multa e juros de atraso entram inteiros. O que não foi pago não traz lucro.
+  const lucroEmp = todos.reduce((s, e) => {
+    const porReal = +e.total > 0 ? ((+e.total || 0) - (+e.valor || 0)) / +e.total : 0
+    return s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || []).filter((r) => r.dia >= de && r.dia <= ate)
+      .reduce((b, r) => b + (+r.valor || 0) * porReal + (+r.encargo || 0), 0), 0)
+  }, 0)
   // Pendências no fim do período: tudo o que foi emprestado até o fim do período e ainda não tinha voltado até essa data
   // (inclui o que foi marcado "Não pagou"). Passa de um mês para o outro e só diminui no mês em que o cliente paga.
   // Com multa e juros de atraso configurados, a parcela atrasada aumenta a pendência (calculado como estava no fim do período).
@@ -293,7 +294,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
     const falta = Math.max(0, (+p.valor || 0) - naData.recebimentos.reduce((b, r) => b + (+r.valor || 0), 0))
     return a + falta + encargoAtraso(naData, db.config?.atraso, fimPend).total
   }, 0), 0) * 100) / 100
-  const lucro = Math.round((juros - naoPago) * 100) / 100
+  const lucro = Math.round(lucroEmp * 100) / 100
   // dinheiro que voltou no período (de qualquer empréstimo), com multa/juros de atraso
   const recebido = todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
     .filter((r) => r.dia >= de && r.dia <= ate).reduce((b, r) => b + (+r.valor || 0) + (+r.encargo || 0), 0), 0), 0)
@@ -370,7 +371,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
           </div>
         </div>
       )}
-      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos − o que foi marcado "Não pagou" no período. Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.')}</small>
+      <small>{t('Lucro (juros) = a parte dos juros de cada parcela recebida no período, mais a multa e os juros de atraso recebidos (igual às vendas fiado). Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.')}</small>
     </>
   )
 }

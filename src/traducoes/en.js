@@ -1155,4 +1155,5 @@ export default {
   'Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos − o que foi marcado "Não pagou" no período. Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = interest on loans made in the period + late fees received − what was marked "Did not pay" in the period. Result = what came back − what was lent, when the loan closes.',
   'Sem prejuízo': 'No loss',
   'Faltou receber': 'Not received',
+  'Lucro (juros) = a parte dos juros de cada parcela recebida no período, mais a multa e os juros de atraso recebidos (igual às vendas fiado). Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = the interest share of each installment received in the period, plus late fees received (same as credit sales). Result = what came back − what was lent, when the loan closes.',
 }
