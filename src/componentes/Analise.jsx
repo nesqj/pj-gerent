@@ -204,7 +204,7 @@ export default function Analise({ db }) {
         <div className="card">
           <small>{t('Lucro líquido')}</small>
           <b className={resultado < 0 ? 'bad' : 'ok'}>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
-          <small className="var">{t('lucro bruto − {valor} de despesas', { valor: brl(outras) })}</small>
+          <small className="var">{t('lucro − despesas extras')}</small>
         </div>
       </div>
 
