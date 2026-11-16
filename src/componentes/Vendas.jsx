@@ -229,6 +229,8 @@ export default function Vendas({ db, executar, irPara }) {
 
   // Vendas do dia escolhido
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
+  const obsEntrada = new Map((db.entradas || []).filter((e) => e.obs).map((e) => [e.id, e.obs]))
+  const obsDaVenda = (v) => [...new Set(v.itens.map((i) => i.entradaId && obsEntrada.get(i.entradaId)).filter(Boolean))].join(' · ')
   const temJurosDia = vendasDia.some((v) => +v.fiado?.juros > 0) // coluna Juros só aparece se alguma venda do dia teve
   const totalDia = vendasDia.reduce((s, v) => s + faturamentoVenda(v), 0)
   // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
@@ -445,7 +447,8 @@ export default function Vendas({ db, executar, irPara }) {
               return (
               <tr key={v.id} className={res.lucro < 0 ? 'linha-prejuizo' : ''}>
                 <td>{hora(v.data)}</td>
-                <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}</td>
+                <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}
+                  {obsDaVenda(v) && <small className="sub-linha">{obsDaVenda(v)}</small>}</td>
                 <td className="quebra">{textoPagamento(v)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}</small>}</td>
                 <td className="n">{temCustoV ? brl(v.itens.reduce((c, i) => c + (+i.qtd || 0) * (+i.custo || 0), 0)) : '-'}</td>
                 <td className="n">
