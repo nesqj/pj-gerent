@@ -631,7 +631,9 @@ i.q.fat { background: var(--pri) } i.q.luc { background: var(--cor-lucro) } i.q.
 .grafico.diario .barra-vendas { fill: var(--cor-vendas); opacity: .45 }
 .grafico.diario .barra-vendas.ativa { opacity: .85 }
 .grafico.diario i.l, .dica-diario i.l { display: inline-block; width: 14px; height: 0; border-top: 2.5px solid; margin-right: 6px; vertical-align: 3px }
-i.l.fat { border-color: var(--pri) } i.l.luc { border-color: var(--cor-lucro) } i.l.preju { border-color: var(--bad) }
+.grafico.diario i.l.fat, .dica-diario i.l.fat { border-color: var(--pri) }
+.grafico.diario i.l.luc, .dica-diario i.l.luc { border-color: var(--cor-lucro) }
+.grafico.diario i.l.preju, .dica-diario i.l.preju { border-color: var(--bad) }
 i.q.ven { background: var(--cor-vendas); opacity: .7 }
 
 

@@ -41,7 +41,8 @@ export function GraficoLinhas({ serie, rotuloDica, nomes: nomesDados }) {
   const nomes = { ...NOMES_PADRAO, ...nomesDados }
   const [ref, L] = useLargura()
   const [hover, setHover] = useState(null)
-  const A = 320, esq = 56, dir = 40, topo = 16, base = 30, vao = 14
+  // margem da esquerda cabe o nome da faixa de baixo ("vendas", "empréstimos"...)
+  const A = 320, esq = Math.max(56, Math.round(t(nomes.eixo).length * 6.5) + 16), dir = 40, topo = 16, base = 30, vao = 14
   const larg = L - esq - dir
   const altTotal = A - topo - base
   const altLinhas = Math.round((altTotal - vao) * 0.74)
