@@ -77,6 +77,17 @@ export function Calculadora({ onFechar }) {
     try { localStorage.setItem(CHAVE, JSON.stringify(novas)) } catch { /* sem acesso */ }
   }
 
+  // ao mudar as parcelas, a % digitada continua (se aquela parcela ainda não tiver uma % própria)
+  function mudarParcelas(n) {
+    const atual = taxas.credito[parcelas - 1]
+    if (String(atual).trim() && !String(taxas.credito[n - 1]).trim()) {
+      const novas = { ...taxas, credito: taxas.credito.map((x, i) => (i === n - 1 ? atual : x)) }
+      setTaxas(novas)
+      try { localStorage.setItem(CHAVE, JSON.stringify(novas)) } catch { /* sem acesso */ }
+    }
+    setParcelas(n)
+  }
+
   const v = lerValor(valor) || 0
   // repassar a taxa: o cliente paga a mais para você receber o valor cheio
   const clientePaga = v > 0 ? r2(repassar ? v / (1 - taxa / 100) : v) : 0
@@ -108,9 +119,9 @@ export function Calculadora({ onFechar }) {
           <div className="calc-linha">
             <span>{t('Parcelas')}</span>
             <div className="calc-passo">
-              <button className="in-icone" disabled={parcelas <= 1} onClick={() => setParcelas(parcelas - 1)} aria-label={t('Menos parcelas')}>‹</button>
+              <button className="in-icone" disabled={parcelas <= 1} onClick={() => mudarParcelas(parcelas - 1)} aria-label={t('Menos parcelas')}>‹</button>
               <span>{t('{n}x', { n: parcelas })}</span>
-              <button className="in-icone" disabled={parcelas >= 12} onClick={() => setParcelas(parcelas + 1)} aria-label={t('Mais parcelas')}>›</button>
+              <button className="in-icone" disabled={parcelas >= 12} onClick={() => mudarParcelas(parcelas + 1)} aria-label={t('Mais parcelas')}>›</button>
             </div>
           </div>
         )}
