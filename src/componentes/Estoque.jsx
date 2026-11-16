@@ -20,6 +20,10 @@ export default function Estoque({ db, executar }) {
   const lotes = calcularLotes(db)
   const existente = estoque.get(norm(form.produto)) // produto que já está no estoque
   const vendidosDe = (en) => lotes.get(en.id)?.vendidos ?? 0 // unidades desta entrada que já foram vendidas
+  const vendasDoLote = (en) => (db.vendas || []).filter((v) => (v.itens || []).some((i) => i.entradaId === en.id)).map((v) => v.id)
+  // escondida: foi tirada da lista, continua zerada e não teve venda nova depois disso
+  // (excluir a venda faz voltar o saldo; vender de novo é uma venda nova: nos dois casos ela volta a aparecer)
+  const escondida = (en) => Array.isArray(en.arquivada) && saldoDe(en) <= 0 && vendasDoLote(en).every((id) => en.arquivada.includes(id))
   const saldoDe = (en) => Math.max(0, lotes.get(en.id)?.saldo ?? 0)
 
   async function registrar(e) {
@@ -59,7 +63,7 @@ export default function Estoque({ db, executar }) {
     // já acabou (tudo vendido): só some da lista. A entrada fica guardada porque as vendas apontam para ela.
     if (resta <= 0) {
       if (!(await confirmar(t('Tirar "{produto}" da lista?', { produto: en.produto }) + '\n' + t('As vendas já feitas continuam registradas.')))) return
-      const ok = await executar((A) => A.salvarEntrada({ ...en, arquivada: true }), t('Produto tirado da lista.'))
+      const ok = await executar((A) => A.salvarEntrada({ ...en, arquivada: vendasDoLote(en) }), t('Produto tirado da lista.'))
       if (ok && editando?.id === en.id) cancelarEdicao()
       return
     }
@@ -73,7 +77,7 @@ export default function Estoque({ db, executar }) {
   const todos = [...estoque.values()]
   const b = norm(busca)
   const linhas = [...(db.entradas || [])]
-    .filter((en) => !en.arquivada || saldoDe(en) > 0) // tirada da lista só enquanto está zerada (se a venda for excluída, volta)
+    .filter((en) => !escondida(en))
     .filter((en) => !b || norm(en.produto).includes(b) || norm(en.obs).includes(b))
     .filter((en) => (soFalta ? saldoDe(en) <= 0 : saldoDe(en) > 0))
     .sort((a, c) => (ordem === 'recentes' ? c.data - a.data : a.produto.localeCompare(c.produto) || a.data - c.data))
@@ -81,7 +85,7 @@ export default function Estoque({ db, executar }) {
   const unidades = todos.reduce((s, p) => s + Math.max(0, p.saldo), 0)
   const valorCusto = todos.reduce((s, p) => s + (p.valor || 0), 0) // soma exata dos lotes (cada um com o próprio custo)
   // sem estoque: só os que ainda aparecem na lista (os tirados da lista não contam)
-  const naLista = new Set((db.entradas || []).filter((en) => !en.arquivada).map((en) => norm(en.produto)))
+  const naLista = new Set((db.entradas || []).filter((en) => !escondida(en)).map((en) => norm(en.produto)))
   const semEstoque = todos.filter((p) => p.saldo <= 0 && naLista.has(p.k)).length
 
 
