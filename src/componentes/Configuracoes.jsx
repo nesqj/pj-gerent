@@ -6,6 +6,7 @@ import { ListaAuditoria } from './Plataforma.jsx'
 import * as Org from '../organizacoes.js'
 import { IconeBackup, IconeCelular, IconeCobranca, IconeDireita, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
 import { Avatar } from './MinhaConta.jsx'
+import EditarFoto from './EditarFoto.jsx'
 import { avisar, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
 import { IDIOMAS, t } from '../i18n.js'
 import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP as NOME_PADRAO } from '../marca.js'
@@ -109,13 +110,14 @@ function Perfil({ db, executar, usuario }) {
   const atual = { nome: '', idioma: 'pt-BR', tema: 'escuro', fuso: FUSO_PADRAO, avatar: '', ...db.perfil }
   const [form, setForm] = useState(atual)
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
-  const mudou = JSON.stringify(form) !== JSON.stringify(atual)
-  const avatarOk = !form.avatar || /^https:\/\/\S+$/i.test(form.avatar.trim())
+  const semFoto = ({ avatar, ...resto }) => resto
+  const mudou = JSON.stringify(semFoto(form)) !== JSON.stringify(semFoto(atual))
+  const [editandoFoto, setEditandoFoto] = useState(false)
 
   async function salvar(e) {
     e.preventDefault()
-    if (!avatarOk) return
-    executar((A) => A.salvarPerfil({ ...form, nome: form.nome.trim(), avatar: form.avatar.trim() }), t('Perfil salvo.'))
+    // a foto é salva pela telinha "Editar imagem"; aqui mantém a que já está no perfil
+    executar((A) => A.salvarPerfil({ ...form, nome: form.nome.trim(), avatar: db.perfil?.avatar || '' }), t('Perfil salvo.'))
   }
 
   return (
@@ -134,14 +136,12 @@ function Perfil({ db, executar, usuario }) {
       <label className="largo">{t('Fuso horário')}
         <select {...campo('fuso')}>{FUSOS.map((f) => <option key={f}>{f}</option>)}</select>
       </label>
-      <label className="largo">{t('Avatar URL')}
-        <div className="avatar-linha">
-          {form.avatar && avatarOk && <img className="avatar" src={form.avatar} alt="" />}
-          <input placeholder="https://..." {...campo('avatar')} />
-        </div>
-        <small className={avatarOk ? '' : 'bad'}>{avatarOk ? t('Upload de arquivo — em breve. Cole uma URL pública (https).') : t('Use um endereço que comece com https://')}</small>
-      </label>
-      <div className="acoes-form"><button type="submit" disabled={!mudou || !avatarOk}>{t('Salvar')}</button></div>
+      <div className="largo foto-config">
+        <Avatar perfil={db.perfil} nome={form.nome || usuario?.email} />
+        <button type="button" className="sec" onClick={() => setEditandoFoto(true)}>{t('Trocar foto')}</button>
+      </div>
+      {editandoFoto && <EditarFoto perfil={db.perfil} nome={form.nome || usuario?.email} executar={executar} onFechar={() => setEditandoFoto(false)} />}
+      <div className="acoes-form"><button type="submit" disabled={!mudou}>{t('Salvar')}</button></div>
     </form>
   )
 }

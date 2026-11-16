@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import EditarFoto from './EditarFoto.jsx'
 import { t } from '../i18n.js'
 import { brl, faturamentoVenda, hoje } from '../utils.js'
 import {
@@ -37,15 +38,15 @@ export function Avatar({ perfil, nome, grande }) {
     : <span className={'avatar avatar-letra' + (grande ? ' avatar-grande' : '')}>{(nome || '?').trim()[0]?.toUpperCase()}</span>
 }
 
-export default function MinhaConta({ db, perfil, nome, email, loja, lojas, adminPlataforma, podeVer, irPara, onFechar, onTrocarLoja, onAdmin, onSair }) {
+export default function MinhaConta({ db, perfil, nome, email, loja, lojas, adminPlataforma, podeVer, irPara, executar, onFechar, onTrocarLoja, onAdmin, onSair }) {
   const [lojasAbertas, setLojasAbertas] = useState(true)
+  const [editandoFoto, setEditandoFoto] = useState(false)
   const mes = hoje().slice(0, 7)
   const vendasMes = (db?.vendas || []).filter((v) => String(v.dia).startsWith(mes))
   const faturamentoMes = vendasMes.reduce((s, v) => s + faturamentoVenda(v), 0)
   const nivel = nivelDeVenda(faturamentoMes)
   const lista = loja && !lojas.some((l) => l.id === loja.id) ? [...lojas, loja] : lojas
   const ir = (id) => { onFechar(); irPara(id) }
-  const abrirPerfil = () => { try { sessionStorage.setItem('abrir-config', 'perfil') } catch { /* sem acesso */ } ir('config') }
 
   const atalhos = [
     { id: 'estoque', nome: 'Estoque', icone: IconeCaixaProduto },
@@ -64,7 +65,7 @@ export default function MinhaConta({ db, perfil, nome, email, loja, lojas, admin
         </div>
 
         <div className="mc-perfil">
-          <button className="mc-foto" onClick={abrirPerfil} aria-label={t('Editar perfil')}>
+          <button className="mc-foto" onClick={() => setEditandoFoto(true)} aria-label={t('Editar imagem')}>
             <Avatar perfil={perfil} nome={nome} grande />
             <span className="mc-lapis"><IconeLapis /></span>
           </button>
@@ -112,6 +113,8 @@ export default function MinhaConta({ db, perfil, nome, email, loja, lojas, admin
             )}
           </>
         )}
+
+        {editandoFoto && <EditarFoto perfil={perfil} nome={nome} executar={executar} onFechar={() => setEditandoFoto(false)} />}
 
         <div className="mc-menu">
           {atalhos.map((a) => (

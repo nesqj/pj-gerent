@@ -1025,3 +1025,20 @@ section .notif-titulo, .notif-titulo { display: block; font-size: 30px; margin: 
 .termos-secao h3 { margin-bottom: 6px }
 .termos-secao p { margin: 0; color: var(--mut); line-height: 1.6 }
 
+/* ---------- Editar imagem (foto de perfil) ---------- */
+.foto-fundo { z-index: 70 }
+.foto-folha {
+  width: 100%; max-width: 560px; background: var(--bg); border-radius: 22px 22px 0 0; padding: 14px 24px calc(28px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: center; text-align: center; animation: notif-sobe .22s ease-out
+}
+@media (min-width: 768px) { .foto-folha { border-radius: 22px } }
+.foto-folha .notif-topo { align-self: stretch }
+.foto-previa .avatar { width: 72px; height: 72px; font-size: 28px }
+.foto-titulo { justify-content: center; font-size: 22px; margin: 14px 0 6px }
+.foto-sub { color: var(--mut); margin: 0 0 22px }
+.foto-botao { width: 100%; border-radius: 999px; padding: 14px; font-size: 16px; font-weight: 600; margin-bottom: 10px }
+.foto-botao.claro { background: var(--card); color: var(--txt); border: 1px solid var(--bd) }
+.foto-remover { margin-top: 6px; color: var(--bad) }
+.foto-config { display: flex; align-items: center; gap: 14px }
+.foto-config .avatar { width: 56px; height: 56px; font-size: 22px }
+

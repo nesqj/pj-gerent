@@ -524,7 +524,7 @@ export default function App() {
           {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} perfil={perfil} nome={nomeUsuario} />}
           {!noAdmin && aba === 'termos' && <Termos />}
           {!noAdmin && contaAberta && <MinhaConta db={db} perfil={perfil} nome={nomeUsuario} email={sessao?.usuario?.email} loja={loja} lojas={lojas}
-            adminPlataforma={adminPlataforma} podeVer={(id) => podeVer(papel, id)} irPara={irPara}
+            adminPlataforma={adminPlataforma} podeVer={(id) => podeVer(papel, id)} irPara={irPara} executar={executar}
             onFechar={() => setContaAberta(false)} onTrocarLoja={(o) => abrirLoja(o)} onAdmin={() => irParaAdmin('orgs')} onSair={sairDoSistema} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
