@@ -8,18 +8,25 @@ import { brl, num, faturamentoVenda, calcularEstoque, calcularLotes, classeEstoq
 import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
+import { Catalogo, MenuVender } from './VenderMenu.jsx'
+import { IconeVoltar } from '../icones.jsx'
 
 const itemNovo = { k: '', qtd: '1', preco: '', forn: '' } // preco: digitado só para produtos do estoque; forn: fornecedor escolhido
 
-// o botão tocado (Vender ou Empréstimo) já diz qual tela abrir
+// qual tela abrir: o menu "Vender" (padrão), direto o empréstimo (botão Empréstimo do Início)
+// ou direto as vendas de um dia (link de uma data em Cobranças ou no Extrato)
 const modoPedido = () => {
-  try { const m = sessionStorage.getItem('registro-modo'); sessionStorage.removeItem('registro-modo'); if (m === 'emprestimo' && podeFazer('emprestimo.salvo')) return m } catch { /* sem acesso */ }
-  return 'venda'
+  try {
+    const m = sessionStorage.getItem('registro-modo'); sessionStorage.removeItem('registro-modo')
+    if (m === 'emprestimo' && podeFazer('emprestimo.salvo')) return m
+    if (m === 'venda' || sessionStorage.getItem('vendas-dia')) return 'venda'
+  } catch { /* sem acesso */ }
+  return 'menu'
 }
 
 export default function Vendas({ db, executar, irPara, visita }) {
-  const [modo, setModo] = useState(modoPedido) // 'venda' ou 'emprestimo'
-  // tocou de novo em Vender/Empréstimo estando nesta tela: troca para o que foi pedido (o carrinho da venda continua)
+  const [modo, setModo] = useState(modoPedido) // 'menu', 'venda', 'emprestimo' ou 'catalogo'
+  // tocou de novo em Vender estando nesta tela: volta para o menu (o carrinho da venda continua guardado)
   const primeira = useRef(true)
   useEffect(() => { if (primeira.current) { primeira.current = false; return } setModo(modoPedido()) }, [visita])
   const podeEmprestar = podeFazer('emprestimo.salvo')
@@ -271,9 +278,13 @@ export default function Vendas({ db, executar, irPara, visita }) {
   const porPagamento = [...PAGAMENTOS, TROCA, 'Fiado'].map((p) => ({ p, total: somaForma(p) })).filter((x) => !['Fiado', TROCA].includes(x.p) || x.total > 0) // Fiado: o que ficou para depois nas vendas do dia
   const textoPagamento = (v) => { const l = pagamentosDaVenda(v); return l.length > 1 ? l.map((x) => `${t(x.forma)} ${brl(x.valor)}`).join(' + ') : t(l[0]?.forma || v.pagamento) }
 
+  if (modo === 'menu') return <MenuVender podeVender podeEmprestar={podeEmprestar} abrir={setModo} />
+  const voltar = <button className="in-icone" onClick={() => setModo('menu')} aria-label={t('Voltar')}><IconeVoltar /></button>
+  if (modo === 'catalogo') return <section><div className="vd-topo com-voltar">{voltar}<h2>{t('Catálogo')}</h2></div><Catalogo /></section>
+
   return (
     <section>
-      <h2>{modo === 'emprestimo' && podeEmprestar ? t('Novo empréstimo') : t('Nova venda')}</h2>
+      <div className="vd-topo com-voltar">{voltar}<h2>{modo === 'emprestimo' && podeEmprestar ? t('Novo empréstimo') : t('Nova venda')}</h2></div>
 
       {modo === 'emprestimo' && podeEmprestar ? (
         <>

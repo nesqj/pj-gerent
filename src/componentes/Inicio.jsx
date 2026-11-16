@@ -63,7 +63,7 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
 
   // botões redondos de ação rápida
   const acoes = [
-    { nome: 'Vender', icone: IconeCarrinho, acao: () => abrirRegistro('venda'), destaque: true },
+    { nome: 'Vender', icone: IconeCarrinho, acao: () => irPara('vendas'), destaque: true },
     emprestimos && { nome: 'Empréstimo', icone: IconeCobranca, acao: () => abrirRegistro('emprestimo') },
     { nome: 'Receber', icone: IconeFiado, acao: () => abrirCobrancas('abertos') },
     completo && { nome: 'Retirar', icone: IconeCaixa, acao: () => irPara('caixa') },

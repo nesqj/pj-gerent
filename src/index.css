@@ -1105,3 +1105,53 @@ i.q.fat { background: var(--bd-forte) } i.q.luc { background: var(--verde) } i.q
 .cb-item .acoes-fiado { width: 100%; justify-content: flex-start !important }
 .cb-item .acoes-fiado .inline-form { flex-wrap: wrap; width: 100% }
 .cb-item .inline-form button.sec { flex: 0 0 auto; width: auto }
+
+/* ---------- Aba Vender: menu e calculadora ---------- */
+.vd-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px }
+.vd-topo h2 { margin: 0 }
+.vd-topo.com-voltar { justify-content: flex-start; margin-left: -10px }
+.vd-lista { display: flex; flex-direction: column; gap: 10px }
+.vd-item { display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; background: var(--card); color: var(--txt); border: 1px solid var(--bd); border-radius: 18px; padding: 16px; cursor: pointer; min-height: 0 !important; font-weight: 400 }
+.vd-item:hover { background: var(--hover) }
+.vd-icone { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; background: var(--campo); display: grid; place-items: center; color: var(--txt) }
+.vd-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px }
+.vd-txt b { font-size: 16px }
+.vd-txt small { color: var(--mut); font-size: 13px }
+.vd-item > svg:last-child { color: var(--mut); flex: 0 0 auto }
+.vd-embreve { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 34px 18px }
+.vd-embreve b { color: var(--txt); font-size: 17px }
+.calc-folha { max-height: 92vh; overflow-y: auto }
+.calc-topo { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; text-align: center; margin-bottom: 12px }
+.calc-topo b { font-size: 17px }
+.calc-abas { display: flex; width: 100% }
+.calc-abas button { flex: 1 }
+.calc-valor { display: flex; flex-direction: column; gap: 8px; font-weight: 600; margin-bottom: 14px }
+.calc-valor input { font-size: 22px; font-weight: 600; padding: 14px 16px; border-radius: 14px }
+.calc-resultado { background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 6px 16px; margin-bottom: 12px }
+.calc-resultado > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0 }
+.calc-resultado > div + div { border-top: 1px solid var(--bd) }
+.calc-resultado > div.calc-parc { border-top: none; padding-top: 0; margin-top: -6px }
+.calc-resultado span { color: var(--mut) }
+.calc-resultado small { color: var(--mut) }
+.calc-resultado b { font-size: 17px }
+.calc-recebe b { color: var(--verde); font-size: 20px }
+.calc-linha { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--bd) }
+.calc-linha > span { display: flex; flex-direction: column; gap: 2px; font-weight: 600 }
+.calc-linha > span small { color: var(--mut); font-weight: 400; font-size: 12px }
+.calc-passo { display: flex; align-items: center; gap: 4px }
+.calc-passo > span { display: flex; flex-direction: column; align-items: center; min-width: 92px; font-size: 14px }
+.calc-passo > span small { color: var(--mut); font-size: 12px }
+.calc-passo .in-icone { width: 38px; height: 38px; font-size: 22px; background: var(--campo) }
+.calc-passo .in-icone:disabled { opacity: .35; cursor: default }
+.calc-chave { cursor: pointer }
+.interruptor { appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 46px; height: 28px; border-radius: 999px; background: var(--campo); border: 1px solid var(--bd); position: relative; cursor: pointer; transition: background .15s; margin: 0; padding: 0 }
+.interruptor::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--txt); transition: transform .15s }
+.interruptor:checked { background: var(--verde); border-color: var(--verde) }
+.interruptor:checked::after { transform: translateX(18px); background: #fff }
+.calc-ajustar { display: block; margin: 14px auto 0 }
+.calc-taxas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.calc-taxas label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--mut) }
+.calc-taxas .calc-ajuda { grid-column: 1 / -1; color: var(--mut) }
+.calc-botoes { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px }
+
+label.calc-linha { flex-direction: row; align-items: center; text-align: left; color: var(--txt); font-size: 15px }
