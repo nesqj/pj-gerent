@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, somaPrejuizo, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
+import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -292,10 +292,8 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
   const juros = lista.reduce((s, e) => s + (+e.total || 0) - (+e.valor || 0), 0)
     + todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
       .filter((r) => r.dia >= de && r.dia <= ate).reduce((b, r) => b + (+r.encargo || 0), 0), 0), 0)
-  // marcado "Não pagou" no período (de qualquer empréstimo): os juros que não vieram saem do lucro;
-  // prejuízo é só o que não cobriu o valor emprestado
+  // marcado "Não pagou" no período (de qualquer empréstimo): sai do lucro do mês em que foi marcado
   const naoPago = somaPerdas(perdasE, de, ate)
-  const prejuizo = somaPrejuizo(perdasE, de, ate)
   // Pendências no fim do período: tudo o que foi emprestado até o fim do período e ainda não tinha voltado até essa data
   // (inclui o que foi marcado "Não pagou"). Passa de um mês para o outro e só diminui no mês em que o cliente paga.
   // Com multa e juros de atraso configurados, a parcela atrasada aumenta a pendência (calculado como estava no fim do período).
@@ -306,7 +304,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
     const falta = Math.max(0, (+p.valor || 0) - naData.recebimentos.reduce((b, r) => b + (+r.valor || 0), 0))
     return a + falta + encargoAtraso(naData, db.config?.atraso, fimPend).total
   }, 0), 0) * 100) / 100
-  const lucro = Math.round((juros - (naoPago - prejuizo)) * 100) / 100
+  const lucro = Math.round((juros - naoPago) * 100) / 100
   // dinheiro que voltou no período (de qualquer empréstimo), com multa/juros de atraso
   const recebido = todos.reduce((s, e) => s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || [])
     .filter((r) => r.dia >= de && r.dia <= ate).reduce((b, r) => b + (+r.valor || 0) + (+r.encargo || 0), 0), 0), 0)
@@ -336,7 +334,6 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
           <small>{t('Lucro (juros)')}</small>
           <b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b>
         </div>
-        <div className="card"><small>{t('Prejuízo')}</small><b className={prejuizo > 0 ? 'bad' : ''}>{prejuizo > 0 ? '− ' + brl(prejuizo) : brl(0)}</b></div>
         <div className="card"><small>{t('Recebido no período')}</small><b>{brl(recebido)}</b></div>
         <div className="card"><small>{t('Pendências')}</small><b>{brl(pendencias)}</b></div>
       </div>
@@ -384,7 +381,7 @@ function AnaliseEmprestimos({ db, de, ate, perdasE }) {
           </div>
         </div>
       )}
-      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos − os juros que não vieram ("Não pagou"). Prejuízo = só o que faltou para voltar o valor emprestado. Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.')}</small>
+      <small>{t('Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos − o que foi marcado "Não pagou" no período. Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.')}</small>
     </>
   )
 }
