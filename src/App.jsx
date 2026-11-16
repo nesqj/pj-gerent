@@ -336,6 +336,7 @@ export default function App() {
   const itemAtual = [...grupos.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === atual)
   const titulo = itemAtual?.nome
   const IconeAba = itemAtual?.icone
+  const grupoAtual = grupos.find((g) => g.itens.some((i) => i.id === atual))?.nome // para o caminho "Operações › Início"
   const temSeletorLoja = lojas.length > 1 || adminPlataforma // o seletor de loja só aparece para quem pode trocar
   const tituloT = titulo && t(titulo)
   const perfil = db?.perfil || {}
@@ -487,7 +488,7 @@ export default function App() {
             onTrocar={(o) => abrirLoja(o)} onGerenciar={() => irParaAdmin('orgs')} />
           {/* celular, sem seletor de loja: o ícone da aba atual ao lado do nome */}
           {!temSeletorLoja && IconeAba && <span className="icone-aba so-celular"><IconeAba /></span>}
-          <h1>{tituloT}</h1>
+          <h1>{grupoAtual && <span className="caminho so-desktop">{t(grupoAtual)}<span className="caminho-sep">›</span></span>}{tituloT}</h1>
           {(nomeUsuario || perfil.avatar) && (
             <button className="usuario" onClick={() => (db ? (setModo('loja'), irPara('config')) : null)} title={t('Configurações')}>
               {perfil.avatar
