@@ -1115,7 +1115,7 @@ export default {
   'Ex: conta de luz, aluguel, insumos...': 'E.g.: power bill, rent, supplies...',
   'Ex: pró-labore, uso pessoal...': 'E.g.: owner\'s pay, personal use...',
   'Outras despesas': 'Other expenses',
-  'O custo serve só para calcular o lucro; o material você lança como despesa quando comprar.': 'The cost is only used to calculate profit; record materials as an expense when you buy them.',
+  'O custo sai do caixa na hora da venda.': 'The cost leaves the cash at the time of sale.',
   'Mudar o custo': 'Change the cost',
   'lucro − outras despesas': 'profit − other expenses',
   'anterior: {valor}': 'previous: {valor}',

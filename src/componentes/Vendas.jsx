@@ -146,7 +146,7 @@ export default function Vendas({ db, executar, irPara }) {
     const custo = custoAvulso(avulso)
     if (String(avulso.custo).trim() === '' || !(custo >= 0)) return aviso.alerta(t('Informe o custo (0 se não tiver).'))
     setCarrinho([...carrinho, { produto: nome, marca: '', qtd, preco, custo, origem: 'avulso', tipo: avulso.tipo,
-      ...(avulso.modoCusto === 'pct' ? { custoPct: lerValor(avulso.custo) } : {}), foraDoCaixa: true }])
+      ...(avulso.modoCusto === 'pct' ? { custoPct: lerValor(avulso.custo) } : {}) }]) // o custo sai do caixa na venda
     try { localStorage.setItem('avulso-custo', JSON.stringify({ tipo: avulso.tipo, modoCusto: avulso.modoCusto, pct: avulso.modoCusto === 'pct' ? avulso.custo : undefined })) } catch { /* sem acesso */ }
     setAvulso(null)
   }
@@ -350,7 +350,7 @@ export default function Vendas({ db, executar, irPara }) {
         <p><small className={Number.isFinite(custoAvulso(avulso)) && lerValor(avulso.preco) - custoAvulso(avulso) < 0 ? 'bad' : ''}>
           {String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== '' && Number.isFinite(custoAvulso(avulso))
             ? (avulso.modoCusto === 'pct' ? t('Custo {valor}', { valor: brl(custoAvulso(avulso)) }) + ' · ' : '') + t('Lucro por unidade: {valor}', { valor: brl(lerValor(avulso.preco) - custoAvulso(avulso)) })
-            : t('Produto ou serviço sem cadastro.')}{' · '}{t('O custo serve só para calcular o lucro; o material você lança como despesa quando comprar.')}
+            : t('Produto ou serviço sem cadastro.')}{' · '}{t('O custo sai do caixa na hora da venda.')}
         </small></p>
       ) : <p>
         {selecionado?.origem === 'estoque'
