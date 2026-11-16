@@ -1173,4 +1173,8 @@ export default {
   'Só dá para registrar vendas de até {n} dias atrás.': 'Sales can only be recorded up to {n} days back.',
   '({n} parcelas)': '({n} installments)',
   'Parcelas reabertas.': 'Installments reopened.',
+  'O produto recebido na troca ({produto}) já foi vendido.': 'The product received as trade-in ({produto}) has already been sold.',
+  'Para mudar esta venda, exclua antes a venda dele.': 'To change this sale, first delete its sale.',
+  'Editando a venda de {data} às {hora}. Mude o que precisar e clique em "Salvar alterações".': 'Editing the sale of {data} at {hora}. Change what you need and click "Save changes".',
+  'Venda atualizada.': 'Sale updated.',
 }

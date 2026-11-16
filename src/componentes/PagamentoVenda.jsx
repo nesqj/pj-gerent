@@ -36,6 +36,24 @@ export function calcularFiado(restante, n, jurosPct, intervalo) {
   return { total, juros: r2(total - restante), valores }
 }
 
+// Pagamento de uma venda já salva → estado do formulário (para editar)
+export function pagamentoDaVenda(v, clientes) {
+  const p = novoPagamento()
+  if (v.fiado) {
+    const ps = v.fiado.parcelas || []
+    const dias = ps.length > 1 ? Math.round((new Date(ps[1].vencimento) - new Date(ps[0].vencimento)) / 86400000) : 0
+    const intervalo = ps.length > 1 && ps[1].vencimento === somarMeses(ps[0].vencimento, 1) ? 'mensal' : dias === 30 ? '30' : 'mensal'
+    p.fiado = { clienteId: clientes.some((c) => c.id === v.fiado.clienteId) ? v.fiado.clienteId : '', nome: v.fiado.cliente || '', cpf: '', telefone: v.fiado.telefone || '',
+      parcelas: String(ps.length || 1), primeira: ps[0]?.vencimento || p.fiado.primeira, intervalo,
+      juros: v.fiado.jurosPct ? String(v.fiado.jurosPct).replace('.', ',') : '' }
+  }
+  const pagos = Array.isArray(v.pagamentos) ? v.pagamentos.filter((x) => +x.valor > 0) : null
+  if (!pagos) return { ...p, forma: v.pagamento || 'Dinheiro' }
+  if (v.fiado && !pagos.length) return { ...p, forma: 'Fiado' }
+  if (!v.fiado && pagos.length === 1 && pagos[0].forma !== TROCA) return { ...p, forma: pagos[0].forma }
+  return { ...p, dividir: true, linhas: pagos.map((x) => ({ forma: x.forma, valor: String(x.valor).replace('.', ','), ...(x.item ? { item: x.item } : {}) })) }
+}
+
 // Estado do formulário → { pagamento, pagamentos, fiado, novoCliente } ou { erro }
 export function montarPagamento(pg, total, clientes) {
   let pagamentos, restante
