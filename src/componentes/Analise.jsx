@@ -404,7 +404,6 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
           </table>
         </div>
       )}
-      <small>{t('Lucro (juros) = a parte dos juros de cada parcela recebida no período, mais a multa e os juros de atraso recebidos (igual às vendas fiado). Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.')}</small>
     </>
   )
 }

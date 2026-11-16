@@ -1153,7 +1153,6 @@ export default {
   '"Recebeu" entra no caixa na data do recebimento. "Não pagou" só vira prejuízo no que faltar para voltar o valor emprestado ou o custo dos produtos; o resto é lucro que você deixou de ganhar.': '"Received" goes into the cash on the payment date. "Did not pay" is only a loss for what is missing to get back the lent amount or the product cost; the rest is profit you did not earn.',
   'Sem prejuízo': 'No loss',
   'Faltou receber': 'Not received',
-  'Lucro (juros) = a parte dos juros de cada parcela recebida no período, mais a multa e os juros de atraso recebidos (igual às vendas fiado). Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = the interest share of each installment received in the period, plus late fees received (same as credit sales). Result = what came back − what was lent, when the loan closes.',
   'Emprestado e lucro por hora': 'Lent and profit by hour',
   'Emprestado e lucro por dia': 'Lent and profit by day',
   'Mais emprestado:': 'Most lent:',
