@@ -953,3 +953,5 @@ input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; backg
 .in-numero small { color: var(--mut); font-size: 13px }
 .in-numero b { font-size: 22px }
 .in-vendas-painel { border-radius: 18px }
+/* celular: a foto da direita some (a da esquerda abre Minha conta) */
+@media (max-width: 767px) { .barra-topo .usuario.so-desktop { display: none } }
