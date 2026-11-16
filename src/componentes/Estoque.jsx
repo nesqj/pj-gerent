@@ -56,6 +56,13 @@ export default function Estoque({ db, executar }) {
   async function excluirEntrada(en) {
     const vendidos = vendidosDe(en)
     const resta = saldoDe(en)
+    // já acabou (tudo vendido): só some da lista. A entrada fica guardada porque as vendas apontam para ela.
+    if (resta <= 0) {
+      if (!(await confirmar(t('Tirar "{produto}" da lista?', { produto: en.produto }) + '\n' + t('As vendas já feitas continuam registradas.')))) return
+      const ok = await executar((A) => A.salvarEntrada({ ...en, arquivada: true }), t('Produto tirado da lista.'))
+      if (ok && editando?.id === en.id) cancelarEdicao()
+      return
+    }
     if (!(await confirmar(t('Tirar {n} un. de "{produto}" do estoque?', { n: resta, produto: en.produto }) + (vendidos > 0 ? '\n' + t('As vendas já feitas continuam registradas.') : '')))) return
     const ok = vendidos > 0
       ? await executar((A) => A.salvarEntrada({ ...en, qtd: vendidos }), t('Produto tirado do estoque.'))
@@ -66,13 +73,16 @@ export default function Estoque({ db, executar }) {
   const todos = [...estoque.values()]
   const b = norm(busca)
   const linhas = [...(db.entradas || [])]
+    .filter((en) => !en.arquivada)
     .filter((en) => !b || norm(en.produto).includes(b) || norm(en.obs).includes(b))
     .filter((en) => (soFalta ? saldoDe(en) <= 0 : saldoDe(en) > 0))
     .sort((a, c) => (ordem === 'recentes' ? c.data - a.data : a.produto.localeCompare(c.produto) || a.data - c.data))
 
   const unidades = todos.reduce((s, p) => s + Math.max(0, p.saldo), 0)
   const valorCusto = todos.reduce((s, p) => s + (p.valor || 0), 0) // soma exata dos lotes (cada um com o próprio custo)
-  const semEstoque = todos.filter((p) => p.saldo <= 0).length
+  // sem estoque: só os que ainda aparecem na lista (os tirados da lista não contam)
+  const naLista = new Set((db.entradas || []).filter((en) => !en.arquivada).map((en) => norm(en.produto)))
+  const semEstoque = todos.filter((p) => p.saldo <= 0 && naLista.has(p.k)).length
 
 
   return (
@@ -149,7 +159,7 @@ export default function Estoque({ db, executar }) {
                   <td className="quebra">{en.obs || '-'}</td>
                   <td className="acoes">
                     <button className="edit" onClick={() => editarEntrada(en)}>{t('Editar')}</button>{' '}
-                    {resta > 0 && <button className="del" onClick={() => excluirEntrada(en)}>{t('Excluir')}</button>}
+                    <button className="del" onClick={() => excluirEntrada(en)}>{t('Excluir')}</button>
                   </td>
                 </tr>
               )

@@ -1170,4 +1170,6 @@ export default {
   'O produto recebido na troca ({produto}) sai do estoque.': 'The product received as trade-in ({produto}) leaves inventory.',
   'Troca: {item}': 'Trade-in: {item}',
   'Troca': 'Trade-in',
+  'Tirar "{produto}" da lista?': 'Remove "{produto}" from the list?',
+  'Produto tirado da lista.': 'Product removed from the list.',
 }
