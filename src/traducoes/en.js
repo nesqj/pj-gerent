@@ -1181,8 +1181,6 @@ export default {
   'Olá,': 'Hi,',
   'Mostrar valores': 'Show amounts',
   'Esconder valores': 'Hide amounts',
-  'Avisos': 'Alerts',
-  'Nada precisando de atenção agora.': 'Nothing needs attention right now.',
   '{valor} reservado para custos': '{valor} reserved for costs',
   '{n} parcela(s) atrasada(s)': '{n} overdue installment(s)',
   '{n} parcela(s) vence(m) hoje': '{n} installment(s) due today',
@@ -1198,4 +1196,9 @@ export default {
   'Administrador da loja': 'Store administrator',
   'Só leitura': 'Read only',
   'Caixa': 'Cash',
+  'Resolva os itens para deixar a loja em dia': 'Resolve the items to keep the store up to date',
+  'Tudo em dia. Nenhuma notificação agora.': 'All up to date. No notifications right now.',
+  '{valor} em atraso. Cobre os clientes.': '{valor} overdue. Collect from customers.',
+  '{valor} para receber hoje.': '{valor} to receive today.',
+  '{valor} reservado no caixa para pagar fornecedores e materiais.': '{valor} reserved in the cash to pay suppliers and materials.',
 }

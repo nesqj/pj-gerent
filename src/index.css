@@ -918,9 +918,6 @@ input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; backg
 .in-icone { position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: none; border: none; color: var(--txt); cursor: pointer; padding: 0 }
 .in-icone:hover { background: var(--hover) }
 .in-bolinha { position: absolute; top: 9px; right: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--bad); border: 2px solid var(--bg) }
-.in-avisos { display: flex; flex-direction: column; gap: 4px }
-.in-aviso { display: flex; align-items: center; gap: 10px; background: none; border: none; color: var(--txt); padding: 8px 4px; cursor: pointer; text-align: left; font-size: 14px }
-.in-aviso span:nth-child(2) { flex: 1 }
 .in-saldo { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; color: var(--txt); padding: 4px 0 14px; cursor: pointer; text-align: left }
 .in-saldo > span { display: flex; flex-direction: column; gap: 2px }
 .in-saldo small { color: var(--mut); font-size: 14px }
@@ -960,3 +957,26 @@ input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; backg
   body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); background: var(--bg); z-index: 40; pointer-events: none }
   .sem-topo-celular main { padding-top: calc(14px + env(safe-area-inset-top)) }
 }
+
+/* ---------- Notificações (sino do Início): folha por cima da tela ---------- */
+.notif-fundo { position: fixed; inset: 0; z-index: 60; background: var(--sobreposicao); display: flex; align-items: flex-end; justify-content: center }
+.notif-folha {
+  width: 100%; max-width: 560px; height: calc(100% - max(24px, env(safe-area-inset-top)) - 16px); overflow-y: auto;
+  background: var(--bg); border-radius: 22px 22px 0 0; padding: 14px 20px calc(24px + env(safe-area-inset-bottom));
+  animation: notif-sobe .22s ease-out
+}
+@keyframes notif-sobe { from { transform: translateY(40px); opacity: 0 } to { transform: none; opacity: 1 } }
+@media (min-width: 768px) { .notif-fundo { align-items: center } .notif-folha { height: auto; max-height: 80vh; border-radius: 22px } }
+.notif-topo { display: flex; justify-content: flex-end; margin-bottom: 6px }
+section .notif-titulo, .notif-titulo { display: block; font-size: 30px; margin: 4px 0 6px; letter-spacing: -.01em }
+.notif-sub { color: var(--mut); margin: 0 0 20px; font-size: 15px }
+.notif-item { display: flex; align-items: flex-start; gap: 14px; width: 100%; text-align: left; background: none; border: none; color: var(--txt); padding: 16px 14px; border-radius: 14px; cursor: pointer; margin-bottom: 6px }
+.notif-item.urgente { background: color-mix(in srgb, var(--bad) 14%, transparent) }
+.notif-item > svg { margin-top: 2px; color: var(--mut); flex: 0 0 auto }
+.notif-txt { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.notif-txt b { font-size: 16px; font-weight: 600 }
+.notif-txt small { color: var(--mut); font-size: 14px; line-height: 1.4 }
+.notif-alerta { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--bad); color: var(--bad); display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: 0 0 auto; margin-top: 1px }
+.notif-ponto { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); flex: 0 0 auto; margin: 7px 6px 0 7px }
+.notif-ponto.neutro { background: var(--mut) }
+

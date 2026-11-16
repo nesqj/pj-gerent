@@ -4,7 +4,7 @@ import { podeFazer } from '../armazenamento.js'
 import { custosDasVendas, reservadoCustos } from '../utils.js'
 import { brl, calcularEstoque, extratoCaixa, faturamentoVenda, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
 import {
-  IconeCaixa, IconeCaixaProduto, IconeCarrinho, IconeCobranca, IconeDireita, IconeFiado, IconeOlho, IconeOlhoFechado, IconeSino, IconeUsuarios,
+  IconeCaixa, IconeCaixaProduto, IconeCarrinho, IconeCobranca, IconeDireita, IconeFechar, IconeFiado, IconeOlho, IconeOlhoFechado, IconeSino, IconeUsuarios,
 } from '../icones.jsx'
 import { Avatar } from './MinhaConta.jsx'
 
@@ -55,10 +55,10 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
 
   // cartões de atenção (deslizam para o lado)
   const alertas = [
-    atrasadas.length > 0 && { classe: 'bad', titulo: t('{n} parcela(s) atrasada(s)', { n: atrasadas.length }), valor: R(soma(atrasadas)), botao: t('Ver cobranças'), acao: () => abrirCobrancas('atrasados') },
-    venceHoje.length > 0 && { classe: 'warn', titulo: t('{n} parcela(s) vence(m) hoje', { n: venceHoje.length }), valor: R(soma(venceHoje)), botao: t('Ver cobranças'), acao: () => abrirCobrancas('abertos') },
-    custosAPagar.length > 0 && { classe: 'neutro', titulo: t('Custos a pagar'), valor: R(r2(custosAPagar.reduce((s, c) => s + c.valor, 0))), botao: t('Pagar'), acao: () => irPara('caixa') },
-    acabando.length > 0 && { classe: 'warn', titulo: t('Acabando no estoque'), valor: acabando.slice(0, 3).map((p) => `${p.produto} (${p.saldo})`).join(', ') + (acabando.length > 3 ? '…' : ''), botao: t('Ver estoque'), acao: () => irPara('estoque') },
+    atrasadas.length > 0 && { classe: 'bad', titulo: t('{n} parcela(s) atrasada(s)', { n: atrasadas.length }), valor: R(soma(atrasadas)), desc: t('{valor} em atraso. Cobre os clientes.', { valor: R(soma(atrasadas)) }), botao: t('Ver cobranças'), acao: () => abrirCobrancas('atrasados') },
+    venceHoje.length > 0 && { classe: 'warn', titulo: t('{n} parcela(s) vence(m) hoje', { n: venceHoje.length }), valor: R(soma(venceHoje)), desc: t('{valor} para receber hoje.', { valor: R(soma(venceHoje)) }), botao: t('Ver cobranças'), acao: () => abrirCobrancas('abertos') },
+    custosAPagar.length > 0 && { classe: 'neutro', titulo: t('Custos a pagar'), valor: R(r2(custosAPagar.reduce((s, c) => s + c.valor, 0))), desc: t('{valor} reservado no caixa para pagar fornecedores e materiais.', { valor: R(r2(custosAPagar.reduce((s, c) => s + c.valor, 0))) }), botao: t('Pagar'), acao: () => irPara('caixa') },
+    acabando.length > 0 && { classe: 'warn', titulo: t('Acabando no estoque'), valor: acabando.slice(0, 3).map((p) => `${p.produto} (${p.saldo})`).join(', ') + (acabando.length > 3 ? '…' : ''), desc: acabando.slice(0, 3).map((p) => `${p.produto} (${p.saldo})`).join(', ') + (acabando.length > 3 ? '…' : ''), botao: t('Ver estoque'), acao: () => irPara('estoque') },
   ].filter(Boolean)
 
   // botões redondos de ação rápida
@@ -82,15 +82,24 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
         <button className="in-foto" onClick={() => irPara('perfil')} aria-label={t('Minha conta')}><Avatar perfil={perfil} nome={nome} /></button>
         <div className="in-ola"><small>{t('Olá,')}</small><b>{primeiroNome}</b></div>
         <button className="in-icone" onClick={alternarOculto} aria-label={oculto ? t('Mostrar valores') : t('Esconder valores')}>{oculto ? <IconeOlhoFechado /> : <IconeOlho />}</button>
-        <button className="in-icone" onClick={() => setVerAvisos(!verAvisos)} aria-label={t('Avisos')}>
+        <button className="in-icone" onClick={() => setVerAvisos(true)} aria-label={t('Notificações')}>
           <IconeSino />{alertas.length > 0 && <span className="in-bolinha" />}
         </button>
       </div>
       {verAvisos && (
-        <div className="painel in-avisos">
-          {alertas.length === 0 ? <small>{t('Nada precisando de atenção agora.')}</small> : alertas.map((a, i) => (
-            <button key={i} className="in-aviso" onClick={a.acao}><span className={'ponto-alerta ' + a.classe} /><span>{a.titulo} · {a.valor}</span><IconeDireita /></button>
-          ))}
+        <div className="notif-fundo" onClick={() => setVerAvisos(false)}>
+          <div className="notif-folha" role="dialog" aria-label={t('Notificações')} onClick={(e) => e.stopPropagation()}>
+            <div className="notif-topo"><button className="in-icone" onClick={() => setVerAvisos(false)} aria-label={t('Fechar')}><IconeFechar /></button></div>
+            <h2 className="notif-titulo">{t('Notificações')}</h2>
+            <p className="notif-sub">{alertas.length ? t('Resolva os itens para deixar a loja em dia') : t('Tudo em dia. Nenhuma notificação agora.')}</p>
+            {alertas.map((a, i) => (
+              <button key={i} className={'notif-item' + (a.classe === 'bad' ? ' urgente' : '')} onClick={() => { setVerAvisos(false); a.acao() }}>
+                {a.classe === 'bad' ? <span className="notif-alerta">!</span> : <span className={'notif-ponto ' + a.classe} />}
+                <span className="notif-txt"><b>{a.titulo}</b><small>{a.desc}</small></span>
+                <IconeDireita />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
