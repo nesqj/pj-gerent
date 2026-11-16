@@ -1156,4 +1156,10 @@ export default {
   'Sem prejuízo': 'No loss',
   'Faltou receber': 'Not received',
   'Lucro (juros) = a parte dos juros de cada parcela recebida no período, mais a multa e os juros de atraso recebidos (igual às vendas fiado). Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = the interest share of each installment received in the period, plus late fees received (same as credit sales). Result = what came back − what was lent, when the loan closes.',
+  'Emprestado e lucro por hora': 'Lent and profit by hour',
+  'Emprestado e lucro por dia': 'Lent and profit by day',
+  'Mais emprestado:': 'Most lent:',
+  'empréstimos': 'loans',
+  'Por forma de recebimento': 'By payment method received',
+  'Nada recebido no período.': 'Nothing received in the period.',
 }

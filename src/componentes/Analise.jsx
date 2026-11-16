@@ -187,7 +187,7 @@ export default function Analise({ db }) {
       </div>
 
       {aba === 'emprestimos' && comEmprestimos ? (
-        <AnaliseEmprestimos db={db} de={de} ate={ate} />
+        <AnaliseEmprestimos db={db} de={de} ate={ate} n={n} />
       ) : (<>
       {/* ---------- Indicadores ---------- */}
       <div className="cards indicadores">
@@ -272,18 +272,19 @@ function resultadoEmprestimo(e) {
   return Math.round((voltou - (+e.valor || 0)) * 100) / 100
 }
 
-function AnaliseEmprestimos({ db, de, ate }) {
+function AnaliseEmprestimos({ db, de, ate, n }) {
   const todos = db.emprestimos || []
   const lista = todos.filter((e) => e.dia >= de && e.dia <= ate).sort((a, b) => b.data - a.data)
   const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
   // Lucro igual ao das vendas fiado: entra quando o cliente paga. Cada parcela recebida traz a parte dos juros
   // proporcional ao que entrou (ex.: 1.000 com 300 de juros → de cada R$ 1.300 que voltam, R$ 300 são lucro);
   // multa e juros de atraso entram inteiros. O que não foi pago não traz lucro.
-  const lucroEmp = todos.reduce((s, e) => {
+  const recebimentos = todos.flatMap((e) => {
     const porReal = +e.total > 0 ? ((+e.total || 0) - (+e.valor || 0)) / +e.total : 0
-    return s + (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || []).filter((r) => r.dia >= de && r.dia <= ate)
-      .reduce((b, r) => b + (+r.valor || 0) * porReal + (+r.encargo || 0), 0), 0)
-  }, 0)
+    return (e.fiado?.parcelas || []).flatMap((p) => (p.recebimentos || []).filter((r) => r.dia >= de && r.dia <= ate)
+      .map((r) => ({ e, dia: r.dia, data: r.data || e.data, forma: r.forma || 'Dinheiro', valor: (+r.valor || 0) + (+r.encargo || 0), lucro: (+r.valor || 0) * porReal + (+r.encargo || 0) })))
+  })
+  const lucroEmp = recebimentos.reduce((s, x) => s + x.lucro, 0)
   // Pendências no fim do período: tudo o que foi emprestado até o fim do período e ainda não tinha voltado até essa data
   // (inclui o que foi marcado "Não pagou"). Passa de um mês para o outro e só diminui no mês em que o cliente paga.
   // Com multa e juros de atraso configurados, a parcela atrasada aumenta a pendência (calculado como estava no fim do período).
@@ -309,6 +310,33 @@ function AnaliseEmprestimos({ db, de, ate }) {
     mapa.set(k, c)
   }
   const porCliente = [...mapa.values()].sort((a, b) => b.resultado - a.resultado)
+
+  // gráfico: emprestado (linha azul), lucro recebido (linha verde) e nº de empréstimos (colunas), por hora ou por dia
+  let serie
+  if (n === 1) {
+    serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, valor: 0, lucro: 0, vendas: 0 }))
+    for (const e of lista) { const h = new Date(e.data).getHours(); serie[h].valor += +e.valor || 0; serie[h].vendas++ }
+    for (const x of recebimentos) serie[new Date(x.data).getHours()].lucro += x.lucro
+  } else {
+    const porDia = new Map()
+    for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, lucro: 0, vendas: 0 }) }
+    for (const e of lista) { const p = porDia.get(e.dia); if (p) { p.valor += +e.valor || 0; p.vendas++ } }
+    for (const x of recebimentos) { const p = porDia.get(x.dia); if (p) p.lucro += x.lucro }
+    serie = [...porDia.values()]
+  }
+  const maiorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
+  const temMovimento = lista.length > 0 || recebimentos.length > 0
+
+  // clientes do período: quanto pegou emprestado e quanto de lucro (juros) já voltou dele no período
+  const cli = new Map()
+  const doCliente = (e) => { const k = e.fiado?.clienteId || e.fiado?.cliente || '?'; if (!cli.has(k)) cli.set(k, { nome: e.fiado?.cliente || '-', n: 0, emprestado: 0, recebido: 0, lucro: 0 }); return cli.get(k) }
+  for (const e of lista) { const c = doCliente(e); c.n++; c.emprestado += +e.valor || 0 }
+  for (const x of recebimentos) { const c = doCliente(x.e); c.recebido += x.valor; c.lucro += x.lucro }
+  const clientes = [...cli.values()].sort((a, b) => b.lucro - a.lucro || b.emprestado - a.emprestado)
+
+  // por forma de recebimento (o que voltou no período)
+  const formas = [...PAGAMENTOS].map((f) => ({ nome: f, valor: recebimentos.filter((x) => x.forma === f).reduce((s, x) => s + x.valor, 0) }))
+    .filter((f) => f.valor > 0).sort((a, b) => b.valor - a.valor)
   const situacao = (e) => {
     const f = resumoFiado(e)
     if (!f) return { nome: 'Pago', classe: 'ok' }
@@ -327,6 +355,38 @@ function AnaliseEmprestimos({ db, de, ate }) {
         <div className="card"><small>{t('Recebido no período')}</small><b>{brl(recebido)}</b></div>
         <div className="card"><small>{t('Pendências')}</small><b>{brl(pendencias)}</b></div>
       </div>
+      {temMovimento && (
+        <>
+          <div className="painel">
+            <div className="painel-titulo">
+              <h3>{n === 1 ? t('Emprestado e lucro por hora') : t('Emprestado e lucro por dia')}</h3>
+              {maiorDia && maiorDia.valor > 0 && <small>{t('Mais emprestado:')} <b>{dataBR(maiorDia.dia)}</b> {t('com')} {brl(maiorDia.valor)}</small>}
+            </div>
+            <GraficoLinhas serie={serie} nomes={{ valor: 'Emprestado', lucro: 'Lucro', qtd: 'Empréstimos', eixo: 'empréstimos' }}
+              rotuloDica={(d) => (n === 1 ? t('{data} às {hora}', { data: dataBR(de), hora: d.rotulo }) : `${t(DIAS_SEMANA[deDia(d.dia).getDay()])}, ${dataBR(d.dia)}`)} />
+          </div>
+          <div className="duas-colunas">
+            <div className="painel">
+              <h3 className="painel-titulo">{t('Clientes')}</h3>
+              <div className="lista-produtos">
+                <div className="lp-linha lp-cabecalho"><span>{t('Cliente')}</span><span>{t('Qtd.')}</span><span>{t('Emprestado')}</span><span>{t('Lucro')}</span></div>
+                {clientes.map((c) => (
+                  <div key={c.nome} className="lp-linha">
+                    <span className="lp-nome">{c.nome}</span>
+                    <span>{c.n}</span>
+                    <span>{brl(c.emprestado)}</span>
+                    <span className="ok">{brl(c.lucro)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="painel">
+              <h3 className="painel-titulo">{t('Por forma de recebimento')}</h3>
+              {formas.length ? <Participacao linhas={formas} total={recebido} /> : <p className="vazio">{t('Nada recebido no período.')}</p>}
+            </div>
+          </div>
+        </>
+      )}
       {lista.length === 0 ? (
         <p className="vazio">{t('Nenhum empréstimo neste período.')}</p>
       ) : (

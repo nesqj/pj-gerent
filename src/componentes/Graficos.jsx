@@ -36,7 +36,9 @@ function useLargura(padrao = 720) {
 
 // Estilo "bolsa": faturamento e lucro em linhas na parte de cima (R$) e
 // vendas em colunas discretas numa faixa embaixo (quantidade), sem disputar espaço com as linhas.
-export function GraficoLinhas({ serie, rotuloDica }) {
+const NOMES_PADRAO = { valor: 'Faturamento', lucro: 'Lucro', qtd: 'Vendas', eixo: 'vendas' }
+export function GraficoLinhas({ serie, rotuloDica, nomes: nomesDados }) {
+  const nomes = { ...NOMES_PADRAO, ...nomesDados }
   const [ref, L] = useLargura()
   const [hover, setHover] = useState(null)
   const A = 320, esq = 56, dir = 40, topo = 16, base = 30, vao = 14
@@ -65,9 +67,9 @@ export function GraficoLinhas({ serie, rotuloDica }) {
   return (
     <div className="grafico diario bolsa" ref={ref} onMouseLeave={() => setHover(null)}>
       <div className="legenda-topo">
-        <span><i className="l fat" />{t('Faturamento')}</span>
-        <span><i className="l luc" />{t('Lucro')}</span>
-        <span><i className="q ven" />{t('Vendas')}</span>
+        <span><i className="l fat" />{t(nomes.valor)}</span>
+        <span><i className="l luc" />{t(nomes.lucro)}</span>
+        <span><i className="q ven" />{t(nomes.qtd)}</span>
       </div>
       <svg width={L} height={A} viewBox={`0 0 ${L} ${A}`} role="img" aria-label={t('Faturamento, lucro e vendas')}>
         {/* grade da parte de cima (R$) */}
@@ -81,7 +83,7 @@ export function GraficoLinhas({ serie, rotuloDica }) {
         <line x1={esq} x2={L - dir} y1={topoVendas + altVendas} y2={topoVendas + altVendas} className="grade zero" />
         <text x={L - dir + 10} y={topoVendas + 10} textAnchor="start" className="eixo eixo-vendas">{maxV}</text>
         <text x={L - dir + 10} y={topoVendas + altVendas + 4} textAnchor="start" className="eixo eixo-vendas">0</text>
-        <text x={esq - 10} y={topoVendas + altVendas / 2 + 4} textAnchor="end" className="eixo eixo-vendas">{t('vendas')}</text>
+        <text x={esq - 10} y={topoVendas + altVendas / 2 + 4} textAnchor="end" className="eixo eixo-vendas">{t(nomes.eixo)}</text>
         {/* dia sob o mouse */}
         {hover != null && <rect x={esq + banda * hover} y={topo} width={banda} height={altTotal} className="faixa-hover" />}
         {/* vendas em colunas discretas */}
@@ -110,9 +112,9 @@ export function GraficoLinhas({ serie, rotuloDica }) {
       {h && (
         <div className="dica dica-diario" style={{ left: Math.min(L - 110, Math.max(110, xc(hover))) }}>
           <b>{rotuloDica(h)}</b>
-          <div className="dica-linha"><i className="l fat" />{t('Faturamento')}<span>{brl(h.valor)}</span></div>
-          <div className="dica-linha"><i className={'l ' + (h.lucro < 0 ? 'preju' : 'luc')} />{h.lucro < 0 ? t('Prejuízo') : t('Lucro')}<span className={h.lucro < 0 ? 'bad' : ''}>{brl(h.lucro)}</span></div>
-          <div className="dica-linha"><i className="q ven" />{t('Vendas')}<span>{h.vendas}</span></div>
+          <div className="dica-linha"><i className="l fat" />{t(nomes.valor)}<span>{brl(h.valor)}</span></div>
+          <div className="dica-linha"><i className={'l ' + (h.lucro < 0 ? 'preju' : 'luc')} />{h.lucro < 0 ? t('Prejuízo') : t(nomes.lucro)}<span className={h.lucro < 0 ? 'bad' : ''}>{brl(h.lucro)}</span></div>
+          <div className="dica-linha"><i className="q ven" />{t(nomes.qtd)}<span>{h.vendas}</span></div>
         </div>
       )}
     </div>
