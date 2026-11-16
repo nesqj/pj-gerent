@@ -73,7 +73,7 @@ export default function Estoque({ db, executar }) {
   const todos = [...estoque.values()]
   const b = norm(busca)
   const linhas = [...(db.entradas || [])]
-    .filter((en) => !en.arquivada)
+    .filter((en) => !en.arquivada || saldoDe(en) > 0) // tirada da lista só enquanto está zerada (se a venda for excluída, volta)
     .filter((en) => !b || norm(en.produto).includes(b) || norm(en.obs).includes(b))
     .filter((en) => (soFalta ? saldoDe(en) <= 0 : saldoDe(en) > 0))
     .sort((a, c) => (ordem === 'recentes' ? c.data - a.data : a.produto.localeCompare(c.produto) || a.data - c.data))
