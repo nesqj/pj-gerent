@@ -1201,4 +1201,5 @@ export default {
   '{valor} em atraso. Cobre os clientes.': '{valor} overdue. Collect from customers.',
   '{valor} para receber hoje.': '{valor} to receive today.',
   '{valor} reservado no caixa para pagar fornecedores e materiais.': '{valor} reserved in the cash to pay suppliers and materials.',
+  'Saldo disponível': 'Available balance',
 }
