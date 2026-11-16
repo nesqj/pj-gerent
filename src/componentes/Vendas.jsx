@@ -436,7 +436,7 @@ export default function Vendas({ db, executar, irPara }) {
 
       <div className="tw">
         <table>
-          <thead><tr><th>{t('Hora')}</th><th>{t('Itens')}</th><th>{t('Pagamento')}</th><th className="n">{t('Valor')}</th>{temJurosDia && <th className="n">{t('Juros')}</th>}<th className="n">{t('Total')}</th><th className="n">{t('Custo')}</th><th className="n">{t('Lucro')}</th><th></th></tr></thead>
+          <thead><tr><th>{t('Hora')}</th><th>{t('Itens')}</th><th>{t('Pagamento')}</th><th className="n">{t('Custo')}</th><th className="n">{t('Valor')}</th>{temJurosDia && <th className="n">{t('Juros')}</th>}<th className="n">{t('Total')}</th><th className="n">{t('Lucro')}</th><th></th></tr></thead>
           <tbody>
             {vendasDia.length === 0 && <tr><td colSpan="9" className="vazio">{t('Nenhuma venda neste dia.')}</td></tr>}
             {vendasDia.map((v) => {
@@ -447,13 +447,13 @@ export default function Vendas({ db, executar, irPara }) {
                 <td>{hora(v.data)}</td>
                 <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}</td>
                 <td className="quebra">{textoPagamento(v)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}</small>}</td>
+                <td className="n">{temCustoV ? brl(v.itens.reduce((c, i) => c + (+i.qtd || 0) * (+i.custo || 0), 0)) : '-'}</td>
                 <td className="n">
                   {brl(v.total)}
                   {v.descontoPct > 0 && <small className="desconto-linha">{t('{p}% de desconto', { p: num(v.descontoPct, 2) })}</small>}
                 </td>
                 {temJurosDia && <td className="n">{+v.fiado?.juros > 0 ? brl(v.fiado.juros) : '-'}</td>}
                 <td className="n"><b>{brl(faturamentoVenda(v))}</b></td>
-                <td className="n">{temCustoV ? brl(v.itens.reduce((c, i) => c + (+i.qtd || 0) * (+i.custo || 0), 0)) : '-'}</td>
                 <td className="n">
                   {temCustoV ? <ValorLucro valor={res.lucro} /> : '-'}
                   {res.perda > 0 && res.lucro >= 0 && <small className="desconto-linha bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
