@@ -666,7 +666,6 @@ tr.linha-parcela td:first-child { padding-left: 28px; color: var(--mut) }
 b.motivo { font-weight: 600 }
 small.aguarda { color: var(--mut); font-size: 12px }
 /* Cobranças: multa e juros por atraso */
-.config-atraso { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: -6px 0 12px; color: var(--mut) }
 .form-atraso { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 14px }
 .form-atraso label { flex: 0 1 170px }
 .inline-form .perdoar { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap }
@@ -1058,3 +1057,16 @@ section .notif-titulo, .notif-titulo { display: block; font-size: 30px; margin: 
 .grafico.barras .faixa-hover { fill: var(--txt); opacity: .05 }
 .grafico.barras i.q, .dica-diario i.q { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px }
 i.q.fat { background: var(--bd-forte) } i.q.luc { background: var(--verde) } i.q.preju { background: var(--bad) }
+
+/* ---------- Cobranças no estilo do app ---------- */
+.cb-cartoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px }
+@media (max-width: 767px) { .cb-cartoes { grid-template-columns: 1fr 1fr } .cb-cartoes > :first-child { grid-column: 1 / -1 } }
+.cb-atraso { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: var(--card); color: var(--txt); border: 1px solid var(--bd); border-radius: 18px; padding: 14px 18px; margin-bottom: 18px; cursor: pointer; min-height: 0 !important; font-weight: 400 }
+.cb-atraso > span { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0 }
+.cb-atraso b { font-size: 15px }
+.cb-atraso small { color: var(--mut); font-size: 13px }
+.cb-atraso svg { color: var(--mut); flex: 0 0 auto }
+.cb-atraso.so-texto { cursor: default }
+.cb-busca { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px }
+.cb-busca .busca { width: 100%; border-radius: 999px }
+

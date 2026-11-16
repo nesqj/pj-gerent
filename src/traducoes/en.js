@@ -850,7 +850,6 @@ export default {
   'Cliente': 'Customer',
   'Falta': 'Left',
   'Nada neste filtro.': 'Nothing in this filter.',
-  'Nenhuma venda fiado ainda. Na aba Novo Registro, escolha "Fiado" ou divida o pagamento.': 'No credit sales yet. In the New Entry tab, choose "Credit" or split the payment.',
   'recebido {valor}': 'received {valor}',
   'Recebeu': 'Received',
   'Mudar data': 'Change date',
@@ -987,7 +986,6 @@ export default {
   'com {valor} de atraso': 'with {valor} late charges',
   'Perdoar multa e juros ({valor})': 'Waive fee and interest ({valor})',
   '+ {valor} de multa e juros': '+ {valor} in fees and interest',
-  'Atraso': 'Late',
   'Sem multa ou juros por atraso.': 'No late fee or interest.',
   'Multa e juros por atraso': 'Late fee and interest',
   'Multa (%)': 'Late fee (%)',
@@ -1226,4 +1224,5 @@ export default {
   'Novo empréstimo': 'New loan',
   'Formas de pagamento': 'Payment methods',
   'Formas de recebimento': 'Receipt methods',
+  'Nenhuma cobrança ainda. Quando você vender fiado ou fizer um empréstimo, as parcelas aparecem aqui.': 'No charges yet. When you sell on credit or make a loan, the installments show up here.',
 }

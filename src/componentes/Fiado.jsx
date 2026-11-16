@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
+import { IconeDireita } from '../icones.jsx'
 import { podeFazer } from '../armazenamento.js'
 import { distribuirRecebimento, encargoAtraso, prejuizoDe, resumoFiado, textoAtraso } from '../utils.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
@@ -196,17 +197,32 @@ export default function Fiado({ db, executar, irPara }) {
     <section>
       <h2>{t('Cobranças')}</h2>
 
-      <div className="cards">
-        <div className="card destaque"><small>{t('A receber')}</small><b>{brl(cards.receber)}</b><small className="var">{t('{n} parcela(s) em aberto', { n: abertas.length })}</small></div>
-        <div className={'card' + (cards.atrasado > 0 ? ' card-prejuizo' : '')}><small>{t('Atrasado')}</small><b className={cards.atrasado > 0 ? 'bad' : ''}>{brl(cards.atrasado)}</b><small className="var">{t('{n} parcela(s)', { n: cards.nAtrasado })}</small>{cards.encargos > 0 && <small className="var bad">{t('+ {valor} de multa e juros', { valor: brl(cards.encargos) })}</small>}</div>
-        <div className="card"><small>{t('Vence em 7 dias')}</small><b>{brl(cards.semana)}</b></div>
-        <div className="card"><small>{t('Não pagos')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{brl(cards.naoPago)}</b></div>
+      {/* no estilo do app: o valor a receber grande e os outros números em cartões */}
+      <div className="an-destaque">
+        <small>{t('A receber')}</small>
+        <b>{brl(cards.receber)}</b>
+        <small>{t('{n} parcela(s) em aberto', { n: abertas.length })}</small>
+      </div>
+      <div className="cb-cartoes">
+        <div className="in-numero">
+          <small>{t('Atrasado')}</small>
+          <b className={cards.atrasado > 0 ? 'bad' : ''}>{brl(cards.atrasado)}</b>
+          <small>{t('{n} parcela(s)', { n: cards.nAtrasado })}</small>
+          {cards.encargos > 0 && <small className="bad">{t('+ {valor} de multa e juros', { valor: brl(cards.encargos) })}</small>}
+        </div>
+        <div className="in-numero"><small>{t('Vence em 7 dias')}</small><b>{brl(cards.semana)}</b></div>
+        <div className="in-numero"><small>{t('Não pagos')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{brl(cards.naoPago)}</b></div>
       </div>
 
-      <div className="config-atraso">
-        <small>{textoAtraso(cfgAtraso) ? <>{t('Atraso')}: <b>{textoAtraso(cfgAtraso)}</b></> : t('Sem multa ou juros por atraso.')}</small>
-        {podeConfigurar && !configurando && <button className="link pequeno" onClick={() => setConfigurando({ multaPct: String(cfgAtraso?.multaPct ?? '').replace('.', ','), jurosMesPct: String(cfgAtraso?.jurosMesPct ?? '').replace('.', ','), carenciaDias: String(cfgAtraso?.carenciaDias ?? '') })}>{t('Multa e juros por atraso')}</button>}
-      </div>
+      {/* multa e juros por atraso: uma linha que abre o formulário */}
+      {podeConfigurar && !configurando ? (
+        <button className="cb-atraso" onClick={() => setConfigurando({ multaPct: String(cfgAtraso?.multaPct ?? '').replace('.', ','), jurosMesPct: String(cfgAtraso?.jurosMesPct ?? '').replace('.', ','), carenciaDias: String(cfgAtraso?.carenciaDias ?? '') })}>
+          <span><b>{t('Multa e juros por atraso')}</b><small>{textoAtraso(cfgAtraso) || t('Sem multa ou juros por atraso.')}</small></span>
+          <IconeDireita />
+        </button>
+      ) : !configurando && (
+        <div className="cb-atraso so-texto"><span><b>{t('Multa e juros por atraso')}</b><small>{textoAtraso(cfgAtraso) || t('Sem multa ou juros por atraso.')}</small></span></div>
+      )}
       {configurando && (
         <form className="painel form-atraso" onSubmit={salvarAtraso}>
           <label>{t('Multa (%)')}<input inputMode="decimal" placeholder="0" value={configurando.multaPct} onChange={(e) => setConfigurando({ ...configurando, multaPct: e.target.value })} /></label>
@@ -218,10 +234,10 @@ export default function Fiado({ db, executar, irPara }) {
         </form>
       )}
 
-      <div className="linha-titulo">
+      <div className="cb-busca">
         <input className="busca" placeholder={t('Buscar cliente, telefone ou produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
-        <div className="chips">
-          {FILTROS.map((f) => <button key={f.id} className={'filtro' + (filtro === f.id ? ' ativo' : '')} onClick={() => { setFiltro(f.id); setAbertos({}) }}>{t(f.nome)}</button>)}
+        <div className="an-pilulas">
+          {FILTROS.map((f) => <button key={f.id} className={filtro === f.id ? 'on' : ''} onClick={() => { setFiltro(f.id); setAbertos({}) }}>{t(f.nome)}</button>)}
         </div>
       </div>
 
@@ -231,7 +247,7 @@ export default function Fiado({ db, executar, irPara }) {
             <tr><th>{t('Próximo vencimento')}</th><th>{t('Cliente')}</th><th>{t('Motivo')}</th><th className="n">{t('Parcelas')}</th>{naoPagos ? <><th className="n">{t('Faltou receber')}</th><th className="c">{t('Prejuízo')}</th></> : <><th className="n">{t('Próxima')}</th><th className="n">{t('Falta (total)')}</th></>}<th className={naoPagos ? 'c' : ''}>{t('Situação')}</th><th></th></tr>
           </thead>
           <tbody>
-            {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma venda fiado ainda. Na aba Novo Registro, escolha "Fiado" ou divida o pagamento.')}</td></tr>}
+            {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma cobrança ainda. Quando você vender fiado ou fizer um empréstimo, as parcelas aparecem aqui.')}</td></tr>}
             {lista.map((g) => {
               const x = g.proxima
               const s = SITUACOES[g.situacao]
