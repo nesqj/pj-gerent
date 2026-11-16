@@ -240,7 +240,7 @@ export default function Analise({ db }) {
             </div>
             {/* ---------- Pagamentos ---------- */}
             <div className="painel">
-              <h3 className="painel-titulo">{t('Por forma de pagamento')}</h3>
+              <h3 className="painel-titulo">{t('Formas de pagamento')}</h3>
               <Participacao linhas={pagamentos} total={r.faturamento} />
             </div>
           </div>

@@ -99,7 +99,6 @@ export default {
   'Nenhuma venda neste período.': 'No sales in this period.',
   'Melhor dia:': 'Best day:',
   '{data} às {hora}': '{data} at {hora}',
-  'Por forma de pagamento': 'By payment method',
 
   // ---------- Estoque ----------
   'Editando entrada de {data} às {hora}': 'Editing entry from {data} at {hora}',
@@ -1226,4 +1225,5 @@ export default {
   'Faturamento e lucro por dia': 'Revenue and profit by day',
   'Nova venda': 'New sale',
   'Novo empréstimo': 'New loan',
+  'Formas de pagamento': 'Payment methods',
 }
