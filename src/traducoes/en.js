@@ -1232,10 +1232,7 @@ export default {
   'Catálogo': 'Catalog',
   'Mostre seus produtos e venda por Pix ou cartão': 'Show your products and sell by Pix or card',
   'Em breve você vai poder montar seu catálogo de produtos aqui.': 'Soon you will be able to build your product catalog here.',
-  'Ajustar taxas': 'Adjust fees',
-  'Coloque as taxas da sua maquininha (em %). Ficam guardadas neste aparelho.': 'Enter your card machine fees (in %). They are saved on this device.',
   'Crédito {n}x': 'Credit {n}x',
-  'Voltar ao padrão': 'Reset to default',
   'Qual o valor da venda?': 'What is the sale amount?',
   'Seu cliente paga': 'Your customer pays',
   '{n}x de {valor}': '{n}x of {valor}',
@@ -1246,4 +1243,7 @@ export default {
   'Repassar taxa': 'Pass fee on',
   'O cliente paga a taxa e você recebe o valor cheio': 'The customer pays the fee and you receive the full amount',
   'Pix': 'Pix',
+  'Taxa da maquininha': 'Card machine fee',
+  'Para {opcao} · fica guardada neste aparelho': 'For {opcao} · saved on this device',
+  '{n}x': '{n}x',
 }
