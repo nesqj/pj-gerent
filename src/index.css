@@ -1,44 +1,48 @@
 :root {
-  /* ---------- Tema escuro (padrão) ---------- */
-  --bg: #1c1b19;
-  --lateral: #1f1e1b;
-  --card: #252420;
-  --campo: #2b2a26;
-  --bd: #34322d;
-  --bd-forte: #45433d;
-  --txt: #e7e5e0;
-  --mut: #9b9890;
-  --placeholder: #6f6c65;
-  --pri: #5b8def;
-  --pri-txt: #10131a;
-  --hover: #2c2b27;
-  --ok: #4ade80;
+  /* ---------- Tema escuro (padrão): preto e branco, verde nos detalhes ---------- */
+  --bg: #0a0a0a;
+  --lateral: #0f0f0f;
+  --card: #161616;
+  --campo: #1c1c1c;
+  --bd: #262626;
+  --bd-forte: #3a3a3a;
+  --txt: #f5f5f5;
+  --mut: #a1a1a1;
+  --placeholder: #6b6b6b;
+  --pri: #ffffff;
+  --pri-txt: #0a0a0a;
+  --hover: #1f1f1f;
+  --ok: #22c55e;
   --bad: #f87171;
   --warn: #fbbf24;
-  --verde-fundo: #16281d;
-  --dica-bg: #111110;
+  --verde: #22c55e;
+  --verde-txt: #04130a;
+  --verde-fundo: #0f2418;
+  --dica-bg: #000000;
   --sombra: #0006;
   --sobreposicao: #0008;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
-  /* ---------- Tema claro ---------- */
-  --bg: #f6f5f2;
-  --lateral: #efeee9;
-  --card: #ffffff;
+  /* ---------- Tema claro: branco e preto, verde nos detalhes ---------- */
+  --bg: #ffffff;
+  --lateral: #fafafa;
+  --card: #f4f4f5;
   --campo: #ffffff;
-  --bd: #e3e1db;
-  --bd-forte: #cdcac2;
-  --txt: #1f1e1b;
-  --mut: #6b6860;
-  --placeholder: #a19e96;
-  --pri: #3867d6;
+  --bd: #e4e4e7;
+  --bd-forte: #d4d4d8;
+  --txt: #0a0a0a;
+  --mut: #6b6b6b;
+  --placeholder: #a1a1aa;
+  --pri: #0a0a0a;
   --pri-txt: #ffffff;
-  --hover: #ebe9e4;
-  --ok: #15803d;
+  --hover: #efefef;
+  --ok: #16a34a;
   --bad: #dc2626;
   --warn: #b45309;
-  --verde-fundo: #e7f5eb;
+  --verde: #16a34a;
+  --verde-txt: #ffffff;
+  --verde-fundo: #ecfdf3;
   --dica-bg: #ffffff;
   --sombra: #0002;
   --sobreposicao: #0005;
@@ -50,7 +54,7 @@
   --pri-foco: color-mix(in srgb, var(--pri) 22%, transparent);
   --pri-borda: color-mix(in srgb, var(--pri) 40%, transparent);
   --pri-forte: color-mix(in srgb, var(--pri) 72%, var(--txt));
-  --link: color-mix(in srgb, var(--pri) 65%, var(--txt));
+  --link: var(--verde);
   --ok-borda: color-mix(in srgb, var(--ok) 35%, transparent);
   --bad-borda: color-mix(in srgb, var(--bad) 35%, transparent);
   --warn-borda: color-mix(in srgb, var(--warn) 40%, transparent);
@@ -277,17 +281,6 @@ button.link:hover { text-decoration: underline; filter: none }
 .dicas { margin: 0; padding-left: 18px; color: var(--mut); line-height: 1.8 }
 
 /* ---------- Configurações em cartões ---------- */
-.config-secao { margin-bottom: 22px }
-.config-secao-titulo { color: var(--mut); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 10px 2px }
-.config-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px }
-.config-card {
-  display: flex; align-items: flex-start; gap: 14px; text-align: left; padding: 18px 18px 20px;
-  background: var(--card); border: 1px solid var(--bd); border-radius: 12px; color: var(--txt); font-weight: 400;
-}
-.config-card:hover { border-color: var(--bd-forte); background: var(--hover); filter: none }
-.config-card b { display: block; font-size: 15px; margin-bottom: 6px }
-.config-card small { display: block; line-height: 1.45 }
-.config-icone { color: var(--mut); display: grid; place-items: center; padding-top: 1px }
 
 /* ---------- Perfil, Marca e App no celular ---------- */
 .config-titulo { margin: 0 0 16px }
@@ -319,7 +312,7 @@ input.hex { width: 130px; font-family: Consolas, monospace }
 @media (max-width: 767px) { form.form-config { grid-template-columns: 1fr; padding: 16px } .usuario-nome { display: none } }
 
 /* ---------- Ajustes do tema claro ---------- */
-:root[data-theme="light"] .config-card:hover, :root[data-theme="light"] .card-forn:hover { box-shadow: 0 2px 10px var(--sombra) }
+:root[data-theme="light"] .card-forn:hover { box-shadow: 0 2px 10px var(--sombra) }
 
 /* ---------- Prévia da marca nos dois temas ---------- */
 .previas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px }
@@ -406,8 +399,7 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
   .indicadores .card .var { font-size: 11px }
 
   /* Configurações e Fornecedores */
-  .config-grade, .lista-forn, .ajuda, .duas-colunas { grid-template-columns: 1fr }
-  .config-card { padding: 14px }
+  .lista-forn, .ajuda, .duas-colunas { grid-template-columns: 1fr }
   .info-forn-topo > div { display: flex; flex-wrap: wrap; gap: 8px }
   .part-linha { grid-template-columns: 64px 1fr auto }
 
@@ -813,16 +805,6 @@ label.chave input:focus-visible + .trilho { outline: 2px solid var(--pri); outli
 /* campos de busca: todos com a lupa */
 input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239b9890' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 11px center }
 /* Início */
-.inicio-data { margin: -6px 0 12px }
-.inicio-atalhos { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px }
-.inicio-atalhos button { padding: 11px 18px; font-size: 15px }
-button.card.card-link { text-align: left; font: inherit; color: inherit; cursor: pointer; align-items: stretch }
-button.card.card-link small { color: var(--mut) }
-button.card.card-link:hover { border-color: var(--pri); filter: none }
-.card b.mut { color: var(--mut) }
-.inicio-alertas { display: flex; flex-direction: column; gap: 8px }
-.inicio-alerta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px }
-.inicio-alerta-texto { flex: 1 1 200px; min-width: 0 }
 .ponto-alerta { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--warn) }
 .ponto-alerta.bad { background: var(--bad) }
 .inicio-titulo { display: flex; justify-content: space-between; align-items: center; gap: 10px }
@@ -838,8 +820,6 @@ button.card.card-link:hover { border-color: var(--pri); filter: none }
 .selo { font-size: 13px; font-weight: 600; white-space: nowrap }
 .selo-ok { color: var(--ok) }
 .selo-bad { color: var(--bad) }
-/* celular: ícone da aba atual ao lado do título */
-.icone-aba { place-items: center; color: var(--mut); margin-right: -4px }
 /* computador: caminho do menu antes do título (Operações › Início) */
 .barra-topo h1 .caminho { color: var(--mut); font-weight: 500 }
 .barra-topo h1 .caminho-sep { margin: 0 8px; opacity: .7 }
@@ -849,3 +829,127 @@ button.card.card-link:hover { border-color: var(--pri); filter: none }
 .pg-parte .pg-troca-item { grid-column: 1 / -1 }
 .pg-troca-dica { color: var(--mut); font-size: 12px }
 
+
+/* ---------- Celular: barra de baixo, foto no topo ---------- */
+.barra-baixo { display: none }
+.foto-topo { background: none; border: none; padding: 0; cursor: pointer; min-height: 0 !important }
+.foto-topo .avatar { width: 34px; height: 34px }
+@media (max-width: 767px) {
+  .barra-baixo {
+    display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 15;
+    gap: 6px; align-items: stretch; pointer-events: none
+  }
+  .barra-baixo > * { pointer-events: auto }
+  .barra-baixo { background: none }
+  .barra-baixo::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; right: 92px; border-radius: 22px;
+    background: color-mix(in srgb, var(--card) 92%, transparent); border: 1px solid var(--bd); box-shadow: 0 8px 28px var(--sombra);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px)
+  }
+  .bb-item {
+    position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    background: none; border: none; color: var(--mut); font-size: 11px; padding: 10px 2px 8px; min-height: 60px !important; cursor: pointer
+  }
+  .bb-item.ativo { color: var(--txt); font-weight: 600 }
+  .bb-vender {
+    position: relative; width: 86px; flex: 0 0 86px; border-radius: 22px; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; font-weight: 600;
+    background: var(--verde); color: var(--verde-txt); box-shadow: 0 8px 24px color-mix(in srgb, var(--verde) 35%, transparent)
+  }
+  main { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important }
+  /* loja no celular: sem o menu lateral; as outras abas ficam em "Minha conta" (foto) */
+  .modo-loja .seletor-loja { display: none }
+  .sem-topo-celular .barra-topo { display: none }
+}
+
+/* ---------- Minha conta (toque na foto) ---------- */
+.minha-conta { max-width: 560px; margin: 0 auto }
+.mc-topo { display: flex; justify-content: space-between; margin: -4px -6px 4px }
+.mc-perfil { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; margin-bottom: 18px }
+.mc-foto { position: relative; background: none; border: none; padding: 0; cursor: pointer; margin-bottom: 8px }
+.avatar.avatar-grande { width: 104px; height: 104px; font-size: 40px; border: 3px solid var(--bd) }
+.mc-lapis { position: absolute; right: -2px; bottom: 2px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1px solid var(--bd); color: var(--txt) }
+.mc-nome { font-size: 20px; text-transform: uppercase; letter-spacing: .02em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.mc-email { color: var(--mut) }
+.mc-papel { margin-top: 4px; padding: 5px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--verde); background: var(--verde-fundo); border: 1px solid var(--ok-borda) }
+.mc-numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px }
+.mc-numero { background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px }
+.mc-numero b { font-size: 22px }
+.mc-numero small { color: var(--mut); font-size: 13px }
+.mc-secao { display: flex; width: 100%; justify-content: space-between; align-items: center; background: none; border: none; color: var(--mut); font-size: 15px; padding: 4px 2px 10px; cursor: pointer }
+.mc-lojas { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px }
+.mc-loja { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 14px 16px; color: var(--txt); cursor: pointer }
+.mc-loja.ativa { border-color: var(--bd-forte) }
+.mc-loja-nova { background: transparent }
+.mc-loja-icone { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--campo); flex: 0 0 auto }
+.mc-loja-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.mc-loja-txt b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.mc-loja-txt small { color: var(--mut) }
+.mc-ok { color: var(--verde); display: grid }
+.mc-menu { display: flex; flex-direction: column; border-top: 1px solid var(--bd) }
+.mc-item { display: flex; align-items: center; gap: 16px; background: none; border: none; border-bottom: 1px solid var(--bd); padding: 18px 4px; color: var(--txt); font-size: 16px; cursor: pointer; text-align: left }
+.mc-item span { flex: 1 }
+.mc-item > svg:last-child { color: var(--mut) }
+.mc-sair { color: var(--bad) }
+
+/* ---------- Configurações: lista com ícone e seta ---------- */
+.config-lista { max-width: 640px }
+.cl-usuario { display: flex; align-items: center; gap: 16px; width: 100%; background: none; border: none; color: var(--txt); text-align: left; padding: 6px 2px 18px; cursor: pointer }
+.cl-usuario .avatar { width: 56px; height: 56px; font-size: 22px }
+.cl-usuario span { display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.cl-usuario b { font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.cl-usuario small { color: var(--mut); font-size: 14px }
+.cl-grupo { border-top: 1px solid var(--bd); padding: 6px 0 }
+.cl-item { display: flex; align-items: center; gap: 18px; width: 100%; background: none; border: none; color: var(--txt); padding: 16px 2px; font-size: 16px; cursor: pointer; text-align: left; border-radius: 10px }
+.cl-item:hover { background: var(--hover) }
+.cl-item span { flex: 1 }
+.cl-item > svg:first-child { width: 22px; height: 22px }
+.cl-item > svg:last-child { color: var(--mut) }
+
+
+/* ---------- Início (novo) ---------- */
+.inicio { max-width: 900px }
+.in-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 18px }
+.in-foto { background: none; border: none; padding: 0; cursor: pointer; min-height: 0 !important }
+.in-foto .avatar { width: 52px; height: 52px; font-size: 20px }
+.in-ola { flex: 1; display: flex; flex-direction: column; min-width: 0 }
+.in-ola small { color: var(--mut); font-size: 14px }
+.in-ola b { font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.in-icone { position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: none; border: none; color: var(--txt); cursor: pointer; padding: 0 }
+.in-icone:hover { background: var(--hover) }
+.in-bolinha { position: absolute; top: 9px; right: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--bad); border: 2px solid var(--bg) }
+.in-avisos { display: flex; flex-direction: column; gap: 4px }
+.in-aviso { display: flex; align-items: center; gap: 10px; background: none; border: none; color: var(--txt); padding: 8px 4px; cursor: pointer; text-align: left; font-size: 14px }
+.in-aviso span:nth-child(2) { flex: 1 }
+.in-saldo { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: none; color: var(--txt); padding: 4px 0 14px; cursor: pointer; text-align: left }
+.in-saldo > span { display: flex; flex-direction: column; gap: 2px }
+.in-saldo small { color: var(--mut); font-size: 14px }
+.in-saldo b { font-size: 34px; letter-spacing: -.01em; line-height: 1.15 }
+.in-saldo > svg { width: 24px; height: 24px; color: var(--txt) }
+.in-sub { font-size: 12px !important; color: var(--mut) }
+.in-receber { display: flex; align-items: center; gap: 14px; width: 100%; background: var(--card); border: 1px solid var(--bd); border-radius: 20px; padding: 16px 18px; color: var(--txt); cursor: pointer; text-align: left; margin-bottom: 20px }
+.in-receber > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px }
+.in-receber small { color: var(--mut) }
+.in-receber b { font-size: 19px }
+.in-receber-icone { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--campo) }
+.in-acoes { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 10px; margin-bottom: 14px; scrollbar-width: none }
+.in-acoes::-webkit-scrollbar { display: none }
+.in-acao { flex: 0 0 auto; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: none; border: none; color: var(--txt); font-size: 13px; cursor: pointer; padding: 0; min-height: 0 !important }
+.in-acao-circulo { width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1px solid var(--bd) }
+.in-acao-circulo svg { width: 24px; height: 24px }
+.in-acao.destaque .in-acao-circulo { background: var(--verde); border-color: var(--verde); color: var(--verde-txt) }
+.in-cartoes { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 18px; scroll-snap-type: x mandatory; scrollbar-width: none }
+.in-cartoes::-webkit-scrollbar { display: none }
+.in-cartao { flex: 0 0 min(78%, 300px); scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; border-radius: 20px; padding: 18px; background: var(--card); border: 1px solid var(--bd) }
+.in-cartao small { color: var(--mut); font-size: 13px }
+.in-cartao b { font-size: 20px; overflow: hidden; text-overflow: ellipsis }
+.in-cartao button { align-self: flex-start; margin-top: 6px; border-radius: 999px; padding: 8px 18px }
+.in-cartao.bad { border-color: var(--bad-borda) }
+.in-cartao.bad b { color: var(--bad) }
+.in-cartao.warn { border-color: var(--warn-borda) }
+.in-titulo { margin: 4px 0 12px }
+.in-hoje { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px }
+.in-numero { background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px }
+.in-numero small { color: var(--mut); font-size: 13px }
+.in-numero b { font-size: 22px }
+.in-vendas-painel { border-radius: 18px }

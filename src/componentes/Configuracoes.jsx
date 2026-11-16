@@ -4,14 +4,15 @@ import Equipe from './Equipe.jsx'
 import CobrancaLoja from './CobrancaLoja.jsx'
 import { ListaAuditoria } from './Plataforma.jsx'
 import * as Org from '../organizacoes.js'
-import { IconeBackup, IconeCelular, IconeCobranca, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
+import { IconeBackup, IconeCelular, IconeCobranca, IconeDireita, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
+import { Avatar } from './MinhaConta.jsx'
 import { avisar, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
 import { IDIOMAS, t } from '../i18n.js'
 import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP as NOME_PADRAO } from '../marca.js'
 import { corTextoSobre, FUSO_PADRAO, hexValido } from '../utils.js'
 
-const COR_PADRAO = '#5b8def' // cor padrão no tema escuro
-const COR_PADRAO_CLARO = '#3867d6' // cor padrão no tema claro
+const COR_PADRAO = '#ffffff' // cor padrão no tema escuro (preto e branco)
+const COR_PADRAO_CLARO = '#0a0a0a' // cor padrão no tema claro
 
 // Seções da tela de Configurações. Cada cartão abre uma página própria.
 const SECOES = [
@@ -65,26 +66,29 @@ export default function Configuracoes({ db, executar, usuario, loja, adminPlataf
     )
   }
 
+  // lista simples: ícone, nome e seta; cada grupo separado por uma linha
+  const nome = db?.perfil?.nome || usuario?.email || ''
   return (
-    <section>
+    <section className="config-lista">
       <h2>{t('Configurações')}</h2>
-      {SECOES.map((s) => (
-        <div key={s.titulo} className="config-secao">
-          <div className="config-secao-titulo">{t(s.titulo)}</div>
-          <div className="config-grade">
-            {s.itens.filter((i) => (i.id !== 'marca' || adminPlataforma || ['admin', 'gerente'].includes(loja?.papel)) &&
-              (i.id !== 'cobranca' || (loja?.papel === 'admin' && loja?.cobranca && loja.cobranca !== 'isenta'))).map((i) => (
-              <button key={i.id} className="config-card" onClick={() => setAberta(i.id)}>
-                <span className="config-icone"><i.icone /></span>
-                <span>
-                  <b>{t(i.nome)}</b>
-                  <small>{t(i.desc)}</small>
-                </span>
+      <button className="cl-usuario" onClick={() => setAberta('perfil')}>
+        <Avatar perfil={db?.perfil} nome={nome} />
+        <span><b>{nome}</b>{usuario?.email && usuario.email !== nome && <small>{usuario.email}</small>}</span>
+      </button>
+      {SECOES.map((s) => {
+        const itens = s.itens.filter((i) => (i.id !== 'marca' || adminPlataforma || ['admin', 'gerente'].includes(loja?.papel)) &&
+          (i.id !== 'cobranca' || (loja?.papel === 'admin' && loja?.cobranca && loja.cobranca !== 'isenta')))
+        if (!itens.length) return null
+        return (
+          <div key={s.titulo} className="cl-grupo">
+            {itens.map((i) => (
+              <button key={i.id} className="cl-item" onClick={() => setAberta(i.id)}>
+                <i.icone /><span>{t(i.nome)}</span><IconeDireita />
               </button>
             ))}
           </div>
-        </div>
-      ))}
+        )
+      })}
     </section>
   )
 }

@@ -1,26 +1,39 @@
+import { useState } from 'react'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { reservadoCustos } from '../utils.js'
-import { brl, calcularEstoque, dataBR, extratoCaixa, faturamentoVenda, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
+import { custosDasVendas, reservadoCustos } from '../utils.js'
+import { brl, calcularEstoque, extratoCaixa, faturamentoVenda, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
+import {
+  IconeCaixa, IconeCaixaProduto, IconeCarrinho, IconeCobranca, IconeDireita, IconeFiado, IconeOlho, IconeOlhoFechado, IconeSino, IconeUsuarios,
+} from '../icones.jsx'
+import { Avatar } from './MinhaConta.jsx'
 
 // Início: o que está acontecendo hoje, numa olhada só. Não calcula nada novo:
-// usa as mesmas contas do Novo Registro (vendas do dia), do Controle de caixa (saldo),
+// usa as mesmas contas do Novo Registro (vendas do dia), do Controle de caixa (saldo e reservado),
 // de Cobranças (a receber e atrasados) e do Estoque (o que está acabando).
-// completo = false (vendedor): sem lucro e sem saldo do caixa.
+// completo = false (vendedor): sem lucro e sem caixa.
 const r2 = (x) => Math.round(x * 100) / 100
 const somarDias = (dia, n) => { const d = new Date(dia + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
+const OCULTAR = 'inicio-ocultar-valores'
 
-export default function Inicio({ db, irPara, completo }) {
+export default function Inicio({ db, irPara, completo, perfil, nome }) {
   const dia = hoje()
   const emprestimos = podeFazer('emprestimo.salvo')
+  // 👁 esconde os valores (fica guardado neste aparelho)
+  const [oculto, setOculto] = useState(() => { try { return localStorage.getItem(OCULTAR) === '1' } catch { return false } })
+  const [verAvisos, setVerAvisos] = useState(false)
+  const alternarOculto = () => { const v = !oculto; setOculto(v); try { localStorage.setItem(OCULTAR, v ? '1' : '0') } catch { /* sem acesso */ } }
+  const R = (v) => (oculto ? 'R$ ••••' : brl(v))
 
   // vendas de hoje
   const vendasHoje = (db.vendas || []).filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
   const vendido = r2(vendasHoje.reduce((s, v) => s + faturamentoVenda(v), 0))
   const lucro = r2(vendasHoje.reduce((s, v) => s + lucroVenda(v).lucro, 0))
 
-  // caixa
+  // caixa: o valor grande é o "Livre para você" (caixa − custos a pagar)
   const caixa = completo ? extratoCaixa(db) : null
+  const reservado = completo ? reservadoCustos(db) : 0
+  const livre = caixa ? r2(caixa.saldo - reservado) : null
 
   // cobranças (fiado e, para quem pode, empréstimos)
   const parcelas = [...(db.vendas || []), ...(emprestimos ? db.emprestimos || [] : [])]
@@ -33,60 +46,100 @@ export default function Inicio({ db, irPara, completo }) {
   const atrasadas = parcelas.filter((x) => x.sit === 'atrasada')
   const venceHoje = parcelas.filter((x) => x.sit === 'vence_hoje')
 
-  // estoque acabando (1 ou 2 unidades)
+  // estoque acabando (1 ou 2 unidades) e custos a pagar
   const acabando = [...calcularEstoque(db).values()].filter((p) => p.saldo > 0 && p.saldo <= 2).sort((a, b) => a.saldo - b.saldo)
+  const custosAPagar = completo ? custosDasVendas(db).filter((c) => !c.pago && (c.data || 0) >= (caixa?.inicio || 0)) : []
 
   const abrirCobrancas = (filtro) => { try { sessionStorage.setItem('cobrancas-filtro', filtro) } catch { /* sem acesso */ } irPara('fiado') }
   const abrirRegistro = (modo) => { try { sessionStorage.setItem('registro-modo', modo) } catch { /* sem acesso */ } irPara('vendas') }
+
+  // cartões de atenção (deslizam para o lado)
   const alertas = [
-    atrasadas.length > 0 && { classe: 'bad', texto: t('{n} parcela(s) atrasada(s) · {valor}', { n: atrasadas.length, valor: brl(soma(atrasadas)) }), acao: () => abrirCobrancas('atrasados'), botao: t('Ver cobranças') },
-    venceHoje.length > 0 && { classe: 'warn', texto: t('{n} parcela(s) vence(m) hoje · {valor}', { n: venceHoje.length, valor: brl(soma(venceHoje)) }), acao: () => abrirCobrancas('abertos'), botao: t('Ver cobranças') },
-    acabando.length > 0 && { classe: 'warn', texto: t('Acabando no estoque: {lista}', { lista: acabando.slice(0, 4).map((p) => `${p.produto} (${p.saldo})`).join(', ') + (acabando.length > 4 ? '…' : '') }), acao: () => irPara('estoque'), botao: t('Ver estoque') },
+    atrasadas.length > 0 && { classe: 'bad', titulo: t('{n} parcela(s) atrasada(s)', { n: atrasadas.length }), valor: R(soma(atrasadas)), botao: t('Ver cobranças'), acao: () => abrirCobrancas('atrasados') },
+    venceHoje.length > 0 && { classe: 'warn', titulo: t('{n} parcela(s) vence(m) hoje', { n: venceHoje.length }), valor: R(soma(venceHoje)), botao: t('Ver cobranças'), acao: () => abrirCobrancas('abertos') },
+    custosAPagar.length > 0 && { classe: 'neutro', titulo: t('Custos a pagar'), valor: R(r2(custosAPagar.reduce((s, c) => s + c.valor, 0))), botao: t('Pagar'), acao: () => irPara('caixa') },
+    acabando.length > 0 && { classe: 'warn', titulo: t('Acabando no estoque'), valor: acabando.slice(0, 3).map((p) => `${p.produto} (${p.saldo})`).join(', ') + (acabando.length > 3 ? '…' : ''), botao: t('Ver estoque'), acao: () => irPara('estoque') },
   ].filter(Boolean)
+
+  // botões redondos de ação rápida
+  const acoes = [
+    { nome: 'Vender', icone: IconeCarrinho, acao: () => abrirRegistro('venda'), destaque: true },
+    emprestimos && { nome: 'Empréstimo', icone: IconeCobranca, acao: () => abrirRegistro('emprestimo') },
+    { nome: 'Receber', icone: IconeFiado, acao: () => abrirCobrancas('abertos') },
+    completo && { nome: 'Retirar', icone: IconeCaixa, acao: () => irPara('caixa') },
+    { nome: 'Estoque', icone: IconeCaixaProduto, acao: () => irPara('estoque') },
+    { nome: 'Clientes', icone: IconeUsuarios, acao: () => irPara('clientes') },
+  ].filter(Boolean)
+
+  const primeiroNome = String(nome || '').trim().split(/\s+/)[0]
 
   return (
     <section className="inicio">
       <h2>{t('Início')}</h2>
-      <p className="inicio-data"><small>{t('Hoje, {data}', { data: dataBR(dia) })}</small></p>
 
-      <div className="inicio-atalhos">
-        <button onClick={() => abrirRegistro('venda')}>+ {t('Nova venda')}</button>
-        {emprestimos && <button className="sec" onClick={() => abrirRegistro('emprestimo')}>+ {t('Empréstimo')}</button>}
-      </div>
-
-      <div className="cards">
-        <div className="card destaque"><small>{t('Vendido hoje')}</small><b>{brl(vendido)}</b><small className="var">{t('{n} venda(s)', { n: vendasHoje.length })}</small></div>
-        {completo && (
-          <div className="card"><small>{t('Lucro de hoje')}</small><b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b></div>
-        )}
-        {completo && (
-          <button className="card card-link" onClick={() => irPara('caixa')}>
-            <small>{t('Saldo do caixa')}</small>
-            {caixa ? <b className={caixa.saldo < 0 ? 'bad' : ''}>{caixa.saldo < 0 ? '− ' + brl(-caixa.saldo) : brl(caixa.saldo)}</b> : <b className="mut">—</b>}
-            {!caixa && <small className="var">{t('Comece o controle de caixa')}</small>}
-            {caixa && reservadoCustos(db) > 0 && <small className="var">{t('livre {valor}', { valor: brl(Math.round((caixa.saldo - reservadoCustos(db)) * 100) / 100) })}</small>}
-          </button>
-        )}
-        <button className="card card-link" onClick={() => abrirCobrancas('abertos')}>
-          <small>{t('A receber')}</small><b>{brl(aReceber)}</b>
-          <small className="var">{t('{valor} nos próximos 7 dias', { valor: brl(semana) })}</small>
+      {/* saudação: foto (abre Minha conta), olá, esconder valores e avisos */}
+      <div className="in-topo">
+        <button className="in-foto" onClick={() => irPara('perfil')} aria-label={t('Minha conta')}><Avatar perfil={perfil} nome={nome} /></button>
+        <div className="in-ola"><small>{t('Olá,')}</small><b>{primeiroNome}</b></div>
+        <button className="in-icone" onClick={alternarOculto} aria-label={oculto ? t('Mostrar valores') : t('Esconder valores')}>{oculto ? <IconeOlhoFechado /> : <IconeOlho />}</button>
+        <button className="in-icone" onClick={() => setVerAvisos(!verAvisos)} aria-label={t('Avisos')}>
+          <IconeSino />{alertas.length > 0 && <span className="in-bolinha" />}
         </button>
+      </div>
+      {verAvisos && (
+        <div className="painel in-avisos">
+          {alertas.length === 0 ? <small>{t('Nada precisando de atenção agora.')}</small> : alertas.map((a, i) => (
+            <button key={i} className="in-aviso" onClick={a.acao}><span className={'ponto-alerta ' + a.classe} /><span>{a.titulo} · {a.valor}</span><IconeDireita /></button>
+          ))}
+        </div>
+      )}
+
+      {/* valor grande: livre para você (dono) ou vendido hoje (vendedor) */}
+      {completo ? (
+        <button className="in-saldo" onClick={() => irPara('caixa')}>
+          <span><small>{t('Livre para você')}</small><b className={livre != null && livre < 0 ? 'bad' : ''}>{livre == null ? '—' : livre < 0 ? '− ' + R(-livre) : R(livre)}</b>
+            {caixa && reservado > 0 && <small className="in-sub">{t('{valor} reservado para custos', { valor: R(reservado) })}</small>}
+            {!caixa && <small className="in-sub">{t('Comece o controle de caixa')}</small>}</span>
+          <IconeDireita />
+        </button>
+      ) : (
+        <div className="in-saldo"><span><small>{t('Vendido hoje')}</small><b>{R(vendido)}</b><small className="in-sub">{t('{n} venda(s)', { n: vendasHoje.length })}</small></span></div>
+      )}
+
+      <button className="in-receber" onClick={() => abrirCobrancas('abertos')}>
+        <span className="in-receber-icone"><IconeFiado /></span>
+        <span><small>{t('A receber')}</small><b>{R(aReceber)}</b>{semana > 0 && <small className="in-sub">{t('{valor} nos próximos 7 dias', { valor: R(semana) })}</small>}</span>
+        <IconeDireita />
+      </button>
+
+      <div className="in-acoes">
+        {acoes.map((a) => (
+          <button key={a.nome} className={'in-acao' + (a.destaque ? ' destaque' : '')} onClick={a.acao}>
+            <span className="in-acao-circulo"><a.icone /></span>
+            <span>{t(a.nome)}</span>
+          </button>
+        ))}
       </div>
 
       {alertas.length > 0 && (
-        <div className="painel inicio-alertas">
-          <h3 className="painel-titulo">{t('Precisa de atenção')}</h3>
+        <div className="in-cartoes">
           {alertas.map((a, i) => (
-            <div key={i} className="inicio-alerta">
-              <span className={'ponto-alerta ' + a.classe} />
-              <span className="inicio-alerta-texto">{a.texto}</span>
-              <button className="link pequeno" onClick={a.acao}>{a.botao} →</button>
+            <div key={i} className={'in-cartao ' + a.classe}>
+              <small>{a.titulo}</small>
+              <b>{a.valor}</b>
+              <button className="sec" onClick={a.acao}>{a.botao}</button>
             </div>
           ))}
         </div>
       )}
 
-      <div className="painel">
+      <h3 className="in-titulo">{t('Hoje')}</h3>
+      <div className="in-hoje">
+        <div className="in-numero"><small>{t('Vendido hoje')}</small><b>{R(vendido)}</b><small>{t('{n} venda(s)', { n: vendasHoje.length })}</small></div>
+        {completo && <div className="in-numero"><small>{t('Lucro de hoje')}</small><b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + R(-lucro) : R(lucro)}</b></div>}
+      </div>
+
+      <div className="painel in-vendas-painel">
         <div className="painel-titulo inicio-titulo">
           <h3>{t('Últimas vendas de hoje')}</h3>
           {vendasHoje.length > 0 && <button className="link pequeno" onClick={() => irPara('vendas')}>{t('Ver todas')} →</button>}
@@ -97,7 +150,7 @@ export default function Inicio({ db, irPara, completo }) {
               <div key={v.id} className="inicio-venda">
                 <span className="iv-hora">{hora(v.data)}</span>
                 <span className="iv-itens">{(v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ')}<small>{pagamentosDaVenda(v).map((p) => t(p.forma)).join(' + ')}</small></span>
-                <b className="iv-total">{brl(faturamentoVenda(v))}</b>
+                <b className="iv-total">{R(faturamentoVenda(v))}</b>
               </div>
             ))}
           </div>

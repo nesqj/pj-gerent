@@ -5,8 +5,8 @@ import { t } from '../i18n.js'
 import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from '../marca.js'
 import { corTextoSobre, hexValido } from '../utils.js'
 
-const COR_PADRAO = '#5b8def'
-const COR_PADRAO_CLARO = '#3867d6'
+const COR_PADRAO = '#ffffff'
+const COR_PADRAO_CLARO = '#0a0a0a'
 const LIMITE_LOGO = 512 * 1024
 const VAZIA = { nome: '', cor: '', corEscuro: '', logo: '', logoEscuro: '', tema: '' }
 const TEMAS = [

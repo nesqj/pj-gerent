@@ -6,6 +6,7 @@ import Fornecedores from './componentes/Fornecedores.jsx'
 import Vendas from './componentes/Vendas.jsx'
 import Analise from './componentes/Analise.jsx'
 import Inicio from './componentes/Inicio.jsx'
+import MinhaConta, { Avatar } from './componentes/MinhaConta.jsx'
 import Estoque from './componentes/Estoque.jsx'
 import Caixa from './componentes/Caixa.jsx'
 import Fiado from './componentes/Fiado.jsx'
@@ -26,7 +27,7 @@ import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from
 import {
   IconeAjuda, IconeCaixaProduto, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
   IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
-  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado, IconeInicio,
+  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado, IconeInicio, IconeMais,
 } from './icones.jsx'
 
 // Grupos e itens da barra lateral (dentro de uma loja)
@@ -86,8 +87,16 @@ const RODAPE = [
 ]
 
 // Abas que o vendedor vê (o banco também confere o que cada papel pode gravar)
-const ABAS_DO_VENDEDOR = ['inicio', 'vendas', 'fiado', 'clientes', 'estoque', 'forn', 'config', 'ajuda']
+const ABAS_DO_VENDEDOR = ['inicio', 'perfil', 'vendas', 'fiado', 'clientes', 'estoque', 'forn', 'config', 'ajuda']
 const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.includes(aba)
+
+// Barra de baixo no celular: as abas do dia a dia + o botão "Vender" em destaque
+const BARRA_BAIXO = [
+  { id: 'inicio', nome: 'Início', icone: IconeInicio },
+  { id: 'fiado', nome: 'Cobranças', icone: IconeFiado },
+  { id: 'caixa', nome: 'Caixa', icone: IconeCaixa },
+  { id: 'analise', nome: 'Análise', icone: IconeGrafico },
+]
 
 const chaveLoja = (uid) => 'pjgerent-loja-' + uid
 
@@ -97,6 +106,7 @@ export default function App() {
   const [fechados, setFechados] = useState({})       // grupos recolhidos
   const [recolhida, setRecolhida] = useState(false)  // barra lateral só com ícones
   const [menuAberto, setMenuAberto] = useState(false) // menu no celular
+  const abaAntesDoPerfil = useRef('inicio') // o X da tela "Minha conta" volta para cá
   const [temaAtivo, setTemaAtivo] = useState(document.documentElement.dataset.theme || 'dark')
 
   // login: undefined = verificando, null = sem sessão, objeto = logado
@@ -273,7 +283,7 @@ export default function App() {
       const claro = tema === 'claro' || (tema === 'auto' && mq?.matches)
       document.documentElement.dataset.theme = claro ? 'light' : 'dark'
       setTemaAtivo(claro ? 'light' : 'dark')
-      document.querySelector('meta[name=theme-color]')?.setAttribute('content', claro ? '#f6f5f2' : '#1c1b19')
+      document.querySelector('meta[name=theme-color]')?.setAttribute('content', claro ? '#ffffff' : '#0a0a0a')
     }
     aplicar()
     if (tema !== 'auto' || !mq) return
@@ -318,8 +328,9 @@ export default function App() {
   }
 
   function irPara(id) {
-    setAba(id)
+    setAba((atual) => { if (id === 'perfil' && atual !== 'perfil') abaAntesDoPerfil.current = atual; return id })
     setMenuAberto(false)
+    window.scrollTo(0, 0)
   }
   function irParaAdmin(id) {
     setTelaAdmin(id)
@@ -334,10 +345,8 @@ export default function App() {
     : GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => podeVer(papel, i.id)) })).filter((g) => g.itens.length)
   const atual = noAdmin ? telaAdmin : aba
   const itemAtual = [...grupos.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === atual)
-  const titulo = itemAtual?.nome
-  const IconeAba = itemAtual?.icone
+  const titulo = itemAtual?.nome || (atual === 'perfil' ? 'Minha conta' : undefined)
   const grupoAtual = grupos.find((g) => g.itens.some((i) => i.id === atual))?.nome // para o caminho "Operações › Início"
-  const temSeletorLoja = lojas.length > 1 || adminPlataforma // o seletor de loja só aparece para quem pode trocar
   const tituloT = titulo && t(titulo)
   const perfil = db?.perfil || {}
   const nomeUsuario = perfil.nome || sessao?.usuario?.nome || sessao?.usuario?.email || ''
@@ -420,7 +429,7 @@ export default function App() {
   if (modo === 'carregando' || (modo === 'loja' && !db)) return <p className="vazio">{t('Carregando...')}</p>
 
   return (
-    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '')}>
+    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin && ['inicio', 'perfil'].includes(aba) ? ' sem-topo-celular' : '')}>
       <aside className="lateral">
         <div className="topo">
           <div className="logo">
@@ -483,14 +492,14 @@ export default function App() {
 
       <div className="conteudo">
         <header className="barra-topo">
-          <button className="icone-btn so-celular" onClick={() => setMenuAberto(true)} title={t('Abrir menu')}><IconeMenu /></button>
+          {noAdmin
+            ? <button className="icone-btn so-celular" onClick={() => setMenuAberto(true)} title={t('Abrir menu')}><IconeMenu /></button>
+            : <button className="foto-topo so-celular" onClick={() => irPara('perfil')} aria-label={t('Minha conta')}><Avatar perfil={perfil} nome={nomeUsuario} /></button>}
           <SeletorLoja lojas={lojas} ativa={loja} admin={adminPlataforma}
             onTrocar={(o) => abrirLoja(o)} onGerenciar={() => irParaAdmin('orgs')} />
-          {/* celular, sem seletor de loja: o ícone da aba atual ao lado do nome */}
-          {!temSeletorLoja && IconeAba && <span className="icone-aba so-celular"><IconeAba /></span>}
           <h1>{grupoAtual && <span className="caminho so-desktop">{t(grupoAtual)}<span className="caminho-sep">›</span></span>}{tituloT}</h1>
           {(nomeUsuario || perfil.avatar) && (
-            <button className="usuario" onClick={() => (db ? (setModo('loja'), irPara('config')) : null)} title={t('Configurações')}>
+            <button className={'usuario' + (noAdmin ? '' : ' so-desktop')} onClick={() => (db ? (setModo('loja'), irPara('perfil')) : null)} title={t('Minha conta')}>
               {perfil.avatar
                 ? <img className="avatar" src={perfil.avatar} alt="" />
                 : <span className="avatar avatar-letra">{nomeUsuario.trim()[0]?.toUpperCase()}</span>}
@@ -509,7 +518,10 @@ export default function App() {
         )}
         <main>
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
-          {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} />}
+          {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} perfil={perfil} nome={nomeUsuario} />}
+          {!noAdmin && aba === 'perfil' && <MinhaConta db={db} perfil={perfil} nome={nomeUsuario} email={sessao?.usuario?.email} loja={loja} lojas={lojas}
+            adminPlataforma={adminPlataforma} podeVer={(id) => podeVer(papel, id)} irPara={irPara}
+            onFechar={() => irPara(abaAntesDoPerfil.current || 'inicio')} onTrocarLoja={(o) => abrirLoja(o)} onAdmin={() => irParaAdmin('orgs')} onSair={sairDoSistema} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'clientes' && <Clientes db={db} executar={executar} irPara={irPara} />}
@@ -520,6 +532,18 @@ export default function App() {
           {!noAdmin && aba === 'config' && <Configuracoes db={db} executar={executar} usuario={sessao.usuario} loja={loja} adminPlataforma={adminPlataforma} />}
           {!noAdmin && aba === 'ajuda' && <Ajuda irPara={irPara} />}
         </main>
+        {!noAdmin && (
+          <nav className="barra-baixo so-celular">
+            {BARRA_BAIXO.filter((i) => podeVer(papel, i.id)).map(({ id, nome, icone: Icone }) => (
+              <button key={id} className={'bb-item' + (aba === id ? ' ativo' : '')} onClick={() => irPara(id)}>
+                <Icone /><span>{t(nome)}</span>
+              </button>
+            ))}
+            <button className={'bb-vender' + (aba === 'vendas' ? ' ativo' : '')} onClick={() => irPara('vendas')}>
+              <IconeMais /><span>{t('Vender')}</span>
+            </button>
+          </nav>
+        )}
       </div>
     </div>
   )

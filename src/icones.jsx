@@ -86,3 +86,27 @@ export const IconeCaixa = () => (
 export const IconeFiado = () => (
   <Svg><rect x="4" y="4" width="16" height="17" rx="2" /><path d="M8 2.5v3M16 2.5v3M4 9.5h16" /><path d="M9 15l2 2 4-4" /></Svg>
 )
+export const IconeFechar = () => (
+  <Svg size={22}><path d="M6 6l12 12M18 6L6 18" /></Svg>
+)
+export const IconeLapis = () => (
+  <Svg size={16}><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M14 6l4 4" /></Svg>
+)
+export const IconeDireita = () => (
+  <Svg size={18}><path d="M9 6l6 6-6 6" /></Svg>
+)
+export const IconeOlho = () => (
+  <Svg size={22}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></Svg>
+)
+export const IconeOlhoFechado = () => (
+  <Svg size={22}><path d="M3 3l18 18" /><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></Svg>
+)
+export const IconeSino = () => (
+  <Svg size={22}><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20a2 2 0 0 0 4 0" /></Svg>
+)
+export const IconeMais = () => (
+  <Svg size={20}><path d="M12 5v14M5 12h14" /></Svg>
+)
+export const IconeCheck = () => (
+  <Svg size={22}><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.5 2.5L16 9.5" /></Svg>
+)
