@@ -972,7 +972,6 @@ export default {
   'Buscar nome, CPF ou telefone...': 'Search name, CPF or phone...',
   // Juros no fiado
   'juros {p}% ao mês': 'interest {p}% per month',
-  '+ {valor} de juros': '+ {valor} interest',
   'de {inicio} a {fim}': 'from {inicio} to {fim}',
   'em {data}': 'on {data}',
   // Cobranças agrupadas

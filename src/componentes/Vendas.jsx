@@ -229,6 +229,7 @@ export default function Vendas({ db, executar, irPara }) {
 
   // Vendas do dia escolhido
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
+  const temJurosDia = vendasDia.some((v) => +v.fiado?.juros > 0) // coluna Juros só aparece se alguma venda do dia teve
   const totalDia = vendasDia.reduce((s, v) => s + faturamentoVenda(v), 0)
   // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
   const lucroDia = Math.round(vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) * 100) / 100
@@ -435,9 +436,9 @@ export default function Vendas({ db, executar, irPara }) {
 
       <div className="tw">
         <table>
-          <thead><tr><th>{t('Hora')}</th><th>{t('Itens')}</th><th>{t('Pagamento')}</th><th className="n">{t('Total')}</th><th className="n">{t('Lucro')}</th><th></th></tr></thead>
+          <thead><tr><th>{t('Hora')}</th><th>{t('Itens')}</th><th>{t('Pagamento')}</th><th className="n">{t('Valor')}</th>{temJurosDia && <th className="n">{t('Juros')}</th>}<th className="n">{t('Total')}</th><th className="n">{t('Lucro')}</th><th></th></tr></thead>
           <tbody>
-            {vendasDia.length === 0 && <tr><td colSpan="6" className="vazio">{t('Nenhuma venda neste dia.')}</td></tr>}
+            {vendasDia.length === 0 && <tr><td colSpan="8" className="vazio">{t('Nenhuma venda neste dia.')}</td></tr>}
             {vendasDia.map((v) => {
               const res = lucroVenda(v)
               const temCustoV = v.itens.some((i) => i.custo != null)
@@ -445,11 +446,13 @@ export default function Vendas({ db, executar, irPara }) {
               <tr key={v.id} className={res.lucro < 0 ? 'linha-prejuizo' : ''}>
                 <td>{hora(v.data)}</td>
                 <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}</td>
-                <td className="quebra">{textoPagamento(v)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}{v.fiado.juros > 0 ? ' · ' + t('+ {valor} de juros', { valor: brl(v.fiado.juros) }) : ''}</small>}</td>
+                <td className="quebra">{textoPagamento(v)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}</small>}</td>
                 <td className="n">
-                  <b>{brl(faturamentoVenda(v))}</b>
+                  {brl(v.total)}
                   {v.descontoPct > 0 && <small className="desconto-linha">{t('{p}% de desconto', { p: num(v.descontoPct, 2) })}</small>}
                 </td>
+                {temJurosDia && <td className="n">{+v.fiado?.juros > 0 ? <span className="ok">{brl(v.fiado.juros)}</span> : '-'}</td>}
+                <td className="n"><b>{brl(faturamentoVenda(v))}</b></td>
                 <td className="n">
                   {temCustoV ? <ValorLucro valor={res.lucro} /> : '-'}
                   {res.perda > 0 && res.lucro >= 0 && <small className="desconto-linha bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
