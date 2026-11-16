@@ -1174,7 +1174,7 @@ export default {
   'Desfazer o pagamento de {valor} ({descricao})?\nO valor volta para o caixa e o custo volta a ficar a pagar.': 'Undo the payment of {valor} ({descricao})?\nThe amount goes back to the cash and the cost is to pay again.',
   'Pagamento desfeito.': 'Payment undone.',
   'Desfazer': 'Undo',
-  'Você vai mexer no dinheiro reservado para pagar custos. Livre para você: {livre}. Retirar {valor} mesmo assim?': 'You are using money reserved for costs. Free for you: {livre}. Withdraw {valor} anyway?',
+  'Você vai mexer no dinheiro reservado para pagar custos. Saldo disponível: {livre}. Retirar {valor} mesmo assim?': 'You are using money reserved for costs. Available balance: {livre}. Withdraw {valor} anyway?',
   'As vendas entram sozinhas e as compras de estoque descontam sozinhas. O custo de produto de fornecedor e de avulso fica reservado até você marcar "Paguei". Aqui vai só o dinheiro que entra ou sai por fora disso.': 'Sales come in automatically and stock purchases are deducted automatically. The cost of supplier and one-off products stays reserved until you mark "Paid". Here goes only the money that comes in or out apart from that.',
   'lucro bruto − despesas extras': 'gross profit − extra expenses',
   'O custo que você marcou como pago volta para o caixa.': 'The cost you marked as paid goes back to the cash.',

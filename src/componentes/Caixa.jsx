@@ -80,7 +80,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
     if (!(v > 0)) return aviso.alerta(t('Informe um valor maior que zero.'))
     // retirada pessoal maior que o livre: mexe no dinheiro reservado para pagar custos
     if (form.tipo === 'retirar' && form.categoria === 'pessoal' && !editando && reservado > 0 && v > livre && v <= ext.saldo
-      && !await confirmar(t('Você vai mexer no dinheiro reservado para pagar custos. Livre para você: {livre}. Retirar {valor} mesmo assim?', { livre: brl(livre), valor: brl(v) }))) return
+      && !await confirmar(t('Você vai mexer no dinheiro reservado para pagar custos. Saldo disponível: {livre}. Retirar {valor} mesmo assim?', { livre: brl(livre), valor: brl(v) }))) return
     if (form.tipo === 'retirar' && !editando && v > ext.saldo && !await confirmar(t('O caixa tem {saldo}. Retirar {valor} vai deixar o saldo negativo. Continuar?', { saldo: brl(ext.saldo), valor: brl(v) }))) return
     const dados = { tipo: form.tipo, valor: Math.round(v * 100) / 100, descricao: form.descricao.trim(), ...(form.tipo === 'retirar' ? { categoria: form.categoria } : {}) }
     const m = editando ? { ...editando, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
@@ -137,7 +137,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
       <div className="cards">
         <div className="card destaque-caixa"><small>{t('Dinheiro no caixa')}</small><b className={ext.saldo < 0 ? 'bad' : ''}>{brl(ext.saldo)}</b></div>
         <div className="card"><small>{t('Reservado para custos')}</small><b>{brl(reservado)}</b></div>
-        <div className="card"><small>{t('Livre para você')}</small><b className={livre < 0 ? 'bad' : 'ok'}>{livre < 0 ? '− ' + brl(-livre) : brl(livre)}</b></div>
+        <div className="card"><small>{t('Saldo disponível')}</small><b className={livre < 0 ? 'bad' : 'ok'}>{livre < 0 ? '− ' + brl(-livre) : brl(livre)}</b></div>
       </div>
       <p><small>{t('Controle desde {data}.', { data: `${dataTs(ext.inicio)} ${hora(ext.inicio)}` })}{' '}<button className="link pequeno" onClick={() => setAjustando(true)}>{t('Ajustar saldo inicial')}</button></small></p>
       {ext.saldo < 0 && <p className="bad">{t('O caixa está negativo: saiu mais dinheiro do que entrou. Confira as compras e retiradas, ou registre o dinheiro colocado.')}</p>}
