@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
+import { TROCA } from '../utils.js'
 import { brl, dataBR, faturamentoVenda, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
@@ -140,7 +141,7 @@ export default function Analise({ db }) {
   const melhorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
 
   // por forma de pagamento (só as que tiveram venda)
-  const pagamentos = [...PAGAMENTOS, 'Fiado'].map((p) => ({ nome: p, valor: vendas.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === p).reduce((a, x) => a + x.valor, 0), 0) }))
+  const pagamentos = [...PAGAMENTOS, TROCA, 'Fiado'].map((p) => ({ nome: p, valor: vendas.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === p).reduce((a, x) => a + x.valor, 0), 0) }))
     .filter((p) => p.valor > 0).sort((a, b) => b.valor - a.valor)
 
   // por produto (desconto da venda dividido proporcionalmente entre os itens)

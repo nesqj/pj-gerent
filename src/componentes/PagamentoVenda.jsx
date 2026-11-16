@@ -1,7 +1,7 @@
 import { t } from '../i18n.js'
 import BuscaCliente from './BuscaCliente.jsx'
 import { AvisoCliente } from './Clientes.jsx'
-import { brl, formatarCPF, hoje, lerCPF, lerValor as numero, norm, PAGAMENTOS, soDigitos, uid } from '../utils.js'
+import { brl, formatarCPF, hoje, lerCPF, lerValor as numero, norm, PAGAMENTOS, soDigitos, TROCA, uid } from '../utils.js'
 
 // Pagamento da venda:
 //  - uma forma só (Dinheiro, PIX, Débito, Crédito ou Fiado para o valor todo), ou
@@ -43,8 +43,9 @@ export function montarPagamento(pg, total, clientes) {
     if (pg.forma === 'Fiado') { pagamentos = []; restante = total }
     else { pagamentos = [{ forma: pg.forma, valor: total }]; restante = 0 }
   } else {
-    pagamentos = pg.linhas.map((l) => ({ forma: l.forma, valor: r2(numero(l.valor) || 0) })).filter((l) => l.valor > 0)
+    pagamentos = pg.linhas.map((l) => ({ forma: l.forma, valor: r2(numero(l.valor) || 0), ...(l.forma === TROCA ? { item: String(l.item || '').trim() } : {}) })).filter((l) => l.valor > 0)
     if (pg.linhas.some((l) => l.valor !== '' && !(numero(l.valor) >= 0))) return { erro: t('Confira os valores do pagamento.') }
+    if (pagamentos.some((l) => l.forma === TROCA && !l.item)) return { erro: t('Informe o que você recebeu na troca.') }
     restante = r2(total - pagamentos.reduce((s, l) => s + l.valor, 0))
     if (restante < -0.004) return { erro: t('Os valores pagos passam do total da venda ({total}).', { total: brl(total) }) }
   }
@@ -113,12 +114,18 @@ export default function PagamentoVenda({ pg, setPg, total, clientes, db }) {
             <div key={i} className="pg-parte">
               <select value={l.forma} onChange={(e) => mudar({ linhas: pg.linhas.map((x, k) => (k === i ? { ...x, forma: e.target.value } : x)) })}>
                 {PAGAMENTOS.map((p) => <option key={p} value={p}>{t(p)}</option>)}
+                <option value={TROCA}>{t('Troca (produto recebido)')}</option>
               </select>
               <input inputMode="decimal" placeholder="0,00" value={l.valor}
                 onChange={(e) => mudar({ linhas: pg.linhas.map((x, k) => (k === i ? { ...x, valor: e.target.value } : x)) })} />
               {pg.linhas.length > 1 && <button type="button" className="del" onClick={() => mudar({ linhas: pg.linhas.filter((_, k) => k !== i) })}>×</button>}
+              {l.forma === TROCA && (
+                <input className="pg-troca-item" maxLength={80} placeholder={t('O que recebeu na troca (ex.: iPhone 11 64GB preto)')} value={l.item || ''}
+                  onChange={(e) => mudar({ linhas: pg.linhas.map((x, k) => (k === i ? { ...x, item: e.target.value } : x)) })} />
+              )}
             </div>
           ))}
+          {pg.linhas.some((l) => l.forma === TROCA) && <small className="pg-troca-dica">{t('O produto recebido entra no Estoque com o valor da troca como custo. A troca não entra no caixa.')}</small>}
           <button type="button" className="link pequeno" onClick={() => mudar({ linhas: [...pg.linhas, { forma: 'Dinheiro', valor: '' }] })}>+ {t('Outra forma')}</button>
           <div className={'pg-restante' + (restante < -0.004 ? ' bad' : '')}>
             {restante < -0.004 ? t('Passou {valor} do total', { valor: brl(-restante) })

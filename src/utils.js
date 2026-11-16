@@ -52,6 +52,9 @@ export const hexValido = (s) => /^#[0-9a-f]{6}$/i.test(s || '')
 
 // Formas de pagamento: o valor salvo fica em português; na tela, usar t(p)
 export const PAGAMENTOS = ['Dinheiro', 'PIX', 'Débito', 'Crédito']
+// Troca: parte do pagamento feita com um produto (ex.: o celular do cliente). Conta como pago, mas não entra no caixa;
+// o produto recebido entra no Estoque com custo = valor dado na troca.
+export const TROCA = 'Troca'
 
 export const nomeFornecedor = (db, id) => db.fornecedores.find((f) => f.id === id)?.nome || t('(removido)')
 
@@ -242,10 +245,11 @@ export function extratoCaixa(db) {
   if (!c?.inicio) return null
   const depois = (x) => (x.data || 0) >= c.inicio
   const movs = [
-    ...(db.vendas || []).filter((v) => depois(v) && pagoNaHora(v) > 0).map((v) => ({
-      id: 'v-' + v.id, ref: v, origem: 'venda', data: v.data, dia: v.dia, valor: pagoNaHora(v),
-      descricao: (v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + (v.fiado ? ` (${v.fiado.cliente || ''}: entrada)` : ''),
-      pagamento: Array.isArray(v.pagamentos) ? v.pagamentos.filter((p) => +p.valor > 0).map((p) => p.forma).join(' + ') : v.pagamento,
+    ...(db.vendas || []).filter((v) => depois(v) && pagoEmDinheiro(v) > 0).map((v) => ({
+      id: 'v-' + v.id, ref: v, origem: 'venda', data: v.data, dia: v.dia, valor: pagoEmDinheiro(v),
+      descricao: (v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ') + (v.fiado ? ` (${v.fiado.cliente || ''}: entrada)` : '')
+        + (Array.isArray(v.pagamentos) ? v.pagamentos.filter((p) => p.forma === TROCA).map((p) => ` (+ troca: ${p.item || ''})`).join('') : ''),
+      pagamento: Array.isArray(v.pagamentos) ? v.pagamentos.filter((p) => +p.valor > 0 && p.forma !== TROCA).map((p) => p.forma).join(' + ') : v.pagamento,
     })),
     ...(db.vendas || []).flatMap((v) => (v.fiado?.parcelas || []).flatMap((p) => (p.recebimentos || []).filter(depois).map((r) => ({
       id: 'f-' + r.id, ref: v, origem: 'fiado', data: r.data, dia: r.dia, valor: (+r.valor || 0) + (+r.encargo || 0),
@@ -342,6 +346,8 @@ export function pagamentosDaVenda(v) {
 }
 // Faturamento da venda: o que o cliente paga no total, com os juros do fiado (o desconto já está no total)
 export const faturamentoVenda = (v) => (+v.total || 0) + (+v.fiado?.juros || 0)
+// O que entrou em dinheiro na hora (sem a troca): é o que vai para o caixa
+export const pagoEmDinheiro = (v) => (Array.isArray(v.pagamentos) ? v.pagamentos.filter((p) => p.forma !== TROCA).reduce((s, p) => s + (+p.valor || 0), 0) : +v.total || 0)
 export const pagoNaHora = (v) => (Array.isArray(v.pagamentos) ? v.pagamentos.reduce((s, p) => s + (+p.valor || 0), 0) : +v.total || 0)
 
 // Lucro de uma venda. Com fiado:

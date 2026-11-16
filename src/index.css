@@ -845,4 +845,7 @@ button.card.card-link:hover { border-color: var(--pri); filter: none }
 .barra-topo h1 .caminho-sep { margin: 0 8px; opacity: .7 }
 /* Novo Registro: aviso de que a venda vai para outro dia */
 .aviso-data { color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 8px; padding: 8px 12px; font-size: 14px; margin: 0 0 12px }
+/* pagamento: troca (produto recebido) */
+.pg-parte .pg-troca-item { grid-column: 1 / -1 }
+.pg-troca-dica { color: var(--mut); font-size: 12px }
 

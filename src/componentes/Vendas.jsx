@@ -3,6 +3,7 @@ import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
 import { chave, lerValor, resolverPreco } from '../utils.js'
+import { TROCA } from '../utils.js'
 import { brl, num, faturamentoVenda, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
 import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
@@ -205,6 +206,12 @@ export default function Vendas({ db, executar, irPara }) {
       .map((k) => ({ nome: estoque.get(k)?.produto, resta: disponivel(k) }))
       .filter((p) => p.nome && p.resta <= 2)
     if (await executar((A) => A.salvarVenda(venda))) {
+      // produto recebido na troca: entra no Estoque (custo = valor da troca, sem sair do caixa)
+      for (const p of (venda.pagamentos || []).filter((x) => x.forma === TROCA && x.item)) {
+        const nome = estoque.get(norm(p.item))?.produto || p.item // mesmo nome de um produto que já está no estoque
+        await executar((A) => A.salvarEntrada({ id: uid(), data: venda.data, dia: venda.dia, produto: nome, qtd: 1, custo: p.valor,
+          obs: t('Recebido na troca'), foraDoCaixa: true, vendaTroca: venda.id }), t('{produto} entrou no estoque (troca).', { produto: nome }))
+      }
       const resultado = lucroVenda(venda)
       if (venda.fiado) aviso.info(t('Venda registrada com fiado.'), t('{valor} a receber de {cliente}. Acompanhe na aba Cobranças.', { valor: brl(resumoFiado(venda).aberto), cliente: venda.fiado.cliente }))
       else if (resultado.lucro < 0) aviso.alerta(t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
@@ -224,8 +231,12 @@ export default function Vendas({ db, executar, irPara }) {
   async function excluir(v) {
     const f = resumoFiado(v)
     const extra = f?.recebido > 0 ? '\n' + t('Os recebimentos do fiado desta venda ({valor}) também serão apagados, e o caixa é ajustado.', { valor: brl(f.recebido) }) : ''
-    if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }) + extra)) {
-      executar((A) => A.excluirVenda(v.id), t('Venda excluída.'))
+    const daTroca = (db.entradas || []).filter((e) => e.vendaTroca === v.id)
+    const extraTroca = daTroca.length ? '\n' + t('O produto recebido na troca ({produto}) sai do estoque.', { produto: daTroca.map((e) => e.produto).join(', ') }) : ''
+    if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }) + extra + extraTroca)) {
+      if (await executar((A) => A.excluirVenda(v.id), t('Venda excluída.'))) {
+        for (const e of daTroca) await executar((A) => A.excluirEntrada(e.id))
+      }
     }
   }
 
@@ -241,7 +252,7 @@ export default function Vendas({ db, executar, irPara }) {
   const vendasComPrejuizo = vendasDia.filter((v) => lucroVenda(v).perda > 0).length
   const semCusto = vendasDia.some((v) => v.itens.some((i) => i.custo == null))
   const somaForma = (forma) => vendasDia.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === forma).reduce((a, x) => a + x.valor, 0), 0)
-  const porPagamento = [...PAGAMENTOS, 'Fiado'].map((p) => ({ p, total: somaForma(p) })).filter((x) => x.p !== 'Fiado' || x.total > 0) // Fiado: o que ficou para depois nas vendas do dia
+  const porPagamento = [...PAGAMENTOS, TROCA, 'Fiado'].map((p) => ({ p, total: somaForma(p) })).filter((x) => !['Fiado', TROCA].includes(x.p) || x.total > 0) // Fiado: o que ficou para depois nas vendas do dia
   const textoPagamento = (v) => { const l = pagamentosDaVenda(v); return l.length > 1 ? l.map((x) => `${t(x.forma)} ${brl(x.valor)}`).join(' + ') : t(l[0]?.forma || v.pagamento) }
 
   return (
@@ -455,7 +466,7 @@ export default function Vendas({ db, executar, irPara }) {
                 <td>{hora(v.data)}</td>
                 <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}
                   {obsDaVenda(v) && <small className="sub-linha">{obsDaVenda(v)}</small>}</td>
-                <td className="quebra">{textoPagamento(v)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}</small>}</td>
+                <td className="quebra">{textoPagamento(v)}{(v.pagamentos || []).filter((p) => p.forma === TROCA).map((p, k) => <small key={k} className="sub-linha">{t('Troca: {item}', { item: p.item })}</small>)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}</small>}</td>
                 <td className="n">{temCustoV ? brl(v.itens.reduce((c, i) => c + (+i.qtd || 0) * (+i.custo || 0), 0)) : '-'}</td>
                 <td className="n">
                   {brl(v.total)}

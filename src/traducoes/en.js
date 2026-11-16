@@ -1161,4 +1161,13 @@ export default {
   'Não dá para registrar venda em data futura.': 'A sale cannot be recorded on a future date.',
   'Registrando em {data}': 'Recording on {data}',
   'Voltar para hoje': 'Back to today',
+  'Troca (produto recebido)': 'Trade-in (product received)',
+  'Informe o que você recebeu na troca.': 'Tell what you received as trade-in.',
+  'O que recebeu na troca (ex.: iPhone 11 64GB preto)': 'What you received as trade-in (e.g.: iPhone 11 64GB black)',
+  'O produto recebido entra no Estoque com o valor da troca como custo. A troca não entra no caixa.': 'The product received goes into Inventory with the trade-in value as cost. The trade-in does not go into the cash.',
+  'Recebido na troca': 'Received as trade-in',
+  '{produto} entrou no estoque (troca).': '{produto} went into inventory (trade-in).',
+  'O produto recebido na troca ({produto}) sai do estoque.': 'The product received as trade-in ({produto}) leaves inventory.',
+  'Troca: {item}': 'Trade-in: {item}',
+  'Troca': 'Trade-in',
 }
