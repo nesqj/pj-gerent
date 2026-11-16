@@ -244,7 +244,7 @@ export default function Fiado({ db, executar, irPara }) {
                       const pj = prejuizoDe(g.v)
                       return <>
                         <td className="n"><b>{brl(resumoFiado(g.v)?.naoPago || 0)}</b></td>
-                        <td className="n">{pj > 0 ? <b className="bad">{brl(pj)}</b> : <small>{t('sem prejuízo')}</small>}</td>
+                        <td className="n">{pj > 0 ? <span className="selo selo-bad">− {brl(pj)}</span> : <span className="selo selo-ok">{t('Sem prejuízo')}</span>}</td>
                       </>
                     })() : <>
                     <td className="n">{g.abertas.length ? <>{brl(x.falta)}<small className="sub-linha">{x.p.n}/{x.total}</small>{x.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(x.enc), n: x.atraso.dias })}</small>}</> : '-'}</td>
