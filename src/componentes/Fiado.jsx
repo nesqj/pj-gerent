@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { distribuirRecebimento, encargoAtraso, prejuizoDe, textoAtraso } from '../utils.js'
+import { distribuirRecebimento, encargoAtraso, prejuizoDe, resumoFiado, textoAtraso } from '../utils.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
@@ -38,6 +38,7 @@ export default function Fiado({ db, executar, irPara }) {
     return 'abertos'
   })
   const [busca, setBusca] = useState('')
+  const naoPagos = filtro === 'nao_pagos' // aba "Não pagos": mostra quanto faltou receber e se teve prejuízo
   const [recebendo, setRecebendo] = useState(null) // { vendaId, parcelaId, valor, forma }
   const [mudandoData, setMudandoData] = useState(null) // { vendaId, parcelaId, data }
   const [configurando, setConfigurando] = useState(null) // { multaPct, jurosMesPct, carenciaDias } em edição
@@ -215,7 +216,7 @@ export default function Fiado({ db, executar, irPara }) {
       <div className="tw">
         <table>
           <thead>
-            <tr><th>{t('Próximo vencimento')}</th><th>{t('Cliente')}</th><th>{t('Motivo')}</th><th className="n">{t('Parcelas')}</th><th className="n">{t('Próxima')}</th><th className="n">{t('Falta (total)')}</th><th>{t('Situação')}</th><th></th></tr>
+            <tr><th>{t('Próximo vencimento')}</th><th>{t('Cliente')}</th><th>{t('Motivo')}</th><th className="n">{t('Parcelas')}</th>{naoPagos ? <><th className="n">{t('Faltou receber')}</th><th className="n">{t('Prejuízo')}</th></> : <><th className="n">{t('Próxima')}</th><th className="n">{t('Falta (total)')}</th></>}<th>{t('Situação')}</th><th></th></tr>
           </thead>
           <tbody>
             {lista.length === 0 && <tr><td colSpan="8" className="vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma venda fiado ainda. Na aba Novo Registro, escolha "Fiado" ou divida o pagamento.')}</td></tr>}
@@ -238,15 +239,18 @@ export default function Fiado({ db, executar, irPara }) {
                         ? <button className="link pequeno" onClick={() => setAbertos({ ...abertos, [g.v.id]: !aberto })} title={t('Ver todas as parcelas')}>{t('{pagas} de {total} pagas', { pagas: g.pagas, total: g.parcelas.length })} {aberto ? '▴' : '▾'}</button>
                         : t('Parcela única')}
                     </td>
+                    {naoPagos ? (() => {
+                      // prejuízo só no que não cobriu o valor emprestado ou o custo dos produtos
+                      const pj = prejuizoDe(g.v)
+                      return <>
+                        <td className="n"><b>{brl(resumoFiado(g.v)?.naoPago || 0)}</b></td>
+                        <td className="n">{pj > 0 ? <b className="bad">{brl(pj)}</b> : <small>{t('sem prejuízo')}</small>}</td>
+                      </>
+                    })() : <>
                     <td className="n">{g.abertas.length ? <>{brl(x.falta)}<small className="sub-linha">{x.p.n}/{x.total}</small>{x.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(x.enc), n: x.atraso.dias })}</small>}</> : '-'}</td>
                     <td className="n"><b>{g.falta > 0 ? brl(g.falta + g.encargo) : '-'}</b>{g.encargo > 0 && <small className="sub-linha bad">{t('com {valor} de atraso', { valor: brl(g.encargo) })}</small>}</td>
-                    <td><span className={s.classe}>{t(s.nome)}</span>
-                      {g.situacao === 'nao_paga' && (() => {
-                        // prejuízo só no que não cobriu o valor emprestado ou o custo dos produtos
-                        const pj = prejuizoDe(g.v)
-                        return pj > 0 ? <small className="sub-linha bad">{t('prejuízo {valor}', { valor: brl(pj) })}</small> : <small className="sub-linha">{t('sem prejuízo')}</small>
-                      })()}
-                    </td>
+                    </>}
+                    <td><span className={s.classe}>{t(s.nome)}</span></td>
                     <td className="n acoes-fiado">{acoes(x)}</td>
                   </tr>
                   {aberto && g.parcelas.map((y) => {
@@ -256,8 +260,10 @@ export default function Fiado({ db, executar, irPara }) {
                         <td>{celulaData(y)}</td>
                         <td colSpan="2"><small>{t('Parcela {n} de {total}', { n: y.p.n, total: y.total })}</small></td>
                         <td className="n"><small>{brl(y.p.valor)}</small>{y.recebido > 0 && <small className="sub-linha ok">{t('recebido {valor}', { valor: brl(y.recebido) })}</small>}</td>
+                        {naoPagos ? <><td className="n">{y.situacao === 'nao_paga' ? brl(y.falta) : '-'}</td><td className="n"></td></> : <>
                         <td className="n"></td>
                         <td className="n">{y.situacao === 'paga' ? '-' : brl(y.falta + y.enc)}{y.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(y.enc), n: y.atraso.dias })}</small>}</td>
+                        </>}
                         <td><span className={sy.classe}>{t(sy.nome)}</span></td>
                         <td className="n acoes-fiado">{acoes(y)}</td>
                       </tr>

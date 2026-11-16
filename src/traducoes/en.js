@@ -1154,6 +1154,6 @@ export default {
   'Marcado como não pago.': 'Marked as unpaid.',
   '"Recebeu" entra no caixa na data do recebimento. "Não pagou" só vira prejuízo no que faltar para voltar o valor emprestado ou o custo dos produtos; o resto é lucro que você deixou de ganhar.': '"Received" goes into the cash on the payment date. "Did not pay" is only a loss for what is missing to get back the lent amount or the product cost; the rest is profit you did not earn.',
   'Lucro (juros) = juros dos empréstimos feitos no período + multa e juros de atraso recebidos − o que foi marcado "Não pagou" no período. Resultado = o que voltou − o que foi emprestado, quando o empréstimo fecha.': 'Profit (interest) = interest on loans made in the period + late fees received − what was marked "Did not pay" in the period. Result = what came back − what was lent, when the loan closes.',
-  'prejuízo {valor}': 'loss {valor}',
   'sem prejuízo': 'no loss',
+  'Faltou receber': 'Not received',
 }
