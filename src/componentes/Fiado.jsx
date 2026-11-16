@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { IconeDireita } from '../icones.jsx'
@@ -9,6 +9,20 @@ import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParc
 // Fiado (contas a receber): cada parcela de cada venda fiado.
 // "Recebeu" registra o pagamento (total ou parcial) e entra no caixa; "Não pagou" só é prejuízo no que não cobre o que saiu.
 // O lucro conta no dia da venda/empréstimo; o que o cliente não pagar sai do lucro.
+// tela de celular? (a lista vira cartões; no computador continua a tabela)
+const TELA_CELULAR = '(max-width: 767px)'
+function useCelular() {
+  const [celular, setCelular] = useState(() => window.matchMedia?.(TELA_CELULAR).matches ?? false)
+  useEffect(() => {
+    const mq = window.matchMedia?.(TELA_CELULAR)
+    if (!mq) return
+    const mudou = () => setCelular(mq.matches)
+    mq.addEventListener('change', mudou)
+    return () => mq.removeEventListener('change', mudou)
+  }, [])
+  return celular
+}
+
 const SITUACOES = {
   atrasada: { nome: 'Atrasado', classe: 'bad' },
   vence_hoje: { nome: 'Vence hoje', classe: 'warn' },
@@ -39,6 +53,7 @@ export default function Fiado({ db, executar, irPara }) {
     return 'abertos'
   })
   const [busca, setBusca] = useState('')
+  const celular = useCelular()
   const naoPagos = filtro === 'nao_pagos' // aba "Não pagos": mostra quanto faltou receber e se teve prejuízo
   const [recebendo, setRecebendo] = useState(null) // { vendaId, parcelaId, valor, forma }
   const [mudandoData, setMudandoData] = useState(null) // { vendaId, parcelaId, data }
@@ -241,6 +256,75 @@ export default function Fiado({ db, executar, irPara }) {
         </div>
       </div>
 
+      {celular ? (
+        // no celular: cada cobrança é um cartão (no estilo do resto do app)
+        <div className="cb-lista">
+          {lista.length === 0 && <div className="cb-vazio">{parcelas.length ? t('Nada neste filtro.') : t('Nenhuma cobrança ainda. Quando você vender fiado ou fizer um empréstimo, as parcelas aparecem aqui.')}</div>}
+          {lista.map((g) => {
+            const x = g.proxima
+            const s = SITUACOES[g.situacao]
+            const m = motivo(g)
+            const aberto = !!abertos[g.v.id]
+            const pj = naoPagos ? prejuizoDe(g.v) : 0
+            return (
+              <div key={g.v.id} className={'cb-item' + (g.situacao === 'atrasada' ? ' atrasada' : '')}>
+                <div className="cb-topo">
+                  <span className="cb-avatar">{(g.v.fiado.cliente || '?').trim()[0]?.toUpperCase()}</span>
+                  <span className="cb-quem">
+                    <b>{g.v.fiado.cliente}</b>
+                    <small>{m.titulo} · <button className="link pequeno" onClick={() => { try { sessionStorage.setItem('vendas-dia', g.v.dia) } catch { /* sem acesso */ } irPara?.('vendas') }}>{dataBR(g.v.dia)}</button></small>
+                  </span>
+                  <span className="cb-valor">
+                    <b>{naoPagos ? brl(resumoFiado(g.v)?.naoPago || 0) : g.falta > 0 ? brl(g.falta + g.encargo) : '-'}</b>
+                    <span className={'cb-selo ' + s.classe}>{t(s.nome)}</span>
+                  </span>
+                </div>
+                {m.detalhe && <small className="cb-detalhe">{m.detalhe}</small>}
+                {g.v.fiado.telefone && <small className="cb-detalhe">{g.v.fiado.telefone}</small>}
+
+                {naoPagos ? (
+                  <div className="cb-info"><span>{t('Prejuízo')}</span><b className={pj > 0 ? 'bad' : 'ok'}>{pj > 0 ? '− ' + brl(pj) : t('Sem prejuízo')}</b></div>
+                ) : g.abertas.length > 0 && (
+                  <div className="cb-info">
+                    <span>{t('Próxima')} {x.p.n}/{x.total} · {celulaData(x)}</span>
+                    <b>{brl(x.falta)}</b>
+                  </div>
+                )}
+                {!naoPagos && g.encargo > 0 && <small className="cb-detalhe bad">{t('com {valor} de atraso', { valor: brl(g.encargo) })}</small>}
+
+                <div className="cb-rodape">
+                  {g.parcelas.length > 1
+                    ? <button className="link pequeno" onClick={() => setAbertos({ ...abertos, [g.v.id]: !aberto })}>{t('{pagas} de {total} pagas', { pagas: g.pagas, total: g.parcelas.length })} {aberto ? '▴' : '▾'}</button>
+                    : <small>{t('Parcela única')}</small>}
+                  {!aberto && <span className="acoes-fiado">{acoes(x)}</span>}
+                </div>
+
+                {aberto && (
+                  <div className="cb-parcelas">
+                    {g.parcelas.map((y) => {
+                      const sy = SITUACOES[y.situacao]
+                      return (
+                        <div key={y.p.id} className="cb-parcela">
+                          <div className="cb-parcela-linha">
+                            <span><b>{t('Parcela {n} de {total}', { n: y.p.n, total: y.total })}</b><small>{celulaData(y)}</small></span>
+                            <span className="cb-valor">
+                              <b>{y.situacao === 'paga' ? brl(y.p.valor) : brl(y.falta + y.enc)}</b>
+                              <span className={'cb-selo ' + sy.classe}>{t(sy.nome)}</span>
+                            </span>
+                          </div>
+                          {y.recebido > 0 && y.situacao !== 'paga' && <small className="ok">{t('recebido {valor}', { valor: brl(y.recebido) })}</small>}
+                          {y.enc > 0 && <small className="bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(y.enc), n: y.atraso.dias })}</small>}
+                          <div className="acoes-fiado">{acoes(y)}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ) : (
       <div className="tw">
         <table>
           <thead>
@@ -303,6 +387,7 @@ export default function Fiado({ db, executar, irPara }) {
           </tbody>
         </table>
       </div>
+      )}
     </section>
   )
 

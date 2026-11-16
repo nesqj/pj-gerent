@@ -1070,3 +1070,38 @@ i.q.fat { background: var(--bd-forte) } i.q.luc { background: var(--verde) } i.q
 .cb-busca { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px }
 .cb-busca .busca { width: 100%; border-radius: 999px }
 
+
+/* ---------- Cobranças: lista em cartões (celular) ---------- */
+.cb-lista { display: flex; flex-direction: column; gap: 10px }
+.cb-vazio { background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 22px 18px; text-align: center; color: var(--mut) }
+.cb-item { background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px }
+.cb-item.atrasada { border-color: color-mix(in srgb, var(--bad) 45%, var(--bd)) }
+.cb-topo { display: flex; align-items: center; gap: 12px }
+.cb-avatar { flex: 0 0 40px; height: 40px; border-radius: 50%; background: var(--campo); display: grid; place-items: center; font-weight: 700; color: var(--txt) }
+.cb-quem { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.cb-quem b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.cb-quem small, .cb-detalhe { color: var(--mut); font-size: 13px }
+.cb-detalhe.bad { color: var(--bad) }
+.cb-valor { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: 0 0 auto }
+.cb-valor b { font-size: 16px; white-space: nowrap }
+.cb-selo { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--campo); color: var(--mut) }
+.cb-selo.bad { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad) }
+.cb-selo.ok { background: var(--verde-fundo); color: var(--verde-txt) }
+.cb-selo.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn) }
+.cb-info { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--campo); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-top: 4px }
+.cb-info span { color: var(--mut) }
+.cb-info .inline-form { display: inline-flex }
+.cb-rodape { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px }
+.cb-rodape small { color: var(--mut) }
+.cb-rodape .acoes-fiado { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end }
+.cb-parcelas { display: flex; flex-direction: column; border-top: 1px solid var(--bd); margin-top: 6px }
+.cb-parcela { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--bd) }
+.cb-parcela:last-child { border-bottom: none; padding-bottom: 0 }
+.cb-parcela-linha { display: flex; justify-content: space-between; gap: 10px }
+.cb-parcela-linha > span:first-child { display: flex; flex-direction: column; gap: 2px; font-size: 14px }
+.cb-parcela-linha small { color: var(--mut) }
+.cb-parcela .acoes-fiado { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end }
+.cb-parcela .acoes-fiado:empty { display: none }
+.cb-item .acoes-fiado { width: 100%; justify-content: flex-start !important }
+.cb-item .acoes-fiado .inline-form { flex-wrap: wrap; width: 100% }
+.cb-item .inline-form button.sec { flex: 0 0 auto; width: auto }
