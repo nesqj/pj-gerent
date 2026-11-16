@@ -1120,7 +1120,6 @@ export default {
   'Mudar o custo': 'Change the cost',
   'lucro − outras despesas': 'profit − other expenses',
   'anterior: {valor}': 'previous: {valor}',
-  'Lucro bruto = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Lucro líquido = lucro bruto − outras despesas.': 'Gross profit = sale price − cost. On credit, each paid installment brings its share of the profit (with interest), plus late fees received. Net profit = gross profit − other expenses.',
   'Escolha um produto.': 'Choose a product.',
   'Nenhum produto encontrado.': 'No product found.',
   'Buscar cliente ou cadastrar novo...': 'Search customer or add new...',

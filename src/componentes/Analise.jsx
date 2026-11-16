@@ -255,7 +255,6 @@ export default function Analise({ db }) {
               <Participacao linhas={pagamentos} total={r.faturamento} />
             </div>
           </div>
-          <small>{t('Lucro bruto = preço vendido − custo. No fiado, conta a parte do lucro (com os juros) de cada parcela quando ela é paga, mais a multa e os juros de atraso recebidos. Lucro líquido = lucro bruto − outras despesas.')}</small>
         </>
       )}
       </>)}
