@@ -4,9 +4,10 @@ import { podeFazer } from '../armazenamento.js'
 import { custosDasVendas, reservadoCustos } from '../utils.js'
 import { brl, calcularEstoque, extratoCaixa, faturamentoVenda, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
 import {
-  IconeCaixa, IconeCaixaProduto, IconeCarrinho, IconeCobranca, IconeDireita, IconeFechar, IconeFiado, IconeOlho, IconeOlhoFechado, IconeSino, IconeUsuarios,
+  IconeCaixa, IconeCaixaProduto, IconeCalculadora, IconeCarrinho, IconeCobranca, IconeDireita, IconeFechar, IconeFiado, IconeOlho, IconeOlhoFechado, IconeSino, IconeUsuarios,
 } from '../icones.jsx'
 import { Avatar } from './MinhaConta.jsx'
+import { Calculadora } from './VenderMenu.jsx'
 
 // Início: o que está acontecendo hoje, numa olhada só. Não calcula nada novo:
 // usa as mesmas contas do Novo Registro (vendas do dia), do Controle de caixa (saldo e reservado),
@@ -22,6 +23,7 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
   // 👁 esconde os valores (fica guardado neste aparelho)
   const [oculto, setOculto] = useState(() => { try { return localStorage.getItem(OCULTAR) === '1' } catch { return false } })
   const [verAvisos, setVerAvisos] = useState(false)
+  const [calculadora, setCalculadora] = useState(false)
   const alternarOculto = () => { const v = !oculto; setOculto(v); try { localStorage.setItem(OCULTAR, v ? '1' : '0') } catch { /* sem acesso */ } }
   const R = (v) => (oculto ? 'R$ ••••' : brl(v))
 
@@ -69,6 +71,7 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
     completo && { nome: 'Retirar', icone: IconeCaixa, acao: () => irPara('caixa') },
     { nome: 'Estoque', icone: IconeCaixaProduto, acao: () => irPara('estoque') },
     { nome: 'Clientes', icone: IconeUsuarios, acao: () => irPara('clientes') },
+    { nome: 'Calculadora', icone: IconeCalculadora, acao: () => setCalculadora(true) },
   ].filter(Boolean)
 
   const primeiroNome = String(nome || '').trim().split(/\s+/)[0]
@@ -165,6 +168,7 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
           </div>
         )}
       </div>
+      {calculadora && <Calculadora onFechar={() => setCalculadora(false)} />}
     </section>
   )
 }
