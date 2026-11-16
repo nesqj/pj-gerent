@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { IconeBaixar, IconeBusca, IconeCaixa, IconeEntrada, IconeFechar, IconeFiltros, IconeOlho, IconeOlhoFechado, IconeSaida, IconeSeta } from '../icones.jsx'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
@@ -118,7 +118,7 @@ function ControleCaixa({ db, ext, executar, irPara, nomeLoja }) {
   const aPagar = custosDasVendas(db).filter((c) => !c.pago && (c.data || 0) >= ext.inicio).sort((a, b) => a.data - b.data)
   const grupos = [...aPagar.reduce((m, c) => {
     const k = c.tipo === 'fornecedor' ? 'f:' + (c.fornecedorId || c.fornecedor) : 'avulso'
-    if (!m.has(k)) m.set(k, { k, nome: c.tipo === 'fornecedor' ? (c.fornecedor || t('Fornecedor')) : t('Produtos e serviços avulsos'), itens: [], total: 0 })
+    if (!m.has(k)) m.set(k, { k, nome: c.tipo === 'fornecedor' ? (c.fornecedor || t('Fornecedor')) : t('Avulsos'), itens: [], total: 0 })
     const g = m.get(k); g.itens.push(c); g.total = Math.round((g.total + c.valor) * 100) / 100
     return m
   }, new Map()).values()].sort((a, b) => b.total - a.total)
@@ -228,30 +228,25 @@ function ControleCaixa({ db, ext, executar, irPara, nomeLoja }) {
             <IconeSeta aberto={custosAbertos} />
           </button>
           {custosAbertos && (
-            <div className="tw ex-custos">
-              <table className="custos-pagar">
-                <thead><tr><th>{t('Para quem')}</th><th className="n">{t('Itens')}</th><th className="n">{t('Valor')}</th><th></th></tr></thead>
-                <tbody>
-                  {grupos.map((g) => (
-                    <Fragment key={g.k}>
-                      <tr className="linha-grupo">
-                        <td><b>{g.nome}</b></td>
-                        <td className="n"><button className="link pequeno" onClick={() => setAbertoCusto({ ...abertoCusto, [g.k]: !abertoCusto[g.k] })}>{t('{n} item(ns)', { n: g.itens.length })} {abertoCusto[g.k] ? '▴' : '▾'}</button></td>
-                        <td className="n"><b>{brl(g.total)}</b></td>
-                        <td className="n"><button onClick={() => pagar(g.itens, g.nome)}>{t('Paguei')}</button></td>
-                      </tr>
-                      {abertoCusto[g.k] && g.itens.map((c) => (
-                        <tr key={c.chave} className="linha-parcela">
-                          <td><small>{dataBR(c.dia)} · {c.qtd}× {c.produto}</small></td>
-                          <td></td>
-                          <td className="n"><small>{brl(c.valor)}</small></td>
-                          <td className="n"><button className="sec" onClick={() => pagar([c], `${g.nome}: ${c.produto}`)}>{t('Paguei')}</button></td>
-                        </tr>
-                      ))}
-                    </Fragment>
+            <div className="ex-custos">
+              {grupos.map((g) => (
+                <div key={g.k} className="ex-custo">
+                  <div className="ex-custo-topo">
+                    <span className="ex-mov-txt"><b>{g.nome}</b>
+                      <button className="link pequeno" onClick={() => setAbertoCusto({ ...abertoCusto, [g.k]: !abertoCusto[g.k] })}>{t('{n} item(ns)', { n: g.itens.length })} {abertoCusto[g.k] ? '▴' : '▾'}</button>
+                    </span>
+                    <b className="ex-mov-valor">{R(g.total)}</b>
+                    <button className="ex-pagar" onClick={() => pagar(g.itens, g.nome)}>{t('Paguei')}</button>
+                  </div>
+                  {abertoCusto[g.k] && g.itens.map((c) => (
+                    <div key={c.chave} className="ex-custo-item">
+                      <span className="ex-mov-txt"><b>{c.qtd}× {c.produto}</b><small>{dataBR(c.dia)}</small></span>
+                      <span className="ex-mov-valor">{R(c.valor)}</span>
+                      <button className="ex-pagar clara" onClick={() => pagar([c], `${g.nome}: ${c.produto}`)}>{t('Paguei')}</button>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              ))}
             </div>
           )}
         </>

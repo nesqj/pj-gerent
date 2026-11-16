@@ -1159,10 +1159,8 @@ export default {
   'Dinheiro no caixa': 'Cash on hand',
   'Livre para você': 'Free for you',
   'Custos a pagar': 'Costs to pay',
-  'Para quem': 'To whom',
   '{n} item(ns)': '{n} item(s)',
   'Paguei': 'Paid',
-  'Produtos e serviços avulsos': 'One-off products and services',
   'Custo pago': 'Cost paid',
   'Custo pago.': 'Cost paid.',
   'Marcar como pago {valor} ({descricao})?\nEsse valor sai do caixa agora.': 'Mark {valor} ({descricao}) as paid?\nThis amount leaves the cash now.',
@@ -1222,4 +1220,5 @@ export default {
   'Termos e políticas': 'Terms and policies',
   'Termos de uso': 'Terms of use',
   'Política de privacidade': 'Privacy policy',
+  'Avulsos': 'One-off items',
 }

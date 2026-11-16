@@ -527,9 +527,6 @@ button.login-botao.sec { margin-top: 8px }
 }
 
 /* ---------- Caixa ---------- */
-.card.destaque-caixa { border-color: var(--pri-borda); background: var(--pri-suave) }
-.card.destaque-caixa b { font-size: 22px }
-tr.linha-inicial td { color: var(--mut); font-style: italic }
 input.campo-erro { border-color: var(--bad) !important; box-shadow: 0 0 0 3px var(--bad-borda) }
 
 /* ---------- Janela de confirmação (no estilo do PJ CRM) ---------- */
@@ -632,7 +629,6 @@ i.q.ven { background: var(--cor-vendas); opacity: .7 }
 /* ---------- Valores dos cards: nunca quebram de linha; diminuem um pouco quando o número é grande ---------- */
 .card { container-type: inline-size; min-width: 0 }
 .card b { white-space: nowrap; font-size: clamp(14px, 12.5cqi, 18px); font-variant-numeric: tabular-nums }
-.card.destaque-caixa b { font-size: clamp(15px, 14cqi, 22px) }
 @media (max-width: 767px) { .card b { font-size: clamp(13px, 12.5cqi, 16px) } }
 
 /* ---------- Pagamento dividido e fiado ---------- */
@@ -805,8 +801,6 @@ label.chave input:focus-visible + .trilho { outline: 2px solid var(--pri); outli
 /* campos de busca: todos com a lupa */
 input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239b9890' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 11px center }
 /* Início */
-.ponto-alerta { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--warn) }
-.ponto-alerta.bad { background: var(--bad) }
 .inicio-titulo { display: flex; justify-content: space-between; align-items: center; gap: 10px }
 .inicio-titulo h3 { margin: 0 }
 .inicio-vendas { display: flex; flex-direction: column }
@@ -998,7 +992,14 @@ section .notif-titulo, .notif-titulo { display: block; font-size: 30px; margin: 
 .ex-aviso { text-align: center }
 .ex-form { border-radius: 18px }
 .ex-form form { border: none; padding: 0; background: none }
-.ex-custos { margin: -8px 0 20px }
+.ex-custos { display: flex; flex-direction: column; gap: 8px; margin: -10px 0 20px }
+.ex-custo { background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 14px 16px }
+.ex-custo-topo, .ex-custo-item { display: flex; align-items: center; gap: 12px }
+.ex-custo-topo .link { align-self: flex-start; padding: 0; min-height: 0 }
+.ex-custo-item { border-top: 1px solid var(--bd); margin-top: 12px; padding-top: 12px }
+.ex-custo-item .ex-mov-txt b { font-weight: 500; font-size: 14px }
+.ex-pagar { border-radius: 999px; padding: 7px 16px; min-height: 0 !important; font-size: 14px; flex: 0 0 auto }
+.ex-pagar.clara { background: transparent; color: var(--txt); border: 1px solid var(--bd-forte) }
 .ex-ferramentas { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px }
 .ex-circulo { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1px solid var(--bd); color: var(--txt); cursor: pointer; padding: 0 }
 .ex-circulo.ativo { border-color: var(--txt) }
