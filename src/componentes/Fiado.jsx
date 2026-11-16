@@ -190,7 +190,7 @@ export default function Fiado({ db, executar, irPara }) {
         <div className={'card' + (cards.atrasado > 0 ? ' card-prejuizo' : '')}><small>{t('Atrasado')}</small><b className={cards.atrasado > 0 ? 'bad' : ''}>{brl(cards.atrasado)}</b><small className="var">{t('{n} parcela(s)', { n: cards.nAtrasado })}</small>{cards.encargos > 0 && <small className="var bad">{t('+ {valor} de multa e juros', { valor: brl(cards.encargos) })}</small>}</div>
         <div className="card"><small>{t('Vence em 7 dias')}</small><b>{brl(cards.semana)}</b></div>
         <div className="card"><small>{t('Não pagos')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{brl(cards.naoPago)}</b>
-          {cards.naoPago > 0 && <small className={'var' + (cards.prejuizo > 0 ? ' bad' : '')}>{cards.prejuizo > 0 ? t('prejuízo {valor}', { valor: brl(cards.prejuizo) }) : t('sem prejuízo')}</small>}</div>
+          {cards.prejuizo > 0 && <small className="var bad">{t('prejuízo {valor}', { valor: brl(cards.prejuizo) })}</small>}</div>
       </div>
 
       <div className="config-atraso">
