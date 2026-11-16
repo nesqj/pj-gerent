@@ -1,5 +1,5 @@
-// Gráfico da Análise (SVG puro, sem biblioteca): faturamento, lucro e vendas por dia (ou por hora).
-// Faturamento e lucro em colunas lado a lado (eixo da esquerda, R$); vendas em pontos (eixo da direita, quantidade).
+// Gráfico da Análise (SVG puro, sem biblioteca): faturamento e lucro por dia (ou por hora), em barras arredondadas.
+// Barra cinza = faturamento (ou o valor emprestado); barra verde por cima = lucro. Tocar/passar o mouse mostra os números do dia.
 // O desenho acompanha a largura real da tela, então o texto fica sempre do mesmo tamanho.
 import { useEffect, useRef, useState } from 'react'
 import { t } from '../i18n.js'
@@ -16,7 +16,7 @@ function escala(min, max, partes = 4) {
   const hi = Math.max(passo, Math.ceil(max / passo) * passo)
   const ticks = []
   for (let v = lo; v <= hi + 1e-9; v += passo) ticks.push(Math.round(v * 100) / 100)
-  return { lo, hi, ticks, passo }
+  return { lo, hi, ticks }
 }
 
 // Largura real do elemento (para o SVG não esticar o texto)
@@ -34,88 +34,69 @@ function useLargura(padrao = 720) {
   return [ref, largura]
 }
 
-// Estilo "bolsa": faturamento e lucro em linhas na parte de cima (R$) e
-// vendas em colunas discretas numa faixa embaixo (quantidade), sem disputar espaço com as linhas.
-const NOMES_PADRAO = { valor: 'Faturamento', lucro: 'Lucro', qtd: 'Vendas', eixo: 'vendas' }
-export function GraficoLinhas({ serie, rotuloDica, nomes: nomesDados }) {
+// barra com os cantos de cima (ou de baixo, se negativa) arredondados
+function barra(x, y0, y1, w) {
+  const alto = Math.abs(y1 - y0)
+  if (alto < 0.5) return ''
+  const r = Math.min(w / 2, 6, alto)
+  const topo = Math.min(y0, y1), base = Math.max(y0, y1)
+  if (y1 <= y0) return `M${x},${base} V${topo + r} Q${x},${topo} ${x + r},${topo} H${x + w - r} Q${x + w},${topo} ${x + w},${topo + r} V${base} Z`
+  return `M${x},${topo} V${base - r} Q${x},${base} ${x + r},${base} H${x + w - r} Q${x + w},${base} ${x + w},${base - r} V${topo} Z`
+}
+
+const NOMES_PADRAO = { valor: 'Faturamento', lucro: 'Lucro', qtd: 'Vendas' }
+export function GraficoBarras({ serie, rotuloDica, nomes: nomesDados }) {
   const nomes = { ...NOMES_PADRAO, ...nomesDados }
   const [ref, L] = useLargura()
   const [hover, setHover] = useState(null)
-  // margem da esquerda cabe o nome da faixa de baixo ("vendas", "empréstimos"...)
-  const A = 320, esq = Math.max(56, Math.round(t(nomes.eixo).length * 6.5) + 16), dir = 40, topo = 16, base = 30, vao = 14
+  const A = 250, esq = 46, dir = 10, topo = 12, base = 28
   const larg = L - esq - dir
-  const altTotal = A - topo - base
-  const altLinhas = Math.round((altTotal - vao) * 0.74)
-  const altVendas = altTotal - vao - altLinhas
-  const topoVendas = topo + altLinhas + vao
+  const alt = A - topo - base
 
-  // parte de cima: R$ (faturamento e lucro)
   const reais = serie.flatMap((d) => [d.valor, d.lucro])
   const { lo, hi, ticks } = escala(Math.min(...reais, 0), Math.max(...reais, 0))
-  const y = (v) => topo + altLinhas - ((v - lo) / (hi - lo)) * altLinhas
-  // faixa de baixo: quantidade de vendas
-  const maxV = Math.max(...serie.map((d) => d.vendas), 1)
-  const yV = (v) => topoVendas + altVendas - (v / maxV) * altVendas
+  const y = (v) => topo + alt - ((v - lo) / (hi - lo)) * alt
 
   const banda = larg / serie.length
-  const xc = (i) => esq + banda * i + banda / 2
-  const largBarra = Math.max(2, Math.min(16, banda * 0.6))
-  const cadaRotulo = Math.max(1, Math.ceil(serie.length / Math.max(2, Math.floor(larg / 70))))
+  const x0 = (i) => esq + banda * i
+  const w = Math.max(3, Math.min(22, banda * 0.62))
+  const xb = (i) => x0(i) + (banda - w) / 2
+  const cadaRotulo = Math.max(1, Math.ceil(serie.length / Math.max(2, Math.floor(larg / 64))))
   const h = hover != null ? serie[hover] : null
-  const linha = (f) => serie.map((d, i) => `${i ? 'L' : 'M'}${xc(i).toFixed(1)},${f(d).toFixed(1)}`).join(' ')
-  const comVenda = serie.map((d, i) => (d.vendas > 0 ? i : null)).filter((i) => i != null)
 
   return (
-    <div className="grafico diario bolsa" ref={ref} onMouseLeave={() => setHover(null)}>
+    <div className="grafico diario barras" ref={ref} onMouseLeave={() => setHover(null)}>
       <div className="legenda-topo">
-        <span><i className="l fat" />{t(nomes.valor)}</span>
-        <span><i className="l luc" />{t(nomes.lucro)}</span>
-        <span><i className="q ven" />{t(nomes.qtd)}</span>
+        <span><i className="q fat" />{t(nomes.valor)}</span>
+        <span><i className="q luc" />{t(nomes.lucro)}</span>
       </div>
-      <svg width={L} height={A} viewBox={`0 0 ${L} ${A}`} role="img" aria-label={t('Faturamento, lucro e vendas')}>
-        {/* grade da parte de cima (R$) */}
+      <svg width={L} height={A} viewBox={`0 0 ${L} ${A}`} role="img" aria-label={t(nomes.valor)}>
         {ticks.map((tk) => (
           <g key={tk}>
             <line x1={esq} x2={L - dir} y1={y(tk)} y2={y(tk)} className={'grade' + (tk === 0 ? ' zero' : '')} />
-            <text x={esq - 10} y={y(tk) + 4} textAnchor="end" className="eixo">{compacto(tk)}</text>
+            <text x={esq - 8} y={y(tk) + 4} textAnchor="end" className="eixo">{compacto(tk)}</text>
           </g>
         ))}
-        {/* faixa de vendas: base, topo e o máximo à direita */}
-        <line x1={esq} x2={L - dir} y1={topoVendas + altVendas} y2={topoVendas + altVendas} className="grade zero" />
-        <text x={L - dir + 10} y={topoVendas + 10} textAnchor="start" className="eixo eixo-vendas">{maxV}</text>
-        <text x={L - dir + 10} y={topoVendas + altVendas + 4} textAnchor="start" className="eixo eixo-vendas">0</text>
-        <text x={esq - 10} y={topoVendas + altVendas / 2 + 4} textAnchor="end" className="eixo eixo-vendas">{t(nomes.eixo)}</text>
-        {/* dia sob o mouse */}
-        {hover != null && <rect x={esq + banda * hover} y={topo} width={banda} height={altTotal} className="faixa-hover" />}
-        {/* vendas em colunas discretas */}
-        {serie.map((d, i) => d.vendas > 0 && (
-          <rect key={'v' + i} x={xc(i) - largBarra / 2} y={yV(d.vendas)} width={largBarra} height={topoVendas + altVendas - yV(d.vendas)} rx="2"
-            className={'barra-vendas' + (hover === i ? ' ativa' : '')} />
-        ))}
-        {/* faturamento e lucro em linhas, com ponto nos dias com venda */}
-        <path d={linha((d) => y(d.valor))} className="linha-fat" />
-        <path d={linha((d) => y(d.lucro))} className="linha-luc" />
-        {comVenda.map((i) => (
-          <g key={'p' + i}>
-            <circle cx={xc(i)} cy={y(serie[i].valor)} r={hover === i ? 5 : 3.5} className="ponto-fat" />
-            <circle cx={xc(i)} cy={y(serie[i].lucro)} r={hover === i ? 5 : 3.5} className={serie[i].lucro < 0 ? 'ponto-preju' : 'ponto-luc'} />
-          </g>
-        ))}
-        {/* rótulos do eixo X */}
-        {serie.map((d, i) => i % cadaRotulo === 0 && (
-          <text key={'x' + i} x={xc(i)} y={A - 10} textAnchor="middle" className="eixo">{d.rotulo}</text>
-        ))}
-        {/* áreas de mouse */}
+        {hover != null && <rect x={x0(hover) + 2} y={topo} width={banda - 4} height={alt} rx="8" className="faixa-hover" />}
         {serie.map((d, i) => (
-          <rect key={'h' + i} x={esq + banda * i} y={topo} width={banda} height={altTotal} fill="transparent" onMouseEnter={() => setHover(i)} />
+          <g key={i} className={hover != null && hover !== i ? 'apagada' : ''}>
+            <path d={barra(xb(i), y(0), y(d.valor), w)} className="barra-fat" />
+            <path d={barra(xb(i), y(0), y(d.lucro), w)} className={d.lucro < 0 ? 'barra-preju' : 'barra-luc'} />
+          </g>
+        ))}
+        {serie.map((d, i) => i % cadaRotulo === 0 && (
+          <text key={'x' + i} x={x0(i) + banda / 2} y={A - 8} textAnchor="middle" className="eixo">{d.rotulo}</text>
+        ))}
+        {serie.map((d, i) => (
+          <rect key={'h' + i} x={x0(i)} y={topo} width={banda} height={alt} fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} />
         ))}
       </svg>
       {h && (
-        <div className="dica dica-diario" style={{ left: Math.min(L - 110, Math.max(110, xc(hover))) }}>
+        <div className="dica dica-diario" style={{ left: Math.min(L - 110, Math.max(110, x0(hover) + banda / 2)) }}>
           <b>{rotuloDica(h)}</b>
-          <div className="dica-linha"><i className="l fat" />{t(nomes.valor)}<span>{brl(h.valor)}</span></div>
-          <div className="dica-linha"><i className={'l ' + (h.lucro < 0 ? 'preju' : 'luc')} />{h.lucro < 0 ? t('Prejuízo') : t(nomes.lucro)}<span className={h.lucro < 0 ? 'bad' : ''}>{brl(h.lucro)}</span></div>
-          <div className="dica-linha"><i className="q ven" />{t(nomes.qtd)}<span>{h.vendas}</span></div>
+          <div className="dica-linha"><i className="q fat" />{t(nomes.valor)}<span>{brl(h.valor)}</span></div>
+          <div className="dica-linha"><i className={'q ' + (h.lucro < 0 ? 'preju' : 'luc')} />{h.lucro < 0 ? t('Prejuízo') : t(nomes.lucro)}<span className={h.lucro < 0 ? 'bad' : ''}>{brl(h.lucro)}</span></div>
+          <div className="dica-linha">{t(nomes.qtd)}<span>{h.vendas}</span></div>
         </div>
       )}
     </div>

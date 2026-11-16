@@ -229,7 +229,6 @@ input.somente-leitura { background: transparent; border-style: dashed; color: va
 .segmentado button:hover { filter: none; color: var(--txt) }
 .segmentado.pequeno button { padding: 4px 10px; font-size: 13px }
 .datas { display: flex; gap: 8px; align-items: center; color: var(--mut) }
-.indicadores .card { gap: 3px }
 .var { font-size: 12px; color: var(--mut) }
 .var.ok, .var.bad { font-weight: 500 }
 .painel-titulo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 10px }
@@ -248,8 +247,8 @@ input.somente-leitura { background: transparent; border-style: dashed; color: va
 .participacao { display: flex; flex-direction: column; gap: 10px }
 .part-linha { display: grid; grid-template-columns: 80px 1fr auto; gap: 10px; align-items: center }
 .part-nome { color: var(--mut); font-size: 13px; text-transform: capitalize }
-.part-trilho { height: 10px; background: var(--campo); border-radius: 5px; overflow: hidden }
-.part-barra { height: 100%; background: var(--pri); border-radius: 0 4px 4px 0 }
+.part-trilho { height: 10px; background: var(--campo); border-radius: 999px; overflow: hidden }
+.part-barra { height: 100%; background: var(--verde); border-radius: 999px }
 .part-valor { font-size: 13px; text-align: right; white-space: nowrap }
 
 /* ---------- Estoque ---------- */
@@ -292,8 +291,7 @@ form.form-config label small, form.form-config .campo-arquivo small { font-weigh
 form.form-config label small.bad, form.form-config .campo-arquivo small.bad { color: var(--bad) }
 form.form-config input:disabled { opacity: .6 }
 .acoes-form { display: flex; justify-content: flex-end; grid-column: 1 / -1 }
-.avatar-linha, .cor-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
-.avatar-linha input { flex: 1 }
+.cor-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
 .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--campo) }
 .avatar-letra { display: grid; place-items: center; font-weight: 700; color: var(--pri-txt); background: var(--pri); font-size: 15px }
 input[type=color] { width: 44px; height: 40px; padding: 3px; cursor: pointer }
@@ -396,7 +394,6 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
   .cards { grid-template-columns: 1fr 1fr; gap: 8px }
   .card { padding: 10px 12px }
   .card b { font-size: 16px }
-  .indicadores .card .var { font-size: 11px }
 
   /* Configurações e Fornecedores */
   .lista-forn, .ajuda, .duas-colunas { grid-template-columns: 1fr }
@@ -592,14 +589,13 @@ tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent
 
 
 /* ---------- Gráfico diário: faturamento e lucro (colunas) + vendas (pontos) ---------- */
-:root { --cor-lucro: var(--ok); --cor-vendas: #f5a524 }
+:root { --cor-lucro: var(--ok); --cor-vendas: var(--bd-forte) }
 :root[data-theme="light"] { --cor-vendas: #d98a06 }
 .grafico.diario { position: relative; overflow: hidden }
 .grafico.diario svg { width: 100%; height: 300px; display: block }
 .grafico.diario .grade { stroke: var(--bd); stroke-width: 1; opacity: .7 }
 .grafico.diario .grade.zero { stroke: var(--bd-forte); opacity: 1 }
 .grafico.diario .eixo { fill: var(--mut); font-size: 11px; font-variant-numeric: tabular-nums }
-.grafico.diario .eixo-vendas { fill: var(--cor-vendas); opacity: .75 }
 .grafico.diario .faixa-hover { fill: var(--txt); opacity: .05 }
 .legenda-topo { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--mut); margin: 0 0 8px }
 .legenda-topo small { opacity: .75 }
@@ -612,17 +608,6 @@ i.q.fat { background: var(--pri) } i.q.luc { background: var(--cor-lucro) } i.q.
 .dica-linha span { margin-left: auto; padding-left: 16px; color: var(--txt); font-weight: 600; font-variant-numeric: tabular-nums }
 /* estilo "bolsa": linhas em cima, vendas em colunas embaixo */
 .grafico.diario.bolsa svg { height: 320px }
-.grafico.diario .linha-fat { fill: none; stroke: var(--pri); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round }
-.grafico.diario .linha-luc { fill: none; stroke: var(--cor-lucro); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round }
-.grafico.diario .ponto-fat { fill: var(--card); stroke: var(--pri); stroke-width: 2 }
-.grafico.diario .ponto-luc { fill: var(--card); stroke: var(--cor-lucro); stroke-width: 2 }
-.grafico.diario .ponto-preju { fill: var(--card); stroke: var(--bad); stroke-width: 2 }
-.grafico.diario .barra-vendas { fill: var(--cor-vendas); opacity: .45 }
-.grafico.diario .barra-vendas.ativa { opacity: .85 }
-.grafico.diario i.l, .dica-diario i.l { display: inline-block; width: 14px; height: 0; border-top: 2.5px solid; margin-right: 6px; vertical-align: 3px }
-.grafico.diario i.l.fat, .dica-diario i.l.fat { border-color: var(--pri) }
-.grafico.diario i.l.luc, .dica-diario i.l.luc { border-color: var(--cor-lucro) }
-.grafico.diario i.l.preju, .dica-diario i.l.preju { border-color: var(--bad) }
 i.q.ven { background: var(--cor-vendas); opacity: .7 }
 
 
@@ -1042,3 +1027,34 @@ section .notif-titulo, .notif-titulo { display: block; font-size: 30px; margin: 
 .foto-config { display: flex; align-items: center; gap: 14px }
 .foto-config .avatar { width: 56px; height: 56px; font-size: 22px }
 
+/* ---------- Análise no estilo do app ---------- */
+.an-abas { display: inline-flex; background: var(--card); border: 1px solid var(--bd); border-radius: 999px; padding: 4px; gap: 4px; margin-bottom: 14px }
+.an-abas button { background: none; border: none; color: var(--mut); border-radius: 999px; padding: 8px 18px; font-weight: 600; cursor: pointer; min-height: 0 !important }
+.an-abas button.on { background: var(--pri); color: var(--pri-txt) }
+.an-periodo { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px }
+.an-periodo > small { color: var(--mut) }
+.an-pilulas { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px }
+.an-pilulas::-webkit-scrollbar { display: none }
+.an-pilulas button { flex: 0 0 auto; border-radius: 999px; padding: 8px 16px; background: var(--card); color: var(--txt); border: 1px solid var(--bd); font-weight: 500; cursor: pointer; min-height: 0 !important }
+.an-pilulas button.on { background: var(--pri); color: var(--pri-txt); border-color: var(--pri) }
+.an-destaque { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px }
+.an-destaque small { color: var(--mut); font-size: 14px }
+.an-destaque b { font-size: 36px; letter-spacing: -.01em; line-height: 1.1 }
+.an-destaque .var { font-size: 13px }
+.an-cartoes { margin-bottom: 18px }
+/* painéis e gráfico arredondados como o resto do app */
+.painel { border-radius: 18px }
+.grafico.diario .grade { stroke-dasharray: 3 5; opacity: .6 }
+.grafico.diario .grade.zero { stroke-dasharray: none }
+.dica.dica-diario { border-radius: 14px; box-shadow: 0 10px 30px var(--sombra) }
+.lp-linha { padding: 10px 0 }
+
+/* gráfico de barras arredondadas */
+.grafico.barras svg { width: 100%; height: 250px; display: block }
+.grafico.barras .barra-fat { fill: var(--bd-forte) }
+.grafico.barras .barra-luc { fill: var(--verde) }
+.grafico.barras .barra-preju { fill: var(--bad) }
+.grafico.barras g.apagada { opacity: .45 }
+.grafico.barras .faixa-hover { fill: var(--txt); opacity: .05 }
+.grafico.barras i.q, .dica-diario i.q { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px }
+i.q.fat { background: var(--bd-forte) } i.q.luc { background: var(--verde) } i.q.preju { background: var(--bad) }

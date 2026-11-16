@@ -3,7 +3,7 @@ import { t } from '../i18n.js'
 import { TROCA } from '../utils.js'
 import { brl, dataBR, faturamentoVenda, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
-import { GraficoLinhas } from './Graficos.jsx'
+import { GraficoBarras } from './Graficos.jsx'
 
 // ---------- Datas ----------
 const paraDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -117,12 +117,6 @@ export default function Analise({ db }) {
   ra.lucro = somaLucros(evLucro, antDe, antAte)
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
   const lucroTotal = Math.round(r.lucro * 100) / 100
-  // outras despesas: o que saiu do caixa como "Despesa da loja" (luz, aluguel, insumos...). Retirada pessoal não conta.
-  const outrasDespesas = (a, b) => Math.round((db.movCaixa || []).filter((m) => m.tipo === 'retirar' && m.categoria === 'despesa' && m.dia >= a && m.dia <= b)
-    .reduce((s, m) => s + (+m.valor || 0), 0) * 100) / 100
-  const outras = outrasDespesas(de, ate)
-  // lucro líquido: o que sobrou de verdade (o custo dos produtos já sai do lucro bruto)
-  const resultado = Math.round((lucroTotal - outras) * 100) / 100
 
   // série do gráfico: por hora quando é um dia só, senão por dia (faturamento e lucro)
   let serie
@@ -163,15 +157,15 @@ export default function Analise({ db }) {
       <h2>{t('Análise')}</h2>
 
       {comEmprestimos && (
-        <div className="chips modo-registro">
-          <button className={'filtro' + (aba === 'vendas' ? ' ativo' : '')} onClick={() => setAba('vendas')}>{t('Vendas')}</button>
-          <button className={'filtro' + (aba === 'emprestimos' ? ' ativo' : '')} onClick={() => setAba('emprestimos')}>{t('Empréstimos')}</button>
+        <div className="an-abas">
+          <button className={aba === 'vendas' ? 'on' : ''} onClick={() => setAba('vendas')}>{t('Vendas')}</button>
+          <button className={aba === 'emprestimos' ? 'on' : ''} onClick={() => setAba('emprestimos')}>{t('Empréstimos')}</button>
         </div>
       )}
 
       {/* ---------- Período ---------- */}
-      <div className="filtros">
-        <div className="segmentado">
+      <div className="an-periodo">
+        <div className="an-pilulas">
           {PERIODOS.map((p) => (
             <button key={p.id} className={tipo === p.id ? 'on' : ''} onClick={() => setTipo(p.id)}>{t(p.nome)}</button>
           ))}
@@ -190,21 +184,20 @@ export default function Analise({ db }) {
         <AnaliseEmprestimos db={db} de={de} ate={ate} n={n} />
       ) : (<>
       {/* ---------- Indicadores ---------- */}
-      <div className="cards indicadores">
-        <div className="card destaque"><small>{t('Faturamento')}</small><b>{brl(r.faturamento)}</b><Variacao atual={r.faturamento} anterior={ra.faturamento} /></div>
-        <div className={'card' + (lucroTotal < 0 ? ' card-prejuizo' : '')}>
+      <div className="an-destaque">
+        <small>{t('Faturamento')}</small>
+        <b>{brl(r.faturamento)}</b>
+        <Variacao atual={r.faturamento} anterior={ra.faturamento} />
+      </div>
+      <div className="in-hoje an-cartoes">
+        <div className="in-numero">
           <small>{lucroTotal < 0 ? t('Prejuízo bruto') : t('Lucro bruto')}</small>
           <b className={lucroTotal < 0 ? 'bad' : 'ok'}>{lucroTotal < 0 ? '− ' + brl(-lucroTotal) : brl(lucroTotal)}</b>
-          <small className="var">{t('Margem')} {pct(r.margem)}</small>
+          <small>{t('Margem')} {pct(r.margem)}</small>
         </div>
-        <div className="card">
+        <div className="in-numero">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>
-          <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
-        </div>
-        <div className="card">
-          <small>{t('Lucro líquido')}</small>
-          <b className={resultado < 0 ? 'bad' : 'ok'}>{resultado < 0 ? '− ' + brl(-resultado) : brl(resultado)}</b>
-          <small className="var">{t('lucro bruto − despesas extras')}</small>
+          <small>{t('Ticket médio')} {brl(r.ticket)}</small>
         </div>
       </div>
 
@@ -215,10 +208,10 @@ export default function Analise({ db }) {
           {/* ---------- Faturamento e lucro ---------- */}
           <div className="painel">
             <div className="painel-titulo">
-              <h3>{n === 1 ? t('Faturamento, lucro e vendas por hora') : t('Faturamento, lucro e vendas por dia')}</h3>
+              <h3>{n === 1 ? t('Faturamento e lucro por hora') : t('Faturamento e lucro por dia')}</h3>
               {melhorDia && melhorDia.valor > 0 && <small>{t('Melhor dia:')} <b>{dataBR(melhorDia.dia)}</b> {t('com')} {brl(melhorDia.valor)}</small>}
             </div>
-            <GraficoLinhas
+            <GraficoBarras
               serie={serie}
               rotuloDica={(d) => (n === 1 ? t('{data} às {hora}', { data: dataBR(de), hora: d.rotulo }) : `${t(DIAS_SEMANA[deDia(d.dia).getDay()])}, ${dataBR(d.dia)}`)}
             />
@@ -330,14 +323,14 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
   }
   return (
     <>
-      <div className="cards indicadores">
-        <div className="card"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b><small className="var">{t('{n} empréstimo(s)', { n: lista.length })}</small></div>
-        <div className="card destaque">
-          <small>{t('Lucro (juros)')}</small>
-          <b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b>
-        </div>
-        <div className="card"><small>{t('Recebido no período')}</small><b>{brl(recebido)}</b></div>
-        <div className="card"><small>{t('Pendências')}</small><b>{brl(pendencias)}</b></div>
+      <div className="an-destaque">
+        <small>{t('Lucro (juros)')}</small>
+        <b className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}</b>
+      </div>
+      <div className="in-hoje an-cartoes">
+        <div className="in-numero"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b><small>{t('{n} empréstimo(s)', { n: lista.length })}</small></div>
+        <div className="in-numero"><small>{t('Recebido no período')}</small><b>{brl(recebido)}</b></div>
+        <div className="in-numero"><small>{t('Pendências')}</small><b>{brl(pendencias)}</b></div>
       </div>
       {temMovimento && (
         <>
@@ -346,7 +339,7 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
               <h3>{n === 1 ? t('Emprestado e lucro por hora') : t('Emprestado e lucro por dia')}</h3>
               {maiorDia && maiorDia.valor > 0 && <small>{t('Mais emprestado:')} <b>{dataBR(maiorDia.dia)}</b> {t('com')} {brl(maiorDia.valor)}</small>}
             </div>
-            <GraficoLinhas serie={serie} nomes={{ valor: 'Emprestado', lucro: 'Lucro', qtd: 'Empréstimos', eixo: 'empréstimos' }}
+            <GraficoBarras serie={serie} nomes={{ valor: 'Emprestado', lucro: 'Lucro', qtd: 'Empréstimos' }}
               rotuloDica={(d) => (n === 1 ? t('{data} às {hora}', { data: dataBR(de), hora: d.rotulo }) : `${t(DIAS_SEMANA[deDia(d.dia).getDay()])}, ${dataBR(d.dia)}`)} />
           </div>
           <div className="duas-colunas">
