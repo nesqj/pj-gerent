@@ -221,7 +221,7 @@ export default function Fiado({ db, executar, irPara }) {
       <div className="linha-titulo">
         <input className="busca" placeholder={t('Buscar cliente, telefone ou produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
         <div className="chips">
-          {FILTROS.map((f) => <button key={f.id} className={'filtro' + (filtro === f.id ? ' ativo' : '')} onClick={() => setFiltro(f.id)}>{t(f.nome)}</button>)}
+          {FILTROS.map((f) => <button key={f.id} className={'filtro' + (filtro === f.id ? ' ativo' : '')} onClick={() => { setFiltro(f.id); setAbertos({}) }}>{t(f.nome)}</button>)}
         </div>
       </div>
 
