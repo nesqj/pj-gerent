@@ -2,11 +2,11 @@ import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { distribuirRecebimento, encargoAtraso, textoAtraso } from '../utils.js'
+import { distribuirRecebimento, encargoAtraso, prejuizoDe, textoAtraso } from '../utils.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
-// "Recebeu" registra o pagamento (total ou parcial) e entra no caixa; "Não pagou" vira perda.
+// "Recebeu" registra o pagamento (total ou parcial) e entra no caixa; "Não pagou" só é prejuízo no que não cobre o que saiu.
 // O lucro conta no dia da venda/empréstimo; o que o cliente não pagar sai do lucro.
 const SITUACOES = {
   atrasada: { nome: 'Atrasado', classe: 'bad' },
@@ -63,6 +63,8 @@ export default function Fiado({ db, executar, irPara }) {
     nAtrasado: abertas.filter((x) => x.situacao === 'atrasada').length,
     semana: soma(abertas.filter((x) => x.p.vencimento >= dia && x.p.vencimento <= em7)),
     naoPago: soma(parcelas.filter((x) => x.situacao === 'nao_paga')),
+    // prejuízo: só o que não cobre o valor emprestado ou o custo dos produtos
+    prejuizo: r2([...new Set(parcelas.filter((x) => x.situacao === 'nao_paga').map((x) => x.v))].reduce((s, v) => s + prejuizoDe(v), 0)),
   }
 
   // uma linha por compra ou empréstimo; a linha mostra a próxima parcela e abre as outras
@@ -144,10 +146,10 @@ export default function Fiado({ db, executar, irPara }) {
 
   async function naoPagou(x) {
     const texto = x.emp
-      ? t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro do empréstimo e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
-      : t('Marcar que {cliente} NÃO pagou {valor}?\nEsse valor sai do lucro da venda e conta como perda. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
+      ? t('Marcar que {cliente} NÃO pagou {valor}?\nSó é prejuízo o que faltar para voltar o valor emprestado. O resto são juros que você deixa de ganhar. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
+      : t('Marcar que {cliente} NÃO pagou {valor}?\nSó é prejuízo o que faltar para cobrir o custo dos produtos. O resto é lucro que você deixa de ganhar. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
     if (!(await confirmar(texto, { botao: t('Não pagou'), perigo: true }))) return
-    gravar(x, (p) => ({ ...p, naoPaga: true, naoPagaEm: { data: Date.now(), dia: hoje() } }), acao(x, 'nao-pago'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago (perda).'))
+    gravar(x, (p) => ({ ...p, naoPaga: true, naoPagaEm: { data: Date.now(), dia: hoje() } }), acao(x, 'nao-pago'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago.'))
   }
   function reabrir(x) {
     gravar(x, (p) => { const { naoPagaEm, ...resto } = p; return { ...resto, naoPaga: false } }, acao(x, 'reaberto'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
@@ -187,7 +189,8 @@ export default function Fiado({ db, executar, irPara }) {
         <div className="card destaque"><small>{t('A receber')}</small><b>{brl(cards.receber)}</b><small className="var">{t('{n} parcela(s) em aberto', { n: abertas.length })}</small></div>
         <div className={'card' + (cards.atrasado > 0 ? ' card-prejuizo' : '')}><small>{t('Atrasado')}</small><b className={cards.atrasado > 0 ? 'bad' : ''}>{brl(cards.atrasado)}</b><small className="var">{t('{n} parcela(s)', { n: cards.nAtrasado })}</small>{cards.encargos > 0 && <small className="var bad">{t('+ {valor} de multa e juros', { valor: brl(cards.encargos) })}</small>}</div>
         <div className="card"><small>{t('Vence em 7 dias')}</small><b>{brl(cards.semana)}</b></div>
-        <div className="card"><small>{t('Não pagos (perda)')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{cards.naoPago > 0 ? '− ' + brl(cards.naoPago) : brl(0)}</b></div>
+        <div className="card"><small>{t('Não pagos')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{brl(cards.naoPago)}</b>
+          {cards.naoPago > 0 && <small className={'var' + (cards.prejuizo > 0 ? ' bad' : '')}>{cards.prejuizo > 0 ? t('prejuízo {valor}', { valor: brl(cards.prejuizo) }) : t('sem prejuízo')}</small>}</div>
       </div>
 
       <div className="config-atraso">
@@ -263,7 +266,7 @@ export default function Fiado({ db, executar, irPara }) {
           </tbody>
         </table>
       </div>
-      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. O que o cliente não pagar ("Não pagou") sai do lucro como perda.')}</small></p>
+      <p><small>{t('"Recebeu" entra no caixa na data do recebimento. "Não pagou" só vira prejuízo no que faltar para voltar o valor emprestado ou o custo dos produtos; o resto é lucro que você deixou de ganhar.')}</small></p>
     </section>
   )
 

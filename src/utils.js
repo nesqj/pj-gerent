@@ -465,16 +465,42 @@ export const textoAtraso = (cfg) => cfg && (+cfg.multaPct > 0 || +cfg.jurosMesPc
     + (+cfg.carenciaDias > 0 ? ' ' + t('(depois de {n} dia(s) de atraso)', { n: cfg.carenciaDias }) : '')
   : ''
 
-// Perdas por "Não pagou" (fiado ou empréstimo): contam no dia em que você marcou.
+// O que saiu do seu bolso: no empréstimo, o valor emprestado; na venda, o custo dos produtos.
+export const capitalDe = (r) => (Array.isArray(r.itens) ? r.itens.reduce((s, i) => s + (+i.qtd || 0) * (+i.custo || 0), 0) : +r.valor || 0)
+// Tudo o que já voltou: o que foi pago na hora (venda) + parcelas recebidas + multa/juros de atraso
+export const voltouDe = (r) => (Array.isArray(r.itens) ? pagoNaHora(r) : 0)
+  + (r.fiado?.parcelas || []).reduce((s, p) => s + recebidoDaParcela(p) + encargoPago(p), 0)
+// Prejuízo de verdade: só quando o que voltou (mais o que ainda está em aberto) não cobre o que saiu.
+// Ex.: emprestou 1.000 para receber 1.300 e recebeu 1.100 → não pagou 200, mas prejuízo 0 (só deixou de ganhar juros).
+export function prejuizoDe(r) {
+  const f = resumoFiado(r)
+  if (!f?.naoPago) return 0
+  return Math.round(Math.max(0, capitalDe(r) - voltouDe(r) - f.aberto) * 100) / 100
+}
+
+// "Não pagou" (fiado ou empréstimo): conta no dia em que você marcou.
+// Cada valor não pago se divide em: juros/lucro que deixou de ganhar (vem primeiro) e prejuízo (o que não cobre o que saiu).
 // Parcelas marcadas antes desta regra (sem a data) contam no dia da venda/empréstimo.
-// Devolve [{ dia, data, valor, ref }] — filtre pelo período.
+// Devolve [{ dia, data, valor, prejuizo, ref }] — filtre pelo período.
 export function perdasNaoPago(lista) {
   const l = []
-  for (const v of lista || []) for (const p of v.fiado?.parcelas || []) {
-    if (!p.naoPaga) continue
-    const falta = Math.round(((+p.valor || 0) - recebidoDaParcela(p)) * 100) / 100
-    if (falta > 0.004) l.push({ dia: p.naoPagaEm?.dia || v.dia, data: p.naoPagaEm?.data || v.data, valor: falta, ref: v })
+  for (const v of lista || []) {
+    const ev = []
+    for (const p of v.fiado?.parcelas || []) {
+      if (!p.naoPaga) continue
+      const falta = Math.round(((+p.valor || 0) - recebidoDaParcela(p)) * 100) / 100
+      if (falta > 0.004) ev.push({ dia: p.naoPagaEm?.dia || v.dia, data: p.naoPagaEm?.data || v.data, valor: falta, ref: v })
+    }
+    if (!ev.length) continue
+    ev.sort((a, b) => a.data - b.data)
+    let semPrejuizo = ev.reduce((s, x) => s + x.valor, 0) - prejuizoDe(v) // parte que é só lucro a menos
+    for (const x of ev) {
+      const lucroAMenos = Math.min(x.valor, Math.max(0, semPrejuizo))
+      semPrejuizo -= lucroAMenos
+      l.push({ ...x, prejuizo: Math.round((x.valor - lucroAMenos) * 100) / 100 })
+    }
   }
   return l
 }
+export const somaPrejuizo = (perdas, de, ate = de) => Math.round(perdas.filter((x) => x.dia >= de && x.dia <= ate).reduce((s, x) => s + x.prejuizo, 0) * 100) / 100
 export const somaPerdas = (perdas, de, ate = de) => Math.round(perdas.filter((x) => x.dia >= de && x.dia <= ate).reduce((s, x) => s + x.valor, 0) * 100) / 100
