@@ -110,3 +110,21 @@ export const IconeMais = () => (
 export const IconeCheck = () => (
   <Svg size={22}><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.5 2.5L16 9.5" /></Svg>
 )
+export const IconeExtrato = () => (
+  <Svg><path d="M8 6h12M8 12h12M8 18h12" /><circle cx="4" cy="6" r="1" /><circle cx="4" cy="12" r="1" /><circle cx="4" cy="18" r="1" /></Svg>
+)
+export const IconeEntrada = () => (
+  <Svg size={18}><path d="M12 4v15M6 13l6 6 6-6" /></Svg>
+)
+export const IconeSaida = () => (
+  <Svg size={18}><path d="M12 20V5M6 11l6-6 6 6" /></Svg>
+)
+export const IconeBusca = () => (
+  <Svg size={20}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></Svg>
+)
+export const IconeFiltros = () => (
+  <Svg size={18}><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></Svg>
+)
+export const IconeBaixar = () => (
+  <Svg size={20}><path d="M12 4v11M7 10l5 5 5-5" /><path d="M5 20h14" /></Svg>
+)

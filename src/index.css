@@ -980,3 +980,38 @@ section .notif-titulo, .notif-titulo { display: block; font-size: 30px; margin: 
 .notif-ponto { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); flex: 0 0 auto; margin: 7px 6px 0 7px }
 .notif-ponto.neutro { background: var(--mut) }
 
+/* ---------- Controle de caixa no estilo extrato ---------- */
+.extrato { max-width: 760px }
+.ex-topo { display: flex; justify-content: flex-end; margin: -4px -6px 0 }
+.ex-saldo { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; margin: 4px 0 16px }
+.ex-saldo small { color: var(--mut); font-size: 15px }
+.ex-saldo b { font-size: 38px; letter-spacing: -.01em; line-height: 1.1 }
+.ex-saldo .ex-sub { font-size: 13px }
+.ex-botoes { display: flex; justify-content: center; gap: 10px; margin-bottom: 22px }
+.ex-pilula { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 9px 18px; background: var(--pri); color: var(--pri-txt); border: none; font-weight: 600; font-size: 15px; cursor: pointer }
+.ex-pilula.clara { background: var(--card); color: var(--txt); border: 1px solid var(--bd); font-weight: 500 }
+.ex-pilula.clara small { color: var(--mut) }
+.ex-pilula.clara.ativo { border-color: var(--txt) }
+.ex-aviso { text-align: center }
+.ex-form { border-radius: 18px }
+.ex-form form { border: none; padding: 0; background: none }
+.ex-custos { margin: -8px 0 20px }
+.ex-ferramentas { display: flex; align-items: center; gap: 10px; margin: 8px 0 12px }
+.ex-circulo { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1px solid var(--bd); color: var(--txt); cursor: pointer; padding: 0 }
+.ex-circulo.ativo { border-color: var(--txt) }
+.ex-direita { margin-left: auto }
+.ex-busca { max-width: none; margin-bottom: 12px }
+.ex-filtros { margin-bottom: 14px }
+.ex-dia { margin-bottom: 14px }
+.ex-dia-topo { display: flex; justify-content: space-between; color: var(--mut); font-size: 14px; padding: 4px 4px 8px }
+.ex-mov { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 14px 16px; color: var(--txt); cursor: pointer; margin-bottom: 8px }
+.ex-mov.em-edicao { border-color: var(--txt) }
+.ex-mov-icone { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; background: var(--campo); color: var(--txt) }
+.ex-mov-icone.entrada { background: var(--verde-fundo); color: var(--verde) }
+.ex-mov-txt { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0 }
+.ex-mov-txt b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ex-mov-txt small { color: var(--mut); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ex-mov-valor { white-space: nowrap; font-size: 15px }
+.ex-mov-valor.ok { color: var(--verde) }
+.ex-rodape { text-align: center; margin-top: 10px }
+

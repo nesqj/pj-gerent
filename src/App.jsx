@@ -27,7 +27,7 @@ import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from
 import {
   IconeAjuda, IconeCaixaProduto, IconeCaminhao, IconeCarrinho, IconeChave, IconeConfig,
   IconeEscudo, IconeGrafico, IconeLista, IconeLoja, IconeMenu, IconePainel, IconeRecolher, IconeSair, IconeSeta,
-  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado, IconeInicio, IconeMais,
+  IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado, IconeInicio, IconeMais, IconeExtrato,
 } from './icones.jsx'
 
 // Grupos e itens da barra lateral (dentro de uma loja)
@@ -94,7 +94,7 @@ const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.include
 const BARRA_BAIXO = [
   { id: 'inicio', nome: 'Início', icone: IconeInicio },
   { id: 'fiado', nome: 'Cobranças', icone: IconeFiado },
-  { id: 'caixa', nome: 'Caixa', icone: IconeCaixa },
+  { id: 'caixa', nome: 'Extrato', icone: IconeExtrato },
   { id: 'analise', nome: 'Análise', icone: IconeGrafico },
 ]
 
@@ -429,7 +429,7 @@ export default function App() {
   if (modo === 'carregando' || (modo === 'loja' && !db)) return <p className="vazio">{t('Carregando...')}</p>
 
   return (
-    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin && ['inicio', 'perfil'].includes(aba) ? ' sem-topo-celular' : '')}>
+    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin && ['inicio', 'perfil', 'caixa'].includes(aba) ? ' sem-topo-celular' : '')}>
       <aside className="lateral">
         <div className="topo">
           <div className="logo">
@@ -525,7 +525,7 @@ export default function App() {
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'clientes' && <Clientes db={db} executar={executar} irPara={irPara} />}
-          {!noAdmin && aba === 'caixa' && <Caixa db={db} executar={executar} irPara={irPara} />}
+          {!noAdmin && aba === 'caixa' && <Caixa db={db} executar={executar} irPara={irPara} nomeLoja={loja?.nome} />}
           {!noAdmin && aba === 'analise' && <Analise db={db} />}
           {!noAdmin && aba === 'estoque' && <Estoque db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'forn' && <Fornecedores db={db} executar={executar} />}
