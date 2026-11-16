@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
-import { brl, dataBR, dataTs, extratoCaixa, hoje, hora, lerValor as numero, uid } from '../utils.js'
+import { brl, custosDasVendas, dataBR, dataTs, extratoCaixa, hoje, hora, lerValor as numero, reservadoCustos, uid } from '../utils.js'
 
 // Caixa (capital de giro): o dinheiro da loja.
 // Entra: vendas e dinheiro colocado. Sai: compras do estoque (custo × quantidade) e dinheiro retirado.
@@ -22,6 +22,7 @@ const ORIGENS = {
   colocar: { nome: 'Dinheiro colocado', classe: 'ok' },
   retirar: { nome: 'Retirada pessoal', classe: 'bad' },
   despesa: { nome: 'Despesa da loja', classe: 'bad' },
+  custo: { nome: 'Custo pago', classe: 'bad' },
 }
 const novo = { tipo: 'colocar', categoria: 'despesa', valor: '', descricao: '' }
 
@@ -67,6 +68,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
   const [editando, setEditando] = useState(null)
   const [periodo, setPeriodo] = useState('mes')
   const [ajustando, setAjustando] = useState(false)
+  const [abertoCusto, setAbertoCusto] = useState({}) // grupos de custos a pagar abertos
   const refValor = useRef(null)
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
 
@@ -76,6 +78,9 @@ function ControleCaixa({ db, ext, executar, irPara }) {
     e.preventDefault()
     const v = numero(form.valor)
     if (!(v > 0)) return aviso.alerta(t('Informe um valor maior que zero.'))
+    // retirada pessoal maior que o livre: mexe no dinheiro reservado para pagar custos
+    if (form.tipo === 'retirar' && form.categoria === 'pessoal' && !editando && reservado > 0 && v > livre && v <= ext.saldo
+      && !await confirmar(t('Você vai mexer no dinheiro reservado para pagar custos. Livre para você: {livre}. Retirar {valor} mesmo assim?', { livre: brl(livre), valor: brl(v) }))) return
     if (form.tipo === 'retirar' && !editando && v > ext.saldo && !await confirmar(t('O caixa tem {saldo}. Retirar {valor} vai deixar o saldo negativo. Continuar?', { saldo: brl(ext.saldo), valor: brl(v) }))) return
     const dados = { tipo: form.tipo, valor: Math.round(v * 100) / 100, descricao: form.descricao.trim(), ...(form.tipo === 'retirar' ? { categoria: form.categoria } : {}) }
     const m = editando ? { ...editando, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
@@ -90,6 +95,27 @@ function ControleCaixa({ db, ext, executar, irPara }) {
   async function excluir(m) {
     if (await confirmar(t('Excluir o movimento de {valor} de {data}?', { valor: brl(m.valor), data: dataBR(m.dia) }))) {
       executar((A) => A.excluirMovCaixa(m.id)).then((ok) => ok && editando?.id === m.id && cancelar())
+    }
+  }
+
+  // custos a pagar (fornecedor e avulso), agrupados por fornecedor
+  const reservado = reservadoCustos(db)
+  const livre = Math.round((ext.saldo - reservado) * 100) / 100
+  const aPagar = custosDasVendas(db).filter((c) => !c.pago && (c.data || 0) >= ext.inicio).sort((a, b) => a.data - b.data)
+  const grupos = [...aPagar.reduce((m, c) => {
+    const k = c.tipo === 'fornecedor' ? 'f:' + (c.fornecedorId || c.fornecedor) : 'avulso'
+    if (!m.has(k)) m.set(k, { k, nome: c.tipo === 'fornecedor' ? (c.fornecedor || t('Fornecedor')) : t('Produtos e serviços avulsos'), itens: [], total: 0 })
+    const g = m.get(k); g.itens.push(c); g.total = Math.round((g.total + c.valor) * 100) / 100
+    return m
+  }, new Map()).values()].sort((a, b) => b.total - a.total)
+  async function pagar(itens, descricao) {
+    const valor = Math.round(itens.reduce((s, c) => s + c.valor, 0) * 100) / 100
+    if (!(await confirmar(t('Marcar como pago {valor} ({descricao})?\nEsse valor sai do caixa agora.', { valor: brl(valor), descricao })))) return
+    executar((A) => A.pagarCustos({ id: uid(), data: Date.now(), dia: hoje(), valor, descricao, itens: itens.map((c) => c.chave) }), t('Custo pago.'))
+  }
+  async function desfazerPagamento(p) {
+    if (await confirmar(t('Desfazer o pagamento de {valor} ({descricao})?\nO valor volta para o caixa e o custo volta a ficar a pagar.', { valor: brl(p.valor), descricao: p.descricao }))) {
+      executar((A) => A.desfazerPagamentoCusto(p.id), t('Pagamento desfeito.'))
     }
   }
 
@@ -109,10 +135,43 @@ function ControleCaixa({ db, ext, executar, irPara }) {
       <h2>{t('Controle de caixa')}</h2>
 
       <div className="cards">
-        <div className="card destaque-caixa"><small>{t('Saldo em caixa')}</small><b className={ext.saldo < 0 ? 'bad' : ''}>{brl(ext.saldo)}</b></div>
+        <div className="card destaque-caixa"><small>{t('Dinheiro no caixa')}</small><b className={ext.saldo < 0 ? 'bad' : ''}>{brl(ext.saldo)}</b></div>
+        <div className="card"><small>{t('Reservado para custos')}</small><b>{brl(reservado)}</b></div>
+        <div className="card"><small>{t('Livre para você')}</small><b className={livre < 0 ? 'bad' : 'ok'}>{livre < 0 ? '− ' + brl(-livre) : brl(livre)}</b></div>
       </div>
       <p><small>{t('Controle desde {data}.', { data: `${dataTs(ext.inicio)} ${hora(ext.inicio)}` })}{' '}<button className="link pequeno" onClick={() => setAjustando(true)}>{t('Ajustar saldo inicial')}</button></small></p>
       {ext.saldo < 0 && <p className="bad">{t('O caixa está negativo: saiu mais dinheiro do que entrou. Confira as compras e retiradas, ou registre o dinheiro colocado.')}</p>}
+
+      {grupos.length > 0 && (
+        <>
+          <div className="linha-titulo"><h3>{t('Custos a pagar')}</h3></div>
+          <div className="tw">
+            <table className="custos-pagar">
+              <thead><tr><th>{t('Para quem')}</th><th className="n">{t('Itens')}</th><th className="n">{t('Valor')}</th><th></th></tr></thead>
+              <tbody>
+                {grupos.map((g) => (
+                  <Fragment key={g.k}>
+                    <tr className="linha-grupo">
+                      <td><b>{g.nome}</b></td>
+                      <td className="n"><button className="link pequeno" onClick={() => setAbertoCusto({ ...abertoCusto, [g.k]: !abertoCusto[g.k] })}>{t('{n} item(ns)', { n: g.itens.length })} {abertoCusto[g.k] ? '▴' : '▾'}</button></td>
+                      <td className="n"><b>{brl(g.total)}</b></td>
+                      <td className="n"><button onClick={() => pagar(g.itens, g.nome)}>{t('Paguei')}</button></td>
+                    </tr>
+                    {abertoCusto[g.k] && g.itens.map((c) => (
+                      <tr key={c.chave} className="linha-parcela">
+                        <td><small>{dataBR(c.dia)} · {c.qtd}× {c.produto}</small></td>
+                        <td></td>
+                        <td className="n"><small>{brl(c.valor)}</small></td>
+                        <td className="n"><button className="sec" onClick={() => pagar([c], `${g.nome}: ${c.produto}`)}>{t('Paguei')}</button></td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       <div className="linha-titulo"><h3>{editando ? t('Editando movimento de {data} às {hora}', { data: dataBR(editando.dia), hora: hora(editando.data) }) : t('Colocar ou retirar dinheiro')}</h3></div>
       <form onSubmit={registrar} className={editando ? 'form-edicao' : ''}>
@@ -137,7 +196,7 @@ function ControleCaixa({ db, ext, executar, irPara }) {
         <button type="submit">{editando ? t('Salvar alterações') : form.tipo === 'retirar' ? t('Retirar') : t('Colocar')}</button>
         {editando && <button type="button" className="sec" onClick={cancelar}>{t('Cancelar edição')}</button>}
       </form>
-      <p><small>{t('As vendas entram sozinhas; as entradas no estoque e os produtos de fornecedor vendidos descontam o custo sozinhos. Aqui vai só o dinheiro que entra ou sai por fora deles.')}</small></p>
+      <p><small>{t('As vendas entram sozinhas e as compras de estoque descontam sozinhas. O custo de produto de fornecedor e de avulso fica reservado até você marcar "Paguei". Aqui vai só o dinheiro que entra ou sai por fora disso.')}</small></p>
 
       <div className="linha-titulo">
         <h3>{t('Extrato')}</h3>
@@ -158,7 +217,9 @@ function ControleCaixa({ db, ext, executar, irPara }) {
                 <td className={'n ' + (m.valor < 0 ? 'bad' : 'ok')}>{m.valor < 0 ? '− ' : '+ '}{brl(Math.abs(m.valor))}</td>
                 <td className="n">{brl(m.saldo)}</td>
                 <td className="n">
-                  {m.origem === 'colocar' || m.origem === 'retirar' || m.origem === 'despesa' ? (
+                  {m.origem === 'custo' ? (
+                    <button className="link pequeno" onClick={() => desfazerPagamento(m.ref)}>{t('Desfazer')}</button>
+                  ) : m.origem === 'colocar' || m.origem === 'retirar' || m.origem === 'despesa' ? (
                     <>
                       <button className="edit" onClick={() => editar(m.ref)}>{t('Editar')}</button>{' '}
                       <button className="del" onClick={() => excluir(m.ref)}>{t('Excluir')}</button>

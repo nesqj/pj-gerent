@@ -204,6 +204,8 @@ export default function Vendas({ db, executar, irPara }) {
     const quando = dia === hoje() ? Date.now() : new Date(`${dia}T${new Date().toTimeString().slice(0, 8)}`).getTime()
     const venda = { id: uid(), data: quando, dia, itens, subtotal, descontoPct, descontoValor, total, ...extra }
     if (!pago.fiado) delete venda.fiado
+    // custo de fornecedor/avulso não sai do caixa agora: fica reservado até marcar "Paguei" no Controle de caixa
+    if (itens.some((i) => i.origem === 'fornecedor' || (i.origem === 'avulso' && !i.foraDoCaixa))) venda.custoAPagar = true
     // produtos do estoque que vão ficar com 2 ou menos depois desta venda
     const baixos = [...new Set(itens.filter((i) => i.origem === 'estoque').map((i) => norm(i.produto)))]
       .map((k) => ({ nome: estoque.get(k)?.produto, resta: disponivel(k) }))
@@ -350,7 +352,7 @@ export default function Vendas({ db, executar, irPara }) {
         <p><small className={Number.isFinite(custoAvulso(avulso)) && lerValor(avulso.preco) - custoAvulso(avulso) < 0 ? 'bad' : ''}>
           {String(avulso.custo).trim() !== '' && String(avulso.preco).trim() !== '' && Number.isFinite(custoAvulso(avulso))
             ? (avulso.modoCusto === 'pct' ? t('Custo {valor}', { valor: brl(custoAvulso(avulso)) }) + ' · ' : '') + t('Lucro por unidade: {valor}', { valor: brl(lerValor(avulso.preco) - custoAvulso(avulso)) })
-            : t('Produto ou serviço sem cadastro.')}{' · '}{t('O custo sai do caixa na hora da venda.')}
+            : t('Produto ou serviço sem cadastro.')}{' · '}{t('O custo fica reservado no caixa até você pagar.')}
         </small></p>
       ) : <p>
         {selecionado?.origem === 'estoque'

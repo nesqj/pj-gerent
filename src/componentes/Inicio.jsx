@@ -1,5 +1,6 @@
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
+import { reservadoCustos } from '../utils.js'
 import { brl, calcularEstoque, dataBR, extratoCaixa, faturamentoVenda, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
 
 // Início: o que está acontecendo hoje, numa olhada só. Não calcula nada novo:
@@ -63,6 +64,7 @@ export default function Inicio({ db, irPara, completo }) {
             <small>{t('Saldo do caixa')}</small>
             {caixa ? <b className={caixa.saldo < 0 ? 'bad' : ''}>{caixa.saldo < 0 ? '− ' + brl(-caixa.saldo) : brl(caixa.saldo)}</b> : <b className="mut">—</b>}
             {!caixa && <small className="var">{t('Comece o controle de caixa')}</small>}
+            {caixa && reservadoCustos(db) > 0 && <small className="var">{t('livre {valor}', { valor: brl(Math.round((caixa.saldo - reservadoCustos(db)) * 100) / 100) })}</small>}
           </button>
         )}
         <button className="card card-link" onClick={() => abrirCobrancas('abertos')}>

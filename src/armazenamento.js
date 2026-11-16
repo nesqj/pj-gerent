@@ -11,7 +11,7 @@ import { supabase } from './supabase.js'
 import { chave, norm, resumoFiado } from './utils.js'
 
 const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
-const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [], emprestimos: [] })
+const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [], emprestimos: [], custosPagos: [] })
 
 let org = null          // loja ativa: { id, nome, papel, suspensa, criada_por_mim }
 let db = vazio()
@@ -367,6 +367,13 @@ export const excluirEntrada = (id) => mudar('entrada.excluida', (d) => {
 // Caixa: início do controle { inicio, saldoInicial } e movimentos de dinheiro colocado/retirado
 // { id, data, dia, tipo: 'colocar' | 'retirar', valor, descricao }
 export const salvarCaixa = (c) => mudar('caixa.config', (d) => { d.caixa = c; return c }, `saldo inicial ${c.saldoInicial}`)
+// Custos a pagar: { id, data, dia, valor, descricao, itens: ['idDaVenda:posiçãoDoItem', ...] } — o dinheiro sai do caixa aqui
+export const pagarCustos = (p) => mudar('caixa.custo-pago', (d) => { d.custosPagos = d.custosPagos || []; d.custosPagos.push(p); return p }, `−${p.valor} · ${p.descricao}`)
+export const desfazerPagamentoCusto = (id) => mudar('caixa.custo-desfeito', (d) => {
+  const p = (d.custosPagos || []).find((x) => x.id === id)
+  d.custosPagos = (d.custosPagos || []).filter((x) => x.id !== id)
+  return p
+}, (p) => p && `${p.valor} · ${p.descricao}`)
 export const salvarMovCaixa = (m) => upsert('movCaixa', 'caixa.mov-salvo', m, resumo('movCaixa', m))
 export const excluirMovCaixa = (id) => remover('movCaixa', 'caixa.mov-excluido', id)
 

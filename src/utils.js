@@ -240,6 +240,24 @@ export const classeEstoque = (saldo) => (saldo <= 0 ? 'bad' : saldo <= 2 ? 'warn
 // Saldo = saldo inicial + vendas + dinheiro colocado − dinheiro retirado − compras do estoque (custo × qtd),
 // contando só o que aconteceu a partir do início. Entrada de estoque com "foraDoCaixa" não desconta.
 // É sempre recalculado: editar ou excluir uma venda, uma entrada de estoque ou um movimento já corrige o saldo.
+// Custos das vendas que ficam "a pagar" (produto de fornecedor e avulso): o dinheiro fica no caixa,
+// reservado, até você marcar "Paguei". Vale para as vendas feitas com essa regra (venda.custoAPagar).
+export function custosDasVendas(db) {
+  const pagos = new Map((db.custosPagos || []).flatMap((p) => (p.itens || []).map((k) => [k, p])))
+  return (db.vendas || []).filter((v) => v.custoAPagar).flatMap((v) => (v.itens || []).map((i, idx) => ({ i, idx }))
+    .filter(({ i }) => (i.origem === 'fornecedor' || (i.origem === 'avulso' && !i.foraDoCaixa)) && +i.custo > 0 && +i.qtd > 0)
+    .map(({ i, idx }) => {
+      const chave = v.id + ':' + idx
+      return { chave, venda: v, dia: v.dia, data: v.data, produto: i.produto, qtd: +i.qtd, valor: Math.round((+i.qtd) * (+i.custo) * 100) / 100,
+        tipo: i.origem, fornecedorId: i.origem === 'fornecedor' ? i.fornecedorId || '' : '', fornecedor: i.origem === 'fornecedor' ? i.fornecedor || '' : '', pago: pagos.get(chave) || null }
+    }))
+}
+// Reservado para custos: o que ainda falta pagar dos custos das vendas que já entraram no caixa
+export function reservadoCustos(db) {
+  const inicio = db?.caixa?.inicio || 0
+  return Math.round(custosDasVendas(db).filter((c) => !c.pago && (c.data || 0) >= inicio).reduce((s, c) => s + c.valor, 0) * 100) / 100
+}
+
 export function extratoCaixa(db) {
   const c = db?.caixa
   if (!c?.inicio) return null
@@ -265,7 +283,7 @@ export function extratoCaixa(db) {
       descricao: `${e.fiado.cliente || ''} · ${p.n}/${e.fiado.parcelas.length}`, pagamento: r.forma,
     })))),
     // produto ou serviço avulso: o custo sai do caixa no dia da venda
-    ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'avulso' && !i.foraDoCaixa && +i.custo > 0 && +i.qtd > 0) }))
+    ...(db.vendas || []).filter((v) => depois(v) && !v.custoAPagar).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'avulso' && !i.foraDoCaixa && +i.custo > 0 && +i.qtd > 0) }))
       .filter((x) => x.itens.length).map(({ v, itens }) => ({
         id: 'pa-' + v.id, ref: v, origem: 'avulso', data: v.data, dia: v.dia,
         tipoAvulso: itens.every((i) => i.tipo === 'servico') ? 'servico' : itens.every((i) => i.tipo !== 'servico') ? 'produto' : 'misto',
@@ -273,12 +291,14 @@ export function extratoCaixa(db) {
         descricao: itens.map((i) => `${i.qtd}× ${i.produto}`).join(', '),
       })),
     // produto de fornecedor vendido: o custo é pago ao fornecedor com o dinheiro do caixa, no dia da venda
-    ...(db.vendas || []).filter(depois).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'fornecedor' && i.custo != null && +i.qtd > 0) }))
+    ...(db.vendas || []).filter((v) => depois(v) && !v.custoAPagar).map((v) => ({ v, itens: (v.itens || []).filter((i) => i.origem === 'fornecedor' && i.custo != null && +i.qtd > 0) }))
       .filter((x) => x.itens.length).map(({ v, itens }) => ({
         id: 'pf-' + v.id, ref: v, origem: 'fornecedor', data: v.data, dia: v.dia,
         valor: -Math.round(itens.reduce((s, i) => s + (+i.qtd || 0) * (+i.custo || 0), 0) * 100) / 100,
         descricao: itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ' (' + i.marca + ')' : ''}${i.fornecedor ? ' · ' + i.fornecedor : ''}`).join(', '),
       })),
+    // custos pagos (fornecedor e avulso): saem do caixa quando você marca "Paguei"
+    ...(db.custosPagos || []).filter(depois).map((p) => ({ id: 'cp-' + p.id, ref: p, origem: 'custo', data: p.data, dia: p.dia, valor: -(+p.valor || 0), descricao: p.descricao || '' })),
     ...(db.entradas || []).filter((e) => depois(e) && !e.foraDoCaixa && e.custo != null).map((e) => ({
       id: 'e-' + e.id, ref: e, origem: 'compra', data: e.data, dia: e.dia, valor: -(+e.qtd || 0) * (+e.custo || 0),
       descricao: `${e.qtd}× ${e.produto}`,
