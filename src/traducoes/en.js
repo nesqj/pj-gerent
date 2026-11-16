@@ -1158,4 +1158,7 @@ export default {
   'empréstimos': 'loans',
   'Por forma de recebimento': 'By payment method received',
   'Nada recebido no período.': 'Nothing received in the period.',
+  'Não dá para registrar venda em data futura.': 'A sale cannot be recorded on a future date.',
+  'Registrando em {data}': 'Recording on {data}',
+  'Voltar para hoje': 'Back to today',
 }

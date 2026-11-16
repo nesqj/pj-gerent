@@ -195,7 +195,10 @@ export default function Vendas({ db, executar, irPara }) {
       setPg((x) => ({ ...x, fiado: { ...x.fiado, clienteId: pago.novoCliente.id } }))
     }
     const extra = { pagamento: pago.pagamento, pagamentos: pago.pagamentos, ...(pago.fiado ? { fiado: pago.fiado } : {}) }
-    const venda = { id: uid(), data: Date.now(), dia: hoje(), itens, subtotal, descontoPct, descontoValor, total, ...extra }
+    if (dia > hoje()) return aviso.alerta(t('Não dá para registrar venda em data futura.'))
+    // dia escolhido no calendário "Vendas de ...": hoje usa a hora atual; dia passado, a hora atual naquele dia
+    const quando = dia === hoje() ? Date.now() : new Date(`${dia}T${new Date().toTimeString().slice(0, 8)}`).getTime()
+    const venda = { id: uid(), data: quando, dia, itens, subtotal, descontoPct, descontoValor, total, ...extra }
     if (!pago.fiado) delete venda.fiado
     // produtos do estoque que vão ficar com 2 ou menos depois desta venda
     const baixos = [...new Set(itens.filter((i) => i.origem === 'estoque').map((i) => norm(i.produto)))]
@@ -207,7 +210,6 @@ export default function Vendas({ db, executar, irPara }) {
       else if (resultado.lucro < 0) aviso.alerta(t('Venda registrada com prejuízo.'), t('Perda de {valor} nesta venda.', { valor: brl(-resultado.lucro) }))
       else if (resultado.perda > 0) aviso.alerta(t('Venda registrada.'), t('Atenção: {n} item(ns) vendido(s) abaixo do custo (perda de {valor}).', { n: resultado.itensComPrejuizo, valor: brl(resultado.perda) }))
       else aviso.ok(t('Venda registrada.'), brl(venda.total))
-      setDia(hoje())
       cancelar()
       if (db.config?.avisosEstoque !== false) {
         for (const p of baixos) {
@@ -259,6 +261,10 @@ export default function Vendas({ db, executar, irPara }) {
           <p><small>{t('Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças.')}</small></p>
         </>
       ) : (<>
+      {/* registrando em outro dia (histórico) */}
+      {dia !== hoje() && (
+        <p className="aviso-data">⚠ {t('Registrando em {data}', { data: dataBR(dia) })} · <button className="link pequeno" onClick={() => setDia(hoje())}>{t('Voltar para hoje')}</button></p>
+      )}
       {/* ---------- Nova venda: produto cadastrado ou avulso (no mesmo quadro) ---------- */}
       {!avulso && <form onSubmit={adicionar}>
         <div className="campo-custo" style={{ flex: '2 1 240px' }}>{t('Produto')}
@@ -414,7 +420,7 @@ export default function Vendas({ db, executar, irPara }) {
       {/* ---------- Vendas do dia ---------- */}
       <div className="linha-titulo">
         <h3>{t('Vendas de {data}', { data: dataBR(dia) })}</h3>
-        <input type="date" value={dia} onChange={(e) => setDia(e.target.value || hoje())} />
+        <input type="date" value={dia} max={hoje()} onChange={(e) => setDia(e.target.value || hoje())} />
       </div>
 
       <div className="cards">
