@@ -1213,4 +1213,13 @@ export default {
   'Out': 'Oct',
   'Nov': 'Nov',
   'Dez': 'Dec',
+  'Nível de venda': 'Sales level',
+  'Faltam {valor} para {nivel}': '{valor} to reach {nivel}',
+  'Bronze': 'Bronze',
+  'Prata': 'Silver',
+  'Ouro': 'Gold',
+  'Diamante': 'Diamond',
+  'Termos e políticas': 'Terms and policies',
+  'Termos de uso': 'Terms of use',
+  'Política de privacidade': 'Privacy policy',
 }

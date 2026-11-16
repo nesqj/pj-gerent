@@ -7,6 +7,7 @@ import Vendas from './componentes/Vendas.jsx'
 import Analise from './componentes/Analise.jsx'
 import Inicio from './componentes/Inicio.jsx'
 import MinhaConta, { Avatar } from './componentes/MinhaConta.jsx'
+import Termos from './componentes/Termos.jsx'
 import Estoque from './componentes/Estoque.jsx'
 import Caixa from './componentes/Caixa.jsx'
 import Fiado from './componentes/Fiado.jsx'
@@ -87,7 +88,7 @@ const RODAPE = [
 ]
 
 // Abas que o vendedor vê (o banco também confere o que cada papel pode gravar)
-const ABAS_DO_VENDEDOR = ['inicio', 'perfil', 'vendas', 'fiado', 'clientes', 'estoque', 'forn', 'config', 'ajuda']
+const ABAS_DO_VENDEDOR = ['inicio', 'termos', 'vendas', 'fiado', 'clientes', 'estoque', 'forn', 'config', 'ajuda']
 const podeVer = (papel, aba) => papel !== 'vendedor' || ABAS_DO_VENDEDOR.includes(aba)
 
 // Barra de baixo no celular: as abas do dia a dia + o botão "Vender" em destaque
@@ -106,7 +107,7 @@ export default function App() {
   const [fechados, setFechados] = useState({})       // grupos recolhidos
   const [recolhida, setRecolhida] = useState(false)  // barra lateral só com ícones
   const [menuAberto, setMenuAberto] = useState(false) // menu no celular
-  const abaAntesDoPerfil = useRef('inicio') // o X da tela "Minha conta" volta para cá
+  const [contaAberta, setContaAberta] = useState(false) // folha "Minha conta" (toque na foto)
   const [temaAtivo, setTemaAtivo] = useState(document.documentElement.dataset.theme || 'dark')
 
   // login: undefined = verificando, null = sem sessão, objeto = logado
@@ -328,8 +329,10 @@ export default function App() {
   }
 
   function irPara(id) {
-    setAba((atual) => { if (id === 'perfil' && atual !== 'perfil') abaAntesDoPerfil.current = atual; return id })
     setMenuAberto(false)
+    if (id === 'perfil') return setContaAberta(true)
+    setContaAberta(false)
+    setAba(id)
     window.scrollTo(0, 0)
   }
   function irParaAdmin(id) {
@@ -345,7 +348,7 @@ export default function App() {
     : GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => podeVer(papel, i.id)) })).filter((g) => g.itens.length)
   const atual = noAdmin ? telaAdmin : aba
   const itemAtual = [...grupos.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === atual)
-  const titulo = itemAtual?.nome || (atual === 'perfil' ? 'Minha conta' : undefined)
+  const titulo = itemAtual?.nome || (atual === 'termos' ? 'Termos e políticas' : undefined)
   const grupoAtual = grupos.find((g) => g.itens.some((i) => i.id === atual))?.nome // para o caminho "Operações › Início"
   const tituloT = titulo && t(titulo)
   const perfil = db?.perfil || {}
@@ -429,7 +432,7 @@ export default function App() {
   if (modo === 'carregando' || (modo === 'loja' && !db)) return <p className="vazio">{t('Carregando...')}</p>
 
   return (
-    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin && ['inicio', 'perfil', 'caixa'].includes(aba) ? ' sem-topo-celular' : '')}>
+    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin && ['inicio', 'caixa'].includes(aba) ? ' sem-topo-celular' : '')}>
       <aside className="lateral">
         <div className="topo">
           <div className="logo">
@@ -519,9 +522,10 @@ export default function App() {
         <main>
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
           {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} perfil={perfil} nome={nomeUsuario} />}
-          {!noAdmin && aba === 'perfil' && <MinhaConta db={db} perfil={perfil} nome={nomeUsuario} email={sessao?.usuario?.email} loja={loja} lojas={lojas}
+          {!noAdmin && aba === 'termos' && <Termos />}
+          {!noAdmin && contaAberta && <MinhaConta db={db} perfil={perfil} nome={nomeUsuario} email={sessao?.usuario?.email} loja={loja} lojas={lojas}
             adminPlataforma={adminPlataforma} podeVer={(id) => podeVer(papel, id)} irPara={irPara}
-            onFechar={() => irPara(abaAntesDoPerfil.current || 'inicio')} onTrocarLoja={(o) => abrirLoja(o)} onAdmin={() => irParaAdmin('orgs')} onSair={sairDoSistema} />}
+            onFechar={() => setContaAberta(false)} onTrocarLoja={(o) => abrirLoja(o)} onAdmin={() => irParaAdmin('orgs')} onSair={sairDoSistema} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'clientes' && <Clientes db={db} executar={executar} irPara={irPara} />}

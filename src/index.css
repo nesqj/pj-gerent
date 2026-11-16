@@ -863,7 +863,7 @@ input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; backg
 }
 
 /* ---------- Minha conta (toque na foto) ---------- */
-.minha-conta { max-width: 560px; margin: 0 auto }
+.notif-folha.minha-conta { padding-top: 10px }
 .mc-topo { display: flex; justify-content: space-between; margin: -4px -6px 4px }
 .mc-perfil { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; margin-bottom: 18px }
 .mc-foto { position: relative; background: none; border: none; padding: 0; cursor: pointer; margin-bottom: 8px }
@@ -874,6 +874,9 @@ input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; backg
 .mc-papel { margin-top: 4px; padding: 5px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--verde); background: var(--verde-fundo); border: 1px solid var(--ok-borda) }
 .mc-numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px }
 .mc-numero { background: var(--card); border: 1px solid var(--bd); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px }
+.mc-numero svg, .mc-numero-icone { margin-bottom: 6px }
+.mc-numero-icone { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--campo) }
+.mc-falta { font-size: 12px !important; margin-top: 2px }
 .mc-numero b { font-size: 22px }
 .mc-numero small { color: var(--mut); font-size: 13px }
 .mc-secao { display: flex; width: 100%; justify-content: space-between; align-items: center; background: none; border: none; color: var(--mut); font-size: 15px; padding: 4px 2px 10px; cursor: pointer }
@@ -1014,4 +1017,10 @@ section .notif-titulo, .notif-titulo { display: block; font-size: 30px; margin: 
 .ex-mov-valor { white-space: nowrap; font-size: 15px }
 .ex-mov-valor.ok { color: var(--verde) }
 .ex-rodape { text-align: center; margin-top: 10px }
+
+/* ---------- Termos e políticas ---------- */
+.termos { max-width: 760px }
+.termos-secao { margin: 18px 0 }
+.termos-secao h3 { margin-bottom: 6px }
+.termos-secao p { margin: 0; color: var(--mut); line-height: 1.6 }
 
