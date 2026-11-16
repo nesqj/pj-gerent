@@ -838,4 +838,6 @@ button.card.card-link:hover { border-color: var(--pri); filter: none }
 .selo { font-size: 13px; font-weight: 600; white-space: nowrap }
 .selo-ok { color: var(--ok) }
 .selo-bad { color: var(--bad) }
+/* celular: ícone da aba atual ao lado do título */
+.icone-aba { place-items: center; color: var(--mut); margin-right: -4px }
 

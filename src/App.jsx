@@ -333,7 +333,10 @@ export default function App() {
     ? GRUPOS_ADMIN
     : GRUPOS.map((g) => ({ ...g, itens: g.itens.filter((i) => podeVer(papel, i.id)) })).filter((g) => g.itens.length)
   const atual = noAdmin ? telaAdmin : aba
-  const titulo = [...grupos.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === atual)?.nome
+  const itemAtual = [...grupos.flatMap((g) => g.itens), ...RODAPE].find((i) => i.id === atual)
+  const titulo = itemAtual?.nome
+  const IconeAba = itemAtual?.icone
+  const temSeletorLoja = lojas.length > 1 || adminPlataforma // o seletor de loja só aparece para quem pode trocar
   const tituloT = titulo && t(titulo)
   const perfil = db?.perfil || {}
   const nomeUsuario = perfil.nome || sessao?.usuario?.nome || sessao?.usuario?.email || ''
@@ -482,6 +485,8 @@ export default function App() {
           <button className="icone-btn so-celular" onClick={() => setMenuAberto(true)} title={t('Abrir menu')}><IconeMenu /></button>
           <SeletorLoja lojas={lojas} ativa={loja} admin={adminPlataforma}
             onTrocar={(o) => abrirLoja(o)} onGerenciar={() => irParaAdmin('orgs')} />
+          {/* celular, sem seletor de loja: o ícone da aba atual ao lado do nome */}
+          {!temSeletorLoja && IconeAba && <span className="icone-aba so-celular"><IconeAba /></span>}
           <h1>{tituloT}</h1>
           {(nomeUsuario || perfil.avatar) && (
             <button className="usuario" onClick={() => (db ? (setModo('loja'), irPara('config')) : null)} title={t('Configurações')}>
