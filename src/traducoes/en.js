@@ -1172,4 +1172,6 @@ export default {
   'Troca': 'Trade-in',
   'Tirar "{produto}" da lista?': 'Remove "{produto}" from the list?',
   'Produto tirado da lista.': 'Product removed from the list.',
+  'Só dá para registrar vendas de até {n} dias atrás.': 'Sales can only be recorded up to {n} days back.',
+  '{data} é só para consulta: dá para registrar vendas de até {n} dias atrás.': '{data} is view-only: sales can be recorded up to {n} days back.',
 }

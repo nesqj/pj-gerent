@@ -28,6 +28,8 @@ export default function Vendas({ db, executar, irPara }) {
   const [editandoCusto, setEditandoCusto] = useState(null) // linha do carrinho com o custo do avulso aberto para editar
   const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
   const [desconto, setDesconto] = useState('') // % de desconto na venda (opcional)
+  // até quantos dias atrás dá para registrar uma venda (para lançar o que ficou para trás)
+  const DIAS_PARA_TRAS = 2
   const [dia, setDia] = useState(() => {
     try { const d = sessionStorage.getItem('vendas-dia'); sessionStorage.removeItem('vendas-dia'); if (d) return d } catch { /* sem acesso */ }
     return hoje()
@@ -197,6 +199,7 @@ export default function Vendas({ db, executar, irPara }) {
     }
     const extra = { pagamento: pago.pagamento, pagamentos: pago.pagamentos, ...(pago.fiado ? { fiado: pago.fiado } : {}) }
     if (dia > hoje()) return aviso.alerta(t('Não dá para registrar venda em data futura.'))
+    if (!podeRegistrar) return aviso.alerta(t('Só dá para registrar vendas de até {n} dias atrás.', { n: DIAS_PARA_TRAS }))
     // dia escolhido no calendário "Vendas de ...": hoje usa a hora atual; dia passado, a hora atual naquele dia
     const quando = dia === hoje() ? Date.now() : new Date(`${dia}T${new Date().toTimeString().slice(0, 8)}`).getTime()
     const venda = { id: uid(), data: quando, dia, itens, subtotal, descontoPct, descontoValor, total, ...extra }
@@ -244,6 +247,8 @@ export default function Vendas({ db, executar, irPara }) {
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
   const obsEntrada = new Map((db.entradas || []).filter((e) => e.obs).map((e) => [e.id, e.obs]))
   const obsDaVenda = (v) => [...new Set(v.itens.map((i) => i.entradaId && obsEntrada.get(i.entradaId)).filter(Boolean))].join(' · ')
+  const limiteRegistro = (() => { const d = new Date(hoje() + 'T12:00:00'); d.setDate(d.getDate() - DIAS_PARA_TRAS); return d.toISOString().slice(0, 10) })()
+  const podeRegistrar = dia >= limiteRegistro && dia <= hoje()
   const temJurosDia = vendasDia.some((v) => +v.fiado?.juros > 0) // coluna Juros só aparece se alguma venda do dia teve
   const totalDia = vendasDia.reduce((s, v) => s + faturamentoVenda(v), 0)
   // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
@@ -274,8 +279,11 @@ export default function Vendas({ db, executar, irPara }) {
       ) : (<>
       {/* registrando em outro dia (histórico) */}
       {dia !== hoje() && (
-        <p className="aviso-data">⚠ {t('Registrando em {data}', { data: dataBR(dia) })} · <button className="link pequeno" onClick={() => setDia(hoje())}>{t('Voltar para hoje')}</button></p>
+        <p className="aviso-data">⚠ {podeRegistrar
+          ? t('Registrando em {data}', { data: dataBR(dia) })
+          : t('{data} é só para consulta: dá para registrar vendas de até {n} dias atrás.', { data: dataBR(dia), n: DIAS_PARA_TRAS })} · <button className="link pequeno" onClick={() => setDia(hoje())}>{t('Voltar para hoje')}</button></p>
       )}
+      {podeRegistrar && <>
       {/* ---------- Nova venda: produto cadastrado ou avulso (no mesmo quadro) ---------- */}
       {!avulso && <form onSubmit={adicionar}>
         <div className="campo-custo" style={{ flex: '2 1 240px' }}>{t('Produto')}
@@ -422,6 +430,7 @@ export default function Vendas({ db, executar, irPara }) {
           </div>
         </div>
       )}
+      </>}
 
       </>)}
 
