@@ -1,6 +1,6 @@
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { brl, calcularEstoque, dataBR, extratoCaixa, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
+import { brl, calcularEstoque, dataBR, extratoCaixa, faturamentoVenda, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
 
 // Início: o que está acontecendo hoje, numa olhada só. Não calcula nada novo:
 // usa as mesmas contas do Novo Registro (vendas do dia), do Controle de caixa (saldo),
@@ -15,7 +15,7 @@ export default function Inicio({ db, irPara, completo }) {
 
   // vendas de hoje
   const vendasHoje = (db.vendas || []).filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
-  const vendido = r2(vendasHoje.reduce((s, v) => s + (+v.total || 0), 0))
+  const vendido = r2(vendasHoje.reduce((s, v) => s + faturamentoVenda(v), 0))
   const lucro = r2(vendasHoje.reduce((s, v) => s + lucroVenda(v).lucro, 0))
 
   // caixa
@@ -95,7 +95,7 @@ export default function Inicio({ db, irPara, completo }) {
               <div key={v.id} className="inicio-venda">
                 <span className="iv-hora">{hora(v.data)}</span>
                 <span className="iv-itens">{(v.itens || []).map((i) => `${i.qtd}× ${i.produto}`).join(', ')}<small>{pagamentosDaVenda(v).map((p) => t(p.forma)).join(' + ')}</small></span>
-                <b className="iv-total">{brl(v.total)}</b>
+                <b className="iv-total">{brl(faturamentoVenda(v))}</b>
               </div>
             ))}
           </div>

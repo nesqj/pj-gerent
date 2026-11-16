@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
-import { brl, dataBR, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
+import { brl, dataBR, faturamentoVenda, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, perdasNaoPago, somaPerdas, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoLinhas } from './Graficos.jsx'
 
@@ -58,7 +58,7 @@ const somaLucros = (ev, de, ate) => Math.round(ev.filter((x) => x.dia >= de && x
 
 // faturamento, nº de vendas e ticket médio do período (o lucro vem de lucrosPagos)
 function resumo(vendas) {
-  const faturamento = vendas.reduce((s, v) => s + v.total, 0)
+  const faturamento = vendas.reduce((s, v) => s + faturamentoVenda(v), 0)
   return { faturamento, vendas: vendas.length, ticket: vendas.length ? faturamento / vendas.length : 0 }
 }
 
@@ -136,12 +136,12 @@ export default function Analise({ db }) {
   let serie
   if (n === 1) {
     serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, hora: h, valor: 0, lucro: 0, vendas: 0 }))
-    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += v.total; serie[h].vendas++ }
+    for (const v of vendas) { const h = new Date(v.data).getHours(); serie[h].valor += faturamentoVenda(v); serie[h].vendas++ }
     for (const x of evLucro) if (x.dia === de) serie[new Date(x.data).getHours()].lucro += x.lucro
   } else {
     const porDia = new Map()
     for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, lucro: 0, vendas: 0 }) }
-    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += v.total; p.vendas++ } }
+    for (const v of vendas) { const p = porDia.get(v.dia); if (p) { p.valor += faturamentoVenda(v); p.vendas++ } }
     for (const x of evLucro) { const p = porDia.get(x.dia); if (p) p.lucro += x.lucro }
     serie = [...porDia.values()]
   }

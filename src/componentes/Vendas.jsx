@@ -3,7 +3,7 @@ import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
 import { chave, lerValor, resolverPreco } from '../utils.js'
-import { brl, num, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
+import { brl, num, faturamentoVenda, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
 import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
@@ -229,7 +229,7 @@ export default function Vendas({ db, executar, irPara }) {
 
   // Vendas do dia escolhido
   const vendasDia = db.vendas.filter((v) => v.dia === dia).sort((a, b) => b.data - a.data)
-  const totalDia = vendasDia.reduce((s, v) => s + v.total, 0)
+  const totalDia = vendasDia.reduce((s, v) => s + faturamentoVenda(v), 0)
   // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
   const lucroDia = Math.round(vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) * 100) / 100
   const perdasDia = vendasDia.reduce((s, v) => s + lucroVenda(v).perda, 0)
@@ -447,7 +447,7 @@ export default function Vendas({ db, executar, irPara }) {
                 <td className="quebra">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}</td>
                 <td className="quebra">{textoPagamento(v)}{v.fiado && <small className="sub-linha">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}{v.fiado.juros > 0 ? ' · ' + t('+ {valor} de juros', { valor: brl(v.fiado.juros) }) : ''}</small>}</td>
                 <td className="n">
-                  <b>{brl(v.total)}</b>
+                  <b>{brl(faturamentoVenda(v))}</b>
                   {v.descontoPct > 0 && <small className="desconto-linha">{t('{p}% de desconto', { p: num(v.descontoPct, 2) })}</small>}
                 </td>
                 <td className="n">

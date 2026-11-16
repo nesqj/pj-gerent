@@ -337,9 +337,11 @@ export function resumoFiado(v) {
 export function pagamentosDaVenda(v) {
   if (!Array.isArray(v.pagamentos)) return [{ forma: v.pagamento, valor: +v.total || 0 }]
   const l = v.pagamentos.filter((p) => +p.valor > 0).map((p) => ({ forma: p.forma, valor: +p.valor }))
-  if (v.fiado) l.push({ forma: 'Fiado', valor: Math.round(((+v.total || 0) - l.reduce((s, x) => s + x.valor, 0)) * 100) / 100 }) // sem os juros
+  if (v.fiado) l.push({ forma: 'Fiado', valor: Math.round((faturamentoVenda(v) - l.reduce((s, x) => s + x.valor, 0)) * 100) / 100 }) // com os juros do fiado
   return l
 }
+// Faturamento da venda: o que o cliente paga no total, com os juros do fiado (o desconto já está no total)
+export const faturamentoVenda = (v) => (+v.total || 0) + (+v.fiado?.juros || 0)
 export const pagoNaHora = (v) => (Array.isArray(v.pagamentos) ? v.pagamentos.reduce((s, p) => s + (+p.valor || 0), 0) : +v.total || 0)
 
 // Lucro de uma venda. Com fiado:
