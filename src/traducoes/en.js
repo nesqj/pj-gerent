@@ -1184,5 +1184,5 @@ export default {
   'Você vai mexer no dinheiro reservado para pagar custos. Livre para você: {livre}. Retirar {valor} mesmo assim?': 'You are using money reserved for costs. Free for you: {livre}. Withdraw {valor} anyway?',
   'As vendas entram sozinhas e as compras de estoque descontam sozinhas. O custo de produto de fornecedor e de avulso fica reservado até você marcar "Paguei". Aqui vai só o dinheiro que entra ou sai por fora disso.': 'Sales come in automatically and stock purchases are deducted automatically. The cost of supplier and one-off products stays reserved until you mark "Paid". Here goes only the money that comes in or out apart from that.',
   'livre {valor}': 'free {valor}',
-  'lucro − despesas extras': 'profit − extra expenses',
+  'lucro bruto − despesas extras': 'gross profit − extra expenses',
 }
