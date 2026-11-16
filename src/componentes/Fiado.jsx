@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { distribuirRecebimento, encargoAtraso, textoAtraso } from '../utils.js'
+import { distribuirRecebimento, encargoAtraso, prejuizoDe, textoAtraso } from '../utils.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
@@ -240,7 +240,13 @@ export default function Fiado({ db, executar, irPara }) {
                     </td>
                     <td className="n">{g.abertas.length ? <>{brl(x.falta)}<small className="sub-linha">{x.p.n}/{x.total}</small>{x.enc > 0 && <small className="sub-linha bad">{t('+ {valor} de atraso ({n} dias)', { valor: brl(x.enc), n: x.atraso.dias })}</small>}</> : '-'}</td>
                     <td className="n"><b>{g.falta > 0 ? brl(g.falta + g.encargo) : '-'}</b>{g.encargo > 0 && <small className="sub-linha bad">{t('com {valor} de atraso', { valor: brl(g.encargo) })}</small>}</td>
-                    <td><span className={s.classe}>{t(s.nome)}</span></td>
+                    <td><span className={s.classe}>{t(s.nome)}</span>
+                      {g.situacao === 'nao_paga' && (() => {
+                        // prejuízo só no que não cobriu o valor emprestado ou o custo dos produtos
+                        const pj = prejuizoDe(g.v)
+                        return pj > 0 ? <small className="sub-linha bad">{t('prejuízo {valor}', { valor: brl(pj) })}</small> : <small className="sub-linha">{t('sem prejuízo')}</small>
+                      })()}
+                    </td>
                     <td className="n acoes-fiado">{acoes(x)}</td>
                   </tr>
                   {aberto && g.parcelas.map((y) => {
