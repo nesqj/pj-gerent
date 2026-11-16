@@ -238,7 +238,10 @@ export default function Vendas({ db, executar, irPara }) {
     const extra = f?.recebido > 0 ? '\n' + t('Os recebimentos do fiado desta venda ({valor}) também serão apagados, e o caixa é ajustado.', { valor: brl(f.recebido) }) : ''
     const daTroca = (db.entradas || []).filter((e) => e.vendaTroca === v.id)
     const extraTroca = daTroca.length ? '\n' + t('O produto recebido na troca ({produto}) sai do estoque.', { produto: daTroca.map((e) => e.produto).join(', ') }) : ''
-    if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }) + extra + extraTroca)) {
+    // custo desta venda já marcado como pago: o pagamento é desfeito e o dinheiro volta para o caixa
+    const custoPago = (db.custosPagos || []).some((p) => (p.itens || []).some((k) => String(k).startsWith(v.id + ':')))
+    const extraCusto = custoPago ? '\n' + t('O custo que você marcou como pago volta para o caixa.') : ''
+    if (await confirmar(t('Excluir a venda de {total} das {hora}?\nOs itens voltam para o estoque.', { total: brl(v.total), hora: hora(v.data) }) + extra + extraTroca + extraCusto)) {
       if (await executar((A) => A.excluirVenda(v.id), t('Venda excluída.'))) {
         for (const e of daTroca) await executar((A) => A.excluirEntrada(e.id))
       }

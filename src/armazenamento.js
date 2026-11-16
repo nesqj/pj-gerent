@@ -272,7 +272,23 @@ export const salvarVenda = (v) => mudar('venda.salva', (d) => {
   }
   return v
 }, resumo('vendas', v))
-export const excluirVenda = (id) => remover('vendas', 'venda.excluida', id)
+// Excluir a venda também desfaz o "Paguei" dos custos dela (o dinheiro volta para o caixa).
+// Pagamento só desta venda: some. Pagamento junto com outras vendas: tira a parte desta venda.
+export const excluirVenda = (id) => mudar('venda.excluida', (d) => {
+  const v = d.vendas.find((x) => x.id === id)
+  d.vendas = d.vendas.filter((x) => x.id !== id)
+  if (v && d.custosPagos?.length) {
+    const daVenda = (k) => String(k).startsWith(id + ':')
+    const valorDe = (k) => { const i = v.itens?.[+String(k).split(':')[1]]; return i ? Math.round((+i.qtd || 0) * (+i.custo || 0) * 100) / 100 : 0 }
+    d.custosPagos = d.custosPagos.map((pg) => {
+      const tira = (pg.itens || []).filter(daVenda)
+      if (!tira.length) return pg
+      const resto = pg.itens.filter((k) => !daVenda(k))
+      return resto.length ? { ...pg, itens: resto, valor: Math.round((pg.valor - tira.reduce((s, k) => s + valorDe(k), 0)) * 100) / 100 } : null
+    }).filter(Boolean)
+  }
+  return v
+}, (v) => resumo('vendas', v))
 
 // Fiado: recebeu, não pagou, mudar data… (altera a venda, sem mexer nos itens)
 // alterar(parcela) devolve a parcela nova; roda sobre os dados mais novos (inclusive se outra pessoa salvou antes)
