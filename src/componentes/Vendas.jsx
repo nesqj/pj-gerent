@@ -29,7 +29,7 @@ export default function Vendas({ db, executar, irPara }) {
   const [pg, setPg] = useState(novoPagamento) // pagamento: uma forma, dividido e/ou fiado
   const [desconto, setDesconto] = useState('') // % de desconto na venda (opcional)
   // até quantos dias atrás dá para registrar uma venda (para lançar o que ficou para trás)
-  const DIAS_PARA_TRAS = 2
+  const DIAS_PARA_TRAS = 11
   const [dia, setDia] = useState(() => {
     try { const d = sessionStorage.getItem('vendas-dia'); sessionStorage.removeItem('vendas-dia'); if (d) return d } catch { /* sem acesso */ }
     return hoje()
