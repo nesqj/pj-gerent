@@ -143,15 +143,27 @@ export default function Fiado({ db, executar, irPara }) {
     setRecebendo(null)
   }
 
+  // "Não pagou": o cliente parou de pagar, então esta parcela e todas as que ainda estão em aberto ficam como não pagas
+  const lista_ = (x) => (x.emp ? 'emprestimos' : 'vendas')
   async function naoPagou(x) {
+    const emAberto = x.v.fiado.parcelas.filter((p) => !p.naoPaga && (+p.valor || 0) - recebidoDaParcela(p) > 0.004)
+    const valor = r2(emAberto.reduce((s, p) => s + (+p.valor || 0) - recebidoDaParcela(p), 0))
+    const qtd = emAberto.length > 1 ? ' ' + t('({n} parcelas)', { n: emAberto.length }) : ''
     const texto = x.emp
-      ? t('Marcar que {cliente} NÃO pagou {valor}?\nSó é prejuízo o que faltar para voltar o valor emprestado. O resto são juros que você deixa de ganhar. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
-      : t('Marcar que {cliente} NÃO pagou {valor}?\nSó é prejuízo o que faltar para cobrir o custo dos produtos. O resto é lucro que você deixa de ganhar. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(x.falta) })
+      ? t('Marcar que {cliente} NÃO pagou {valor}?\nSó é prejuízo o que faltar para voltar o valor emprestado. O resto são juros que você deixa de ganhar. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(valor) + qtd })
+      : t('Marcar que {cliente} NÃO pagou {valor}?\nSó é prejuízo o que faltar para cobrir o custo dos produtos. O resto é lucro que você deixa de ganhar. Dá para desfazer depois.', { cliente: x.v.fiado.cliente, valor: brl(valor) + qtd })
     if (!(await confirmar(texto, { botao: t('Não pagou'), perigo: true }))) return
-    gravar(x, (p) => ({ ...p, naoPaga: true, naoPagaEm: { data: Date.now(), dia: hoje() } }), acao(x, 'nao-pago'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}: ${x.falta}`, t('Marcado como não pago.'))
+    const marca = { data: Date.now(), dia: hoje() }
+    const ids = new Set(emAberto.map((p) => p.id))
+    executar((A) => A.alterarParcelas(lista_(x), x.v.id, (ps) => ps.map((p) => (ids.has(p.id) ? { ...p, naoPaga: true, naoPagaEm: marca } : p)),
+      acao(x, 'nao-pago'), `${x.v.fiado.cliente}: ${emAberto.length} parcela(s), ${valor}`), t('Marcado como não pago.'))
   }
+  // Reabrir: volta todas as parcelas que foram marcadas "Não pagou" junto com esta
   function reabrir(x) {
-    gravar(x, (p) => { const { naoPagaEm, ...resto } = p; return { ...resto, naoPaga: false } }, acao(x, 'reaberto'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}`, t('Parcela reaberta.'))
+    const quando = x.p.naoPagaEm?.data
+    const juntas = (p) => p.naoPaga && (quando ? p.naoPagaEm?.data === quando : p.id === x.p.id)
+    executar((A) => A.alterarParcelas(lista_(x), x.v.id, (ps) => ps.map((p) => { if (!juntas(p)) return p; const { naoPagaEm, ...resto } = p; return { ...resto, naoPaga: false } }),
+      acao(x, 'reaberto'), `${x.v.fiado.cliente} ${x.p.n}/${x.total}`), t('Parcelas reabertas.'))
   }
   async function estornar(x) {
     const ultimo = (x.p.recebimentos || []).at(-1)

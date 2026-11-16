@@ -851,7 +851,6 @@ export default {
   'Recebimento de fiado': 'Credit payment received',
   'Parcela recebida. Entrou no caixa.': 'Installment received. It went into the cash.',
   'Não pagou': 'Did not pay',
-  'Parcela reaberta.': 'Installment reopened.',
   'Estornar o último recebimento de {valor} ({data})? Ele sai do caixa e a parcela volta a ficar em aberto.': 'Reverse the last payment of {valor} ({data})? It leaves the cash and the installment becomes open again.',
   'Recebimento estornado.': 'Payment reversed.',
   'Data alterada.': 'Date changed.',
@@ -1173,4 +1172,6 @@ export default {
   'Tirar "{produto}" da lista?': 'Remove "{produto}" from the list?',
   'Produto tirado da lista.': 'Product removed from the list.',
   'Só dá para registrar vendas de até {n} dias atrás.': 'Sales can only be recorded up to {n} days back.',
+  '({n} parcelas)': '({n} installments)',
+  'Parcelas reabertas.': 'Installments reopened.',
 }
