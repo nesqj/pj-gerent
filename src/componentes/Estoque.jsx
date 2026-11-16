@@ -146,7 +146,7 @@ export default function Estoque({ db, executar }) {
                   <td className="n"><b className={classeEstoque(resta)}>{resta}</b></td>
                   <td className="n">{en.custo != null ? brl(en.custo) : '-'}</td>
                   <td className="n">{en.custo != null && resta > 0 ? brl(resta * en.custo) : '-'}</td>
-                  <td className="quebra">{en.obs || '-'}{en.foraDoCaixa && <span className="tag">{t('fora do caixa')}</span>}</td>
+                  <td className="quebra">{en.obs || '-'}</td>
                   <td className="acoes">
                     <button className="edit" onClick={() => editarEntrada(en)}>{t('Editar')}</button>{' '}
                     {resta > 0 && <button className="del" onClick={() => excluirEntrada(en)}>{t('Excluir')}</button>}
