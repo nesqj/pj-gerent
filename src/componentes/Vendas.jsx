@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
@@ -11,11 +11,17 @@ import { podeFazer } from '../armazenamento.js'
 
 const itemNovo = { k: '', qtd: '1', preco: '', forn: '' } // preco: digitado só para produtos do estoque; forn: fornecedor escolhido
 
-export default function Vendas({ db, executar, irPara }) {
-  const [modo, setModo] = useState(() => { // 'venda' ou 'emprestimo'
-    try { const m = sessionStorage.getItem('registro-modo'); sessionStorage.removeItem('registro-modo'); if (m === 'emprestimo' && podeFazer('emprestimo.salvo')) return m } catch { /* sem acesso */ }
-    return 'venda'
-  })
+// o botão tocado (Vender ou Empréstimo) já diz qual tela abrir
+const modoPedido = () => {
+  try { const m = sessionStorage.getItem('registro-modo'); sessionStorage.removeItem('registro-modo'); if (m === 'emprestimo' && podeFazer('emprestimo.salvo')) return m } catch { /* sem acesso */ }
+  return 'venda'
+}
+
+export default function Vendas({ db, executar, irPara, visita }) {
+  const [modo, setModo] = useState(modoPedido) // 'venda' ou 'emprestimo'
+  // tocou de novo em Vender/Empréstimo estando nesta tela: troca para o que foi pedido (o carrinho da venda continua)
+  const primeira = useRef(true)
+  useEffect(() => { if (primeira.current) { primeira.current = false; return } setModo(modoPedido()) }, [visita])
   const podeEmprestar = podeFazer('emprestimo.salvo')
   const [item, setItem] = useState(itemNovo)
   // item avulso: produto ou serviço que não está no estoque nem nos fornecedores (custo vira despesa)
@@ -267,14 +273,7 @@ export default function Vendas({ db, executar, irPara }) {
 
   return (
     <section>
-      <h2>{t('Novo Registro')}</h2>
-
-      {podeEmprestar && (
-        <div className="chips modo-registro">
-          <button className={'filtro' + (modo === 'venda' ? ' ativo' : '')} onClick={() => setModo('venda')}>{t('Venda')}</button>
-          <button className={'filtro' + (modo === 'emprestimo' ? ' ativo' : '')} onClick={() => setModo('emprestimo')}>{t('Empréstimo')}</button>
-        </div>
-      )}
+      <h2>{modo === 'emprestimo' && podeEmprestar ? t('Novo empréstimo') : t('Nova venda')}</h2>
 
       {modo === 'emprestimo' && podeEmprestar ? (
         <>

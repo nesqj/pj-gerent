@@ -328,10 +328,12 @@ export default function App() {
     }
   }
 
+  const [visitaVendas, setVisitaVendas] = useState(0)
   function irPara(id) {
     setMenuAberto(false)
     if (id === 'perfil') return setContaAberta(true)
     setContaAberta(false)
+    if (id === 'vendas') setVisitaVendas((n) => n + 1)
     setAba(id)
     window.scrollTo(0, 0)
   }
@@ -526,7 +528,7 @@ export default function App() {
           {!noAdmin && contaAberta && <MinhaConta db={db} perfil={perfil} nome={nomeUsuario} email={sessao?.usuario?.email} loja={loja} lojas={lojas}
             adminPlataforma={adminPlataforma} podeVer={(id) => podeVer(papel, id)} irPara={irPara} executar={executar}
             onFechar={() => setContaAberta(false)} onTrocarLoja={(o) => abrirLoja(o)} onAdmin={() => irParaAdmin('orgs')} onSair={sairDoSistema} />}
-          {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} />}
+          {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} visita={visitaVendas} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'clientes' && <Clientes db={db} executar={executar} irPara={irPara} />}
           {!noAdmin && aba === 'caixa' && <Caixa db={db} executar={executar} irPara={irPara} nomeLoja={loja?.nome} />}

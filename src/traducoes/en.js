@@ -1224,4 +1224,6 @@ export default {
   'Salvando...': 'Saving...',
   'Faturamento e lucro por hora': 'Revenue and profit by hour',
   'Faturamento e lucro por dia': 'Revenue and profit by day',
+  'Nova venda': 'New sale',
+  'Novo empréstimo': 'New loan',
 }
