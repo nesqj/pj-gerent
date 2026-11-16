@@ -358,7 +358,7 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
               </div>
             </div>
             <div className="painel">
-              <h3 className="painel-titulo">{t('Por forma de recebimento')}</h3>
+              <h3 className="painel-titulo">{t('Formas de recebimento')}</h3>
               {formas.length ? <Participacao linhas={formas} total={recebido} /> : <p className="vazio">{t('Nada recebido no período.')}</p>}
             </div>
           </div>

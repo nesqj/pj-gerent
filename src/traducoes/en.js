@@ -1127,7 +1127,6 @@ export default {
   'Emprestado e lucro por hora': 'Lent and profit by hour',
   'Emprestado e lucro por dia': 'Lent and profit by day',
   'Mais emprestado:': 'Most lent:',
-  'Por forma de recebimento': 'By payment method received',
   'Nada recebido no período.': 'Nothing received in the period.',
   'Não dá para registrar venda em data futura.': 'A sale cannot be recorded on a future date.',
   'Registrando em {data}': 'Recording on {data}',
@@ -1226,4 +1225,5 @@ export default {
   'Nova venda': 'New sale',
   'Novo empréstimo': 'New loan',
   'Formas de pagamento': 'Payment methods',
+  'Formas de recebimento': 'Receipt methods',
 }
