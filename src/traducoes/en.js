@@ -1025,7 +1025,6 @@ export default {
   'em aberto': 'open',
   'Resultado por cliente (empréstimos fechados)': 'Result per customer (closed loans)',
   'Pendências': 'Outstanding',
-  'Despesas com estoque': 'Stock expenses',
   'período anterior: {valor}': 'previous period: {valor}',
   'Pago ao fornecedor': 'Paid to supplier',
   'Informe o nome do produto.': 'Enter the product name.',

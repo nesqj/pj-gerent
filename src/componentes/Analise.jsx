@@ -117,18 +117,11 @@ export default function Analise({ db }) {
   ra.lucro = somaLucros(evLucro, antDe, antAte)
   r.margem = r.faturamento ? (r.lucro / r.faturamento) * 100 : 0
   const lucroTotal = Math.round(r.lucro * 100) / 100
-  // despesas com estoque: compras (quantidade × custo) feitas no período com o dinheiro do caixa (as "fora do caixa" não contam)
-  // + o custo dos produtos de fornecedor vendidos no período (não passam pelo estoque: são comprados para a venda)
-  const despesasEstoque = (a, b) => Math.round(((db.entradas || []).filter((e) => e.dia >= a && e.dia <= b && e.custo != null && !e.foraDoCaixa)
-    .reduce((s, e) => s + (+e.qtd || 0) * (+e.custo || 0), 0)
-    + db.vendas.filter((v) => v.dia >= a && v.dia <= b).reduce((s, v) => s + (v.itens || [])
-      .filter((i) => (i.origem === 'fornecedor' || (i.origem === 'avulso' && !i.foraDoCaixa)) && i.custo != null).reduce((x, i) => x + (+i.qtd || 0) * (+i.custo || 0), 0), 0)) * 100) / 100
-  const despesas = despesasEstoque(de, ate), despesasAnt = despesasEstoque(antDe, antAte)
   // outras despesas: o que saiu do caixa como "Despesa da loja" (luz, aluguel, insumos...). Retirada pessoal não conta.
   const outrasDespesas = (a, b) => Math.round((db.movCaixa || []).filter((m) => m.tipo === 'retirar' && m.categoria === 'despesa' && m.dia >= a && m.dia <= b)
     .reduce((s, m) => s + (+m.valor || 0), 0) * 100) / 100
   const outras = outrasDespesas(de, ate), outrasAnt = outrasDespesas(antDe, antAte)
-  // resultado: o que sobrou de verdade. Não desconta as despesas com estoque, porque o custo dos produtos já sai do lucro.
+  // lucro líquido: o que sobrou de verdade (o custo dos produtos já sai do lucro bruto)
   const resultado = Math.round((lucroTotal - outras) * 100) / 100
   const resultadoAnt = Math.round((ra.lucro - outrasAnt) * 100) / 100
 
@@ -208,10 +201,6 @@ export default function Analise({ db }) {
         <div className="card">
           <small>{t('Vendas')}</small><b>{r.vendas}</b>
           <small className="var">{t('Ticket médio')} {brl(r.ticket)}</small>
-        </div>
-        <div className="card">
-          <small>{t('Despesas com estoque')}</small><b>{brl(despesas)}</b>
-          {despesasAnt > 0 && <small className="var">{t('período anterior: {valor}', { valor: brl(despesasAnt) })}</small>}
         </div>
         <div className="card">
           <small>{t('Outras despesas')}</small><b>{brl(outras)}</b>
