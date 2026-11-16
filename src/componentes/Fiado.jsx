@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { podeFazer } from '../armazenamento.js'
-import { distribuirRecebimento, encargoAtraso, prejuizoDe, textoAtraso } from '../utils.js'
+import { distribuirRecebimento, encargoAtraso, textoAtraso } from '../utils.js'
 import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParcela, situacaoParcela, uid } from '../utils.js'
 
 // Fiado (contas a receber): cada parcela de cada venda fiado.
@@ -63,8 +63,6 @@ export default function Fiado({ db, executar, irPara }) {
     nAtrasado: abertas.filter((x) => x.situacao === 'atrasada').length,
     semana: soma(abertas.filter((x) => x.p.vencimento >= dia && x.p.vencimento <= em7)),
     naoPago: soma(parcelas.filter((x) => x.situacao === 'nao_paga')),
-    // prejuízo: só o que não cobre o valor emprestado ou o custo dos produtos
-    prejuizo: r2([...new Set(parcelas.filter((x) => x.situacao === 'nao_paga').map((x) => x.v))].reduce((s, v) => s + prejuizoDe(v), 0)),
   }
 
   // uma linha por compra ou empréstimo; a linha mostra a próxima parcela e abre as outras
@@ -189,8 +187,7 @@ export default function Fiado({ db, executar, irPara }) {
         <div className="card destaque"><small>{t('A receber')}</small><b>{brl(cards.receber)}</b><small className="var">{t('{n} parcela(s) em aberto', { n: abertas.length })}</small></div>
         <div className={'card' + (cards.atrasado > 0 ? ' card-prejuizo' : '')}><small>{t('Atrasado')}</small><b className={cards.atrasado > 0 ? 'bad' : ''}>{brl(cards.atrasado)}</b><small className="var">{t('{n} parcela(s)', { n: cards.nAtrasado })}</small>{cards.encargos > 0 && <small className="var bad">{t('+ {valor} de multa e juros', { valor: brl(cards.encargos) })}</small>}</div>
         <div className="card"><small>{t('Vence em 7 dias')}</small><b>{brl(cards.semana)}</b></div>
-        <div className="card"><small>{t('Não pagos')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{brl(cards.naoPago)}</b>
-          {cards.prejuizo > 0 && <small className="var bad">{t('prejuízo {valor}', { valor: brl(cards.prejuizo) })}</small>}</div>
+        <div className="card"><small>{t('Não pagos')}</small><b className={cards.naoPago > 0 ? 'bad' : ''}>{brl(cards.naoPago)}</b></div>
       </div>
 
       <div className="config-atraso">
