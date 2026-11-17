@@ -445,7 +445,7 @@ export default function App() {
   if (modo === 'carregando' || (modo === 'loja' && !db)) return <p className="vazio">{t('Carregando...')}</p>
 
   return (
-    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin && ['inicio', 'caixa'].includes(aba) ? ' sem-topo-celular' : '')}>
+    <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin ? ' sem-topo-celular' : '')}>
       <aside className="lateral">
         <div className="topo">
           <div className="logo">
