@@ -107,7 +107,7 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
       {/* valor grande: livre para você (dono) ou vendido hoje (vendedor) */}
       {completo ? (
         <button className="in-saldo" onClick={() => irPara('caixa')}>
-          <span><small>{t('Saldo disponível')}</small><b className={livre != null && livre < 0 ? 'bad' : ''}>{livre == null ? '—' : livre < 0 ? '− ' + R(-livre) : R(livre)}</b>
+          <span><small>{t('Saldo disponível')}</small><b className={livre != null && livre < 0 ? 'bad' : ''}>{livre == null ? R(0) : livre < 0 ? '− ' + R(-livre) : R(livre)}</b>
             {caixa && reservado > 0 && <small className="in-sub">{t('{valor} reservado para custos', { valor: R(reservado) })}</small>}
             {!caixa && <small className="in-sub">{t('Comece o controle de caixa')}</small>}</span>
           <IconeDireita />
