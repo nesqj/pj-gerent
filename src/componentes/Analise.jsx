@@ -273,7 +273,21 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
     return (e.fiado?.parcelas || []).flatMap((p) => (p.recebimentos || []).filter((r) => r.dia >= de && r.dia <= ate)
       .map((r) => ({ e, dia: r.dia, data: r.data || e.data, forma: r.forma || 'Dinheiro', valor: (+r.valor || 0) + (+r.encargo || 0), lucro: (+r.valor || 0) * porReal + (+r.encargo || 0) })))
   })
-  const lucroEmp = recebimentos.reduce((s, x) => s + x.lucro, 0)
+  // empréstimo com "Não pagou": a parte do valor emprestado que não voltou sai do lucro, no período em que foi marcado.
+  // Assim o lucro bate com o Resultado do empréstimo (o que voltou − o que saiu).
+  const perdas = todos.flatMap((e) => {
+    const f = resumoFiado(e)
+    if (!f?.naoPago || f.pendente) return []
+    const marcadas = (e.fiado?.parcelas || []).filter((p) => p.naoPaga)
+    const ultima = marcadas.reduce((m, p) => ((p.naoPagaEm?.dia || e.dia) > (m?.naoPagaEm?.dia || e.dia) ? p : m), marcadas[0])
+    const dia = ultima?.naoPagaEm?.dia || e.dia
+    if (dia < de || dia > ate) return []
+    const total = +e.total || 0, valor = +e.valor || 0
+    const pago = (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || []).reduce((b, r) => b + (+r.valor || 0), 0), 0)
+    const perda = Math.max(0, valor - (total > 0 ? pago * (valor / total) : pago))
+    return perda > 0.004 ? [{ e, dia, data: ultima?.naoPagaEm?.data || e.data, perda }] : []
+  })
+  const lucroEmp = recebimentos.reduce((s, x) => s + x.lucro, 0) - perdas.reduce((s, x) => s + x.perda, 0)
   // Pendências no fim do período: tudo o que foi emprestado até o fim do período e ainda não tinha voltado até essa data
   // (inclui o que foi marcado "Não pagou"). Passa de um mês para o outro e só diminui no mês em que o cliente paga.
   // Com multa e juros de atraso configurados, a parcela atrasada aumenta a pendência (calculado como estava no fim do período).
@@ -295,34 +309,24 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
     serie = Array.from({ length: 24 }, (_, h) => ({ rotulo: `${h}h`, valor: 0, lucro: 0, vendas: 0 }))
     for (const e of lista) { const h = new Date(e.data).getHours(); serie[h].valor += +e.valor || 0; serie[h].vendas++ }
     for (const x of recebimentos) serie[new Date(x.data).getHours()].lucro += x.lucro
+    for (const x of perdas) serie[new Date(x.data).getHours()].lucro -= x.perda
   } else {
     const porDia = new Map()
     for (let i = 0; i < n; i++) { const d = somarDias(de, i); porDia.set(d, { dia: d, rotulo: dataBR(d).slice(0, 5), valor: 0, lucro: 0, vendas: 0 }) }
     for (const e of lista) { const p = porDia.get(e.dia); if (p) { p.valor += +e.valor || 0; p.vendas++ } }
     for (const x of recebimentos) { const p = porDia.get(x.dia); if (p) p.lucro += x.lucro }
+    for (const x of perdas) { const p = porDia.get(x.dia); if (p) p.lucro -= x.perda }
     serie = [...porDia.values()]
   }
   const maiorDia = n > 1 && serie.reduce((m, d) => (d.valor > (m?.valor ?? 0) ? d : m), null)
-  const temMovimento = lista.length > 0 || recebimentos.length > 0
+  const temMovimento = lista.length > 0 || recebimentos.length > 0 || perdas.length > 0
 
   // clientes do período: quanto pegou emprestado e quanto de lucro (juros) já voltou dele no período
   const cli = new Map()
   const doCliente = (e) => { const k = e.fiado?.clienteId || e.fiado?.cliente || '?'; if (!cli.has(k)) cli.set(k, { nome: e.fiado?.cliente || '-', n: 0, emprestado: 0, recebido: 0, lucro: 0 }); return cli.get(k) }
   for (const e of lista) { const c = doCliente(e); c.n++; c.emprestado += +e.valor || 0 }
   for (const x of recebimentos) { const c = doCliente(x.e); c.recebido += x.valor; c.lucro += x.lucro }
-  // empréstimo com "Não pagou": a parte do valor emprestado que não voltou sai do lucro do cliente
-  // (no período em que foi marcado), para o painel bater com o Resultado do empréstimo (o que voltou − o que saiu)
-  for (const e of todos) {
-    const f = resumoFiado(e)
-    if (!f?.naoPago || f.pendente) continue
-    const marcadas = (e.fiado?.parcelas || []).filter((p) => p.naoPaga).map((p) => p.naoPagaEm?.dia || e.dia)
-    const quando = marcadas.length ? marcadas.sort().at(-1) : e.dia
-    if (quando < de || quando > ate) continue
-    const total = +e.total || 0, valor = +e.valor || 0
-    const pago = (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || []).reduce((b, r) => b + (+r.valor || 0), 0), 0)
-    const perda = Math.max(0, valor - (total > 0 ? pago * (valor / total) : pago))
-    if (perda > 0.004) doCliente(e).lucro -= perda
-  }
+  for (const x of perdas) doCliente(x.e).lucro -= x.perda // "Não pagou": a parte emprestada que não voltou
   const clientes = [...cli.values()].sort((a, b) => b.lucro - a.lucro || b.emprestado - a.emprestado)
 
   // por forma de recebimento (o que voltou no período)
