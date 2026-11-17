@@ -8,11 +8,7 @@ import { Avatar } from './MinhaConta.jsx'
 import EditarFoto from './EditarFoto.jsx'
 import { avisar, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
 import { IDIOMAS, t } from '../i18n.js'
-import { LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP as NOME_PADRAO } from '../marca.js'
-import { corTextoSobre, FUSO_PADRAO, hexValido } from '../utils.js'
-
-const COR_PADRAO = '#ffffff' // cor padrão no tema escuro (preto e branco)
-const COR_PADRAO_CLARO = '#0a0a0a' // cor padrão no tema claro
+import { FUSO_PADRAO } from '../utils.js'
 
 // Seções da tela de Configurações. Cada cartão abre uma página própria.
 const SECOES = [
@@ -28,7 +24,7 @@ const SECOES = [
     titulo: 'Empresa',
     itens: [
       { id: 'organizacao', nome: 'Organização', desc: 'A loja e a atividade recente.', icone: IconePredio },
-      { id: 'marca', nome: 'Marca', desc: 'O nome e a cor que sua empresa mostra dentro do sistema.', icone: IconePaleta },
+      { id: 'marca', nome: 'Marca', desc: 'A logo da sua marca, para o catálogo.', icone: IconePaleta },
       { id: 'cobranca', nome: 'Plano e cobrança', desc: 'Seu plano, a situação do pagamento, faturas e troca de plano.', icone: IconeCobranca },
     ],
   },
@@ -57,7 +53,7 @@ export default function Configuracoes({ db, executar, usuario, loja, adminPlataf
         <button className="voltar" onClick={() => setAberta(null)}>← {t('Configurações')}</button>
         <div className="config-titulo">
           <h3>{t(item.nome)}</h3>
-          <small>{t({ perfil: 'Informações pessoais. O e-mail de acesso ainda não pode ser trocado.', marca: 'O nome e a cor que a sua empresa mostra para quem trabalha aqui dentro.' }[item.id] || item.desc)}</small>
+          <small>{t({ perfil: 'Informações pessoais. O e-mail de acesso ainda não pode ser trocado.', marca: 'A logo da sua marca. Ela vai aparecer no catálogo da sua loja.' }[item.id] || item.desc)}</small>
         </div>
         {Pagina
           ? <Pagina db={db} executar={executar} usuario={usuario} loja={loja} adminPlataforma={adminPlataforma} />
@@ -251,118 +247,43 @@ function PlanoCobranca({ loja }) {
 const LIMITE_LOGO = 512 * 1024
 
 function Marca({ db, executar }) {
-  const atual = { nomeLoja: db.config?.nomeLoja || '', cor: db.config?.cor || '', corEscuro: db.config?.corEscuro || '', logo: db.config?.logo || '', logoEscuro: db.config?.logoEscuro || '' }
-  const [form, setForm] = useState(atual)
-  const [erroLogo, setErroLogo] = useState({}) // erro por campo: { logo, logoEscuro }
-  const mudou = JSON.stringify(form) !== JSON.stringify(atual)
-  const corOk = (!form.cor || hexValido(form.cor)) && (!form.corEscuro || hexValido(form.corEscuro))
-  const corClaro = hexValido(form.cor) ? form.cor : COR_PADRAO_CLARO
-  const corEsc = hexValido(form.corEscuro) ? form.corEscuro : hexValido(form.cor) ? form.cor : COR_PADRAO
+  const atual = db.config?.logo || ''
+  const [logo, setLogo] = useState(atual)
+  const [erro, setErro] = useState('')
 
-  // campo = 'logo' (tema claro) ou 'logoEscuro' (tema escuro)
-  function escolherLogo(campo, e) {
+  function escolherLogo(e) {
     const file = e.target.files[0]
     e.target.value = ''
-    setErroLogo((er) => ({ ...er, [campo]: '' }))
+    setErro('')
     if (!file) return
-    if (!['image/png', 'image/jpeg'].includes(file.type)) return setErroLogo((er) => ({ ...er, [campo]: t('Use um arquivo PNG ou JPG.') }))
-    if (file.size > LIMITE_LOGO) return setErroLogo((er) => ({ ...er, [campo]: t('O arquivo passa de 512 KB.') }))
+    if (!['image/png', 'image/jpeg'].includes(file.type)) return setErro(t('Use um arquivo PNG ou JPG.'))
+    if (file.size > LIMITE_LOGO) return setErro(t('O arquivo passa de 512 KB.'))
     const r = new FileReader()
-    r.onload = () => setForm((f) => ({ ...f, [campo]: r.result }))
+    r.onload = () => setLogo(r.result)
     r.readAsDataURL(file)
   }
 
-  // Campo de arquivo de logo (usado para o claro e para o escuro)
-  const CampoLogo = ({ campo, titulo, dica }) => (
-    <div className="largo campo-arquivo">
-      <span className="rotulo-campo">{titulo}</span>
-      <div className="cor-linha">
-        <label className="botao-arquivo">{t('Escolher arquivo')}<input type="file" accept="image/png,image/jpeg" hidden onChange={(e) => escolherLogo(campo, e)} /></label>
-        {form[campo] && <img className="logo-img" src={form[campo]} alt="" />}
-        <small>{form[campo] ? t('Logo escolhido') : t('Nenhum arquivo escolhido')}</small>
-        {form[campo] && <button type="button" className="sec" onClick={() => setForm({ ...form, [campo]: '' })}>{t('Remover logo')}</button>}
-      </div>
-      <small className={erroLogo[campo] ? 'bad' : ''}>{erroLogo[campo] || dica}</small>
-    </div>
-  )
-
-  // Prévia do menu num tema (cores fixas do tema, independente do tema aberto agora)
-  const Previa = ({ tema, logo, cor }) => (
-    <div className={'previa-marca previa-' + tema}>
-      <small>{tema === 'claro' ? t('Tema claro') : t('Tema escuro')}</small>
-      <div className="logo">
-        {logo ? (
-          <>
-            <img className="logo-img" src={logo} alt="" />
-            <span>{form.nomeLoja.trim() || NOME_PADRAO}</span>
-          </>
-        ) : (
-          <>
-            {/* sem logo próprio: aparece o logo padrão do sistema */}
-            <img className="logo-padrao" src={tema === 'claro' ? LOGO_PADRAO_CLARO : LOGO_PADRAO_ESCURO} alt="" />
-            {form.nomeLoja.trim() && <span>{form.nomeLoja.trim()}</span>}
-          </>
-        )}
-      </div>
-      <span className="item ativo previa-item" style={{ background: cor, color: corTextoSobre(cor) }}>{t('Item selecionado')}</span>
-    </div>
-  )
-
-  async function salvar(e) {
+  function salvar(e) {
     e.preventDefault()
-    if (!corOk) return
-    executar((A) => A.salvarConfig({ ...db.config, nomeLoja: form.nomeLoja.trim(), cor: form.cor.toLowerCase(), corEscuro: form.corEscuro.toLowerCase(), logo: form.logo, logoEscuro: form.logoEscuro }), t('Marca salva.'))
+    // guarda só a logo (nome, cores e logo do tema escuro não existem mais)
+    const { nomeLoja, cor, corEscuro, logoEscuro, ...resto } = db.config || {}
+    executar((A) => A.salvarConfig({ ...resto, logo }), t('Logo salva.'))
   }
 
   return (
     <form onSubmit={salvar} className="form-config">
-      <h3 className="largo">{t('Como sua empresa aparece')}</h3>
-
-      <label className="largo">{t('Nome da sua empresa')}
-        <input placeholder={NOME_PADRAO} maxLength={40} value={form.nomeLoja} onChange={(e) => setForm({ ...form, nomeLoja: e.target.value })} />
-        <small>{t('Aparece no menu lateral e no título da aba do navegador. Deixe em branco para usar "{nome}".', { nome: NOME_PADRAO })}</small>
-      </label>
-
-      <label className="largo">{t('Cor da sua marca')}
+      <div className="largo campo-arquivo">
+        <span className="rotulo-campo">{t('Logo da sua marca')}</span>
+        <div className="logo-marca">
+          {logo ? <img src={logo} alt="" /> : <span>{t('Sem logo')}</span>}
+        </div>
         <div className="cor-linha">
-          <input type="color" value={corClaro} onChange={(e) => setForm({ ...form, cor: e.target.value })} />
-          <input className="hex" placeholder={COR_PADRAO_CLARO} maxLength={7} value={form.cor}
-            onChange={(e) => setForm({ ...form, cor: e.target.value.trim() })} />
-          {form.cor && <button type="button" className="sec" onClick={() => setForm({ ...form, cor: '' })}>{t('Usar a padrão')}</button>}
+          <label className="botao-arquivo">{logo ? t('Trocar logo') : t('Escolher logo')}<input type="file" accept="image/png,image/jpeg" hidden onChange={escolherLogo} /></label>
+          {logo && <button type="button" className="sec" onClick={() => setLogo('')}>{t('Remover logo')}</button>}
         </div>
-        <small className={!form.cor || hexValido(form.cor) ? '' : 'bad'}>{!form.cor || hexValido(form.cor) ? t('Usada nos botões, no item ativo do menu e nos gráficos. Deixe em branco para a cor padrão.') : t('Use o formato #rrggbb, por exemplo #7a5cd6.')}</small>
-      </label>
-
-      <label className="largo">{t('Cor da sua marca no tema escuro (opcional)')}
-        <div className="cor-linha">
-          <input type="color" value={corEsc} onChange={(e) => setForm({ ...form, corEscuro: e.target.value })} />
-          <input className="hex" placeholder={hexValido(form.cor) ? form.cor : COR_PADRAO} maxLength={7} value={form.corEscuro}
-            onChange={(e) => setForm({ ...form, corEscuro: e.target.value.trim() })} />
-          {form.corEscuro && <button type="button" className="sec" onClick={() => setForm({ ...form, corEscuro: '' })}>{t('Usar a de cima')}</button>}
-        </div>
-        <small className={!form.corEscuro || hexValido(form.corEscuro) ? '' : 'bad'}>{!form.corEscuro || hexValido(form.corEscuro) ? t('Deixe em branco para os dois temas usarem a cor acima.') : t('Use o formato #rrggbb, por exemplo #7a5cd6.')}</small>
-      </label>
-
-      {CampoLogo({ campo: 'logo', titulo: t('Logo do tema claro'), dica: t('PNG ou JPG, até 512 KB. Prefira fundo transparente. SVG não é aceito por segurança. Sem logo próprio, aparece o logo padrão do sistema.') })}
-      {CampoLogo({ campo: 'logoEscuro', titulo: t('Logo do tema escuro'), dica: t('Use uma versão legível sobre fundo escuro. Sem ela, o tema escuro usa o logo do tema claro. PNG ou JPG, até 512 KB.') })}
-
-      <div className="largo">
-        <span className="rotulo-campo">{t('Assim ele aparece no menu:')}</span>
-        <div className="previas">
-          {Previa({ tema: 'claro', logo: form.logo, cor: corClaro })}
-          {Previa({ tema: 'escuro', logo: form.logoEscuro || form.logo, cor: corEsc })}
-        </div>
+        <small className={erro ? 'bad' : ''}>{erro || t('Vai aparecer no catálogo da sua loja. PNG ou JPG, até 512 KB, de preferência com fundo transparente.')}</small>
       </div>
-
-      <div className="painel largo">
-        <h3 style={{ marginBottom: 8 }}>{t('O que isto ainda não muda')}</h3>
-        <ul className="dicas">
-          <li>{t('O ícone do app instalado no celular continua o padrão do sistema.')}</li>
-          <li>{t('Nome, cor e logo valem para todas as pessoas desta loja, em qualquer aparelho.')}</li>
-        </ul>
-      </div>
-
-      <div className="acoes-form largo"><button type="submit" disabled={!mudou || !corOk}>{t('Salvar')}</button></div>
+      <div className="acoes-form largo"><button type="submit" disabled={logo === atual}>{t('Salvar')}</button></div>
     </form>
   )
 }

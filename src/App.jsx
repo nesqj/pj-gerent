@@ -309,18 +309,13 @@ export default function App() {
     return () => mq.removeEventListener('change', aplicar)
   }, [tema])
 
-  // marca: a da loja (Configurações → Marca); o que ela não define vem da marca da plataforma (painel → Marca).
-  // No painel da plataforma vale só a da plataforma.
-  const daLoja = modo === 'loja' ? db?.config || {} : {}
-  const escolher = (k) => daLoja[k] || marcaPlat[k] || ''
-  const corClaro = hexValido(escolher('cor')) ? escolher('cor') : null
-  const corEscuro = hexValido(daLoja.corEscuro) ? daLoja.corEscuro
-    : hexValido(daLoja.cor) ? daLoja.cor
-      : hexValido(marcaPlat.corEscuro) ? marcaPlat.corEscuro : corClaro
+  // marca do sistema: a da plataforma (painel → Marca). A logo de cada loja (Configurações → Marca)
+  // fica guardada para o catálogo da loja e não muda o visual do app.
+  const corClaro = hexValido(marcaPlat.cor) ? marcaPlat.cor : null
+  const corEscuro = hexValido(marcaPlat.corEscuro) ? marcaPlat.corEscuro : corClaro
   const cor = temaAtivo === 'light' ? corClaro : corEscuro
   // logo: no tema escuro usa o logo próprio dele; se não tiver, usa o do tema claro
-  const logoDe = (m) => (temaAtivo === 'light' ? m.logo : m.logoEscuro || m.logo)
-  const logo = logoDe(daLoja) || logoDe(marcaPlat)
+  const logo = temaAtivo === 'light' ? marcaPlat.logo : marcaPlat.logoEscuro || marcaPlat.logo
   // tela de abertura enquanto carrega: só a logo no meio da tela
   const telaCarregando = (
     <div className="tela-carregando" role="status" aria-label={t('Carregando...')}>
@@ -328,8 +323,8 @@ export default function App() {
     </div>
   )
   const nomeSistema = marcaPlat.nome?.trim() || NOME_APP
-  const nomeProprio = daLoja.nomeLoja?.trim() || (logo ? '' : marcaPlat.nome?.trim())
-  const nomeLoja = daLoja.nomeLoja?.trim() || nomeSistema
+  const nomeProprio = logo ? '' : marcaPlat.nome?.trim()
+  const nomeLoja = nomeSistema
   useEffect(() => {
     const raiz = document.documentElement.style
     if (cor) { raiz.setProperty('--pri', cor); raiz.setProperty('--pri-txt', corTextoSobre(cor)) }

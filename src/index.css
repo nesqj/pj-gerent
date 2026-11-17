@@ -1203,3 +1203,7 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 .diag-item > span:first-child { font-weight: 700; font-size: 16px; width: 16px; flex: 0 0 auto }
 .diag-item > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0 }
 .diag-item small { color: var(--mut); font-size: 12px; overflow-wrap: anywhere }
+.logo-marca { width: 140px; height: 140px; border-radius: 18px; border: 1px dashed var(--bd-forte); background: var(--campo); display: grid; place-items: center; overflow: hidden; margin: 6px 0 10px }
+.logo-marca img { max-width: 85%; max-height: 85%; object-fit: contain }
+.logo-marca span { color: var(--mut); font-size: 13px }
+
