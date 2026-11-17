@@ -91,8 +91,6 @@ export default {
   'sem vendas no período anterior': 'no sales in the previous period',
   '= igual ao período anterior': '= same as the previous period',
   'vs anterior': 'vs previous',
-  '{de} a {ate}': '{de} to {ate}',
-  'comparado com': 'compared with',
   'Ticket médio': 'Average ticket',
   'Nenhuma venda neste período.': 'No sales in this period.',
   'Melhor dia:': 'Best day:',

@@ -177,7 +177,6 @@ export default function Analise({ db }) {
             <input type="date" value={fim} onChange={(e) => setFim(e.target.value || hoje())} />
           </div>
         )}
-        <small>{de === ate ? dataBR(de) : t('{de} a {ate}', { de: dataBR(de), ate: dataBR(ate) })} · {t('comparado com')} {antDe === antAte ? dataBR(antDe) : t('{de} a {ate}', { de: dataBR(antDe), ate: dataBR(antAte) })}</small>
       </div>
 
       {aba === 'emprestimos' && comEmprestimos ? (
