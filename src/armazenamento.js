@@ -72,10 +72,13 @@ async function buscar() {
 export async function carregar() {
   const usuario = await idUsuario()
   if (!org) throw new Error(t('Nenhuma loja selecionada.'))
+  // a foto de perfil fica na tabela fotos_perfil (fora do login): busca junto com os dados da loja
+  const foto = perfil ? null : buscarFoto(usuario.id)
   if (carregadoDe !== org.id) await buscar()
   if (!perfil) {
     // perfil da conta; quem veio da versão antiga ainda tem o perfil guardado dentro dos dados da loja
-    perfil = usuario.user_metadata?.perfil || (org.criada_por_mim && db.perfil) || {}
+    const base = usuario.user_metadata?.perfil || (org.criada_por_mim && db.perfil) || {}
+    perfil = { ...base, avatar: (await foto) || base.avatar || '' }
   }
   const copia = structuredClone(db)
   copia.perfil = { ...perfil }
@@ -196,11 +199,28 @@ export const renomearProduto = (k, produto, marca) => mudar('preco-fornecedor.sa
 }, `${k.replace('|', ' — ')} → ${produto}${marca ? ' — ' + marca : ''}`)
 
 // Perfil de quem usa: { nome, idioma, tema, fuso, avatar } — fica na conta da pessoa
+// Foto de perfil: fica na tabela fotos_perfil, e não nos dados da conta. Os dados da conta vão dentro do login
+// em todo pedido ao banco; com a foto lá, o login ficava enorme e o Safari do iPhone recusava os pedidos.
+async function buscarFoto(uid) {
+  try {
+    const { data, error } = await supabase.from('fotos_perfil').select('foto').eq('user_id', uid).maybeSingle()
+    return error ? null : data?.foto || null
+  } catch { return null }
+}
+
 export async function salvarPerfil(p) {
-  const { error } = await supabase.auth.updateUser({ data: { perfil: p, nome: p.nome || undefined } })
+  const { avatar = '', ...resto } = p || {}
+  const usuario = await idUsuario()
+  const { error } = await supabase.auth.updateUser({ data: { perfil: resto, nome: resto.nome || undefined } })
   if (error) throw new Error(t('Não foi possível salvar no banco de dados. Verifique a internet e tente de novo.'))
-  perfil = { ...p }
-  return p
+  if (avatar !== (perfil?.avatar || '')) {
+    const r = avatar
+      ? await supabase.from('fotos_perfil').upsert({ user_id: usuario.id, foto: avatar, atualizado_em: new Date().toISOString() })
+      : await supabase.from('fotos_perfil').delete().eq('user_id', usuario.id)
+    if (r.error) throw new Error(t('Não foi possível salvar a foto. Verifique a internet e tente de novo.'))
+  }
+  perfil = { ...resto, avatar }
+  return perfil
 }
 
 // Configurações da loja: { nomeLoja, cor, corEscuro, logo, logoEscuro, avisosEstoque }

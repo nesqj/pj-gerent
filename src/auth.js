@@ -32,6 +32,12 @@ const paraSessao = (s) =>
 // Sessão atual ou null
 export async function obterSessao() {
   const { data } = await supabase.auth.getSession()
+  if ((data.session?.access_token?.length || 0) > 8000) {
+    try {
+      const { data: nova } = await supabase.auth.refreshSession()
+      if (nova?.session) return paraSessao(nova.session)
+    } catch { /* segue com o login que tem */ }
+  }
   return paraSessao(data.session)
 }
 

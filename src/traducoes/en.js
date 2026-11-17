@@ -1216,4 +1216,5 @@ export default {
   'Suspender bloqueia o acesso do usuário desta loja, sem apagar nada. Dá para reativar quando quiser.': 'Suspending blocks access for this store user without deleting anything. You can reactivate it anytime.',
   'Suspender a loja "{nome}"? O usuário perde o acesso até você reativar.': 'Suspend the store "{nome}"? The user loses access until you reactivate it.',
   'Sem preço definido': 'No price set',
+  'Não foi possível salvar a foto. Verifique a internet e tente de novo.': 'Could not save the photo. Check your internet connection and try again.',
 }
