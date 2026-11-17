@@ -190,12 +190,6 @@ td.quebra { white-space: normal; min-width: 220px }
 /* ---------- Fornecedores ---------- */
 .lista-forn { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px }
 button.voltar { background: none; border: none; color: var(--pri); padding: 0 0 14px; font-weight: 500 }
-.info-forn-topo { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 12px }
-.info-forn dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin: 0 }
-.info-forn dt { color: var(--mut); font-size: 12px; margin-bottom: 3px }
-.info-forn dd { margin: 0 }
-.info-forn .largo { grid-column: 1 / -1 }
-.info-forn a { color: var(--link) }
 .clicavel { cursor: pointer }
 
 /* ---------- Marcas ---------- */
@@ -214,11 +208,6 @@ input.somente-leitura { background: transparent; border-style: dashed; color: va
 
 /* ---------- Análise ---------- */
 .filtros { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-bottom: 16px }
-.segmentado { display: inline-flex; flex-wrap: wrap; background: var(--card); border: 1px solid var(--bd); border-radius: 9px; padding: 3px; gap: 2px }
-.segmentado button { background: none; border: none; color: var(--mut); padding: 6px 12px; border-radius: 7px; font-weight: 500 }
-.segmentado button.on { background: var(--hover); color: var(--txt) }
-.segmentado button:hover { filter: none; color: var(--txt) }
-.segmentado.pequeno button { padding: 4px 10px; font-size: 13px }
 .datas { display: flex; gap: 8px; align-items: center; color: var(--mut) }
 .var { font-size: 12px; color: var(--mut) }
 .var.ok, .var.bad { font-weight: 500 }
@@ -353,7 +342,6 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
   /* botões mais fáceis de tocar */
   button { min-height: 40px }
   button.edit, button.del { padding: 8px 14px; font-size: 14px }
-  .segmentado button { padding: 8px 12px }
   button.link, .chip button, .ver-senha, button.voltar { min-height: 0 }
   .item { min-height: 44px }
 
@@ -385,7 +373,6 @@ button.link.pequeno { font-size: 13px; font-weight: 500 }
 
   /* Configurações e Fornecedores */
   .lista-forn, .ajuda, .duas-colunas { grid-template-columns: 1fr }
-  .info-forn-topo > div { display: flex; flex-wrap: wrap; gap: 8px }
   .part-linha { grid-template-columns: 64px 1fr auto }
 
   /* ---------- tabelas viram cartões ---------- */
@@ -741,8 +728,6 @@ label > select { width: 100%; text-overflow: ellipsis }
 .bp-dir { color: var(--mut); font-size: 13px; white-space: nowrap }
 .bp-vazio { padding: 12px 10px; color: var(--mut); font-size: 13px }
 /* Produtos e preços de venda: barra de busca e ordem */
-.barra-produtos { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 6px }
-.busca-icone { flex: 1 1 260px }
 .info-produtos { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px }
 .info-produtos .ponto { color: var(--mut) }
 .info-produtos .link.pequeno { padding: 0 }
@@ -757,7 +742,7 @@ label.chave input:focus-visible + .trilho { outline: 2px solid var(--pri); outli
 .chave-texto { display: flex; flex-direction: column; gap: 1px; font-size: 14px }
 .chave-texto small { color: var(--mut); font-size: 12px }
 /* campos de busca: todos com a lupa */
-input.busca, input.busca-icone, .busca-produto input { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239b9890' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 11px center }
+input.busca, .busca-produto input { padding-left: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239b9890' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 11px center }
 /* Início */
 .inicio-titulo { display: flex; justify-content: space-between; align-items: center; gap: 10px }
 .inicio-titulo h3 { margin: 0 }
@@ -1224,4 +1209,17 @@ form.form-config .cor-linha .botao-arquivo, form.form-config .cor-linha button.s
 .ajuda-dicas .dicas { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; color: var(--mut); font-size: 14px }
 .texto-precos { color: var(--mut); font-size: 13px; margin: 0 0 12px }
 .info-produtos .selecionar-todos { color: var(--txt) }
+
+/* ---------- página de um fornecedor ---------- */
+@media (max-width: 767px) { .modo-loja main:has(.sub-pagina) > .voltar-conta { display: none } }
+.forn-info { gap: 0; padding-top: 6px; margin-bottom: 12px }
+.forn-linha { display: flex; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--bd); font-size: 14px }
+.forn-linha span { color: var(--mut) }
+.forn-linha b { font-weight: 500; text-align: right; min-width: 0; overflow-wrap: anywhere }
+.forn-linha.coluna { flex-direction: column; gap: 4px }
+.forn-linha.coluna b { text-align: left }
+.forn-info .cb-rodape { margin-top: 10px }
+.forn-marcas { margin-bottom: 6px }
+.forn-marcas h3 { margin: 0 0 6px; font-size: 15px }
+.forn-preco-edit { width: 120px }
 
