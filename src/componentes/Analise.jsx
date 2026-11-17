@@ -4,6 +4,7 @@ import { TROCA } from '../utils.js'
 import { brl, dataBR, faturamentoVenda, hoje, num, PAGAMENTOS, pct, lucroDe, fatorDesconto, pagamentosDaVenda, lucroEmprestimo, resumoFiado, encargoAtraso, pagoNaHora, totalFiado } from '../utils.js'
 import { podeFazer } from '../armazenamento.js'
 import { GraficoBarras } from './Graficos.jsx'
+import { useCelular } from '../useCelular.js'
 
 // ---------- Datas ----------
 const paraDia = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -260,6 +261,7 @@ function resultadoEmprestimo(e) {
 }
 
 function AnaliseEmprestimos({ db, de, ate, n }) {
+  const celular = useCelular()
   const todos = db.emprestimos || []
   const lista = todos.filter((e) => e.dia >= de && e.dia <= ate).sort((a, b) => b.data - a.data)
   const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
@@ -365,6 +367,30 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
       )}
       {lista.length === 0 ? (
         <p className="vazio">{t('Nenhum empréstimo neste período.')}</p>
+      ) : celular ? (
+        // no celular: cartão enxuto (cliente, situação e resultado; o resto numa linha pequena)
+        <div className="cb-lista">
+          {lista.map((e) => {
+            const ps = e.fiado?.parcelas || []
+            const pagas = ps.filter((p) => (+p.valor || 0) - (p.recebimentos || []).reduce((a, r) => a + (+r.valor || 0), 0) <= 0.004).length
+            const st = situacao(e)
+            const res = resultadoEmprestimo(e)
+            return (
+              <div key={e.id} className="cb-item">
+                <div className="cb-topo">
+                  <span className="cb-quem">
+                    <b>{e.fiado?.cliente}</b>
+                    <small>{dataBR(e.dia)} · {brl(e.valor)} · {t('{pagas} de {total} pagas', { pagas, total: ps.length })}</small>
+                  </span>
+                  <span className="cb-valor">
+                    {res != null && <b className={res < 0 ? 'bad' : 'ok'}>{res < 0 ? '− ' + brl(-res) : brl(res)}</b>}
+                    <span className={'cb-selo ' + st.classe}>{t(st.nome)}</span>
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       ) : (
         <div className="tw">
           <table>
