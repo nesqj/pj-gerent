@@ -343,12 +343,23 @@ export default function App() {
   }
 
   const [visitaVendas, setVisitaVendas] = useState(0)
+  // aba de onde a Minha conta foi aberta (Início, Cobranças...): o voltar das telas da conta reabre a conta por cima dela
+  const origemConta = useRef('inicio')
   function irPara(id) {
     setMenuAberto(false)
-    if (id === 'perfil') return setContaAberta(true)
+    if (id === 'perfil') {
+      if (!ABAS_DA_CONTA.includes(aba)) origemConta.current = aba
+      return setContaAberta(true)
+    }
     setContaAberta(false)
     if (id === 'vendas') setVisitaVendas((n) => n + 1)
     setAba(id)
+    window.scrollTo(0, 0)
+  }
+  // voltar de Estoque, Clientes, Configurações...: volta para a Minha conta, e fechar ela volta para a aba de origem
+  function voltarParaConta() {
+    setAba(podeVer(papel, origemConta.current) ? origemConta.current : 'inicio')
+    setContaAberta(true)
     window.scrollTo(0, 0)
   }
   function irParaAdmin(id) {
@@ -537,7 +548,7 @@ export default function App() {
         )}
         <main>
           {!noAdmin && ABAS_DA_CONTA.includes(aba) && (
-            <button className="voltar-conta so-celular" onClick={() => irPara('perfil')} aria-label={t('Voltar')}><IconeVoltar /><span>{t('Minha conta')}</span></button>
+            <button className="voltar-conta so-celular" onClick={voltarParaConta} aria-label={t('Voltar')}><IconeVoltar /><span>{t('Minha conta')}</span></button>
           )}
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
           {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} perfil={perfil} nome={nomeUsuario} />}
