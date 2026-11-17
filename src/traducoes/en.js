@@ -1238,4 +1238,5 @@ export default {
   'O preço de venda é informado na aba Vender, na hora de vender.': 'The selling price is entered in the Sell tab, at the time of sale.',
   'Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua antes a venda desse produto na aba Vender.': 'Not possible: "{produto}" was already sold and the stock would be {n}. First delete the sale of this product in the Sell tab.',
   'Não conseguimos falar com o servidor. Confira a internet e toque em Tentar de novo.': 'We could not reach the server. Check your internet and tap Try again.',
+  'Não dá para registrar empréstimo em data futura.': 'You cannot register a loan on a future date.',
 }

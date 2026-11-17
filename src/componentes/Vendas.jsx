@@ -276,16 +276,16 @@ export default function Vendas({ db, executar, irPara, visita }) {
     <section className="tela-registro">
       <div className="vd-topo com-voltar">{voltar}<h2>{modo === 'emprestimo' && podeEmprestar ? t('Novo empréstimo') : t('Nova venda')}</h2></div>
 
-      {modo === 'emprestimo' && podeEmprestar ? (
-        <>
-          <NovoEmprestimo db={db} executar={executar} aoSalvar={() => setDia(hoje())} />
-          <p><small>{t('Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças.')}</small></p>
-        </>
-      ) : (<>
-      {/* registrando em outro dia (histórico) */}
+      {/* registrando em outro dia (histórico): vale para venda e empréstimo, até DIAS_PARA_TRAS dias atrás */}
       {dia !== hoje() && podeRegistrar && (
         <p className="aviso-data">⚠ {t('Registrando em {data}', { data: dataBR(dia) })} · <button className="link pequeno" onClick={() => setDia(hoje())}>{t('Voltar para hoje')}</button></p>
       )}
+      {modo === 'emprestimo' && podeEmprestar ? (
+        podeRegistrar && <>
+          <NovoEmprestimo db={db} executar={executar} dia={dia} />
+          <p><small>{t('Juros simples: o valor emprestado × os juros do mês × o número de parcelas. As parcelas vão para a aba Cobranças.')}</small></p>
+        </>
+      ) : (<>
       {podeRegistrar && <>
       {/* ---------- Nova venda: produto cadastrado ou avulso (no mesmo quadro) ---------- */}
       {!avulso && <form onSubmit={adicionar}>

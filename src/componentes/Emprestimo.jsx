@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
@@ -13,10 +13,19 @@ import { AvisoCliente } from './Clientes.jsx'
 // O dinheiro sai do caixa (se marcado) e as parcelas vão para a aba Cobranças.
 // O lucro é só o juro, e conta quando todas as parcelas estiverem resolvidas.
 const somarDias = (dia, n) => { const d = new Date(dia + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
-const novo = () => ({ clienteId: '', nome: '', cpf: '', telefone: '', valor: '', juros: '', parcelas: '1', primeira: somarDias(hoje(), 30), intervalo: 'mensal', obs: '' })
+// a primeira parcela vence 30 dias depois do dia do empréstimo
+const novo = (dia = hoje()) => ({ clienteId: '', nome: '', cpf: '', telefone: '', valor: '', juros: '', parcelas: '1', primeira: somarDias(dia, 30), intervalo: 'mensal', obs: '' })
 
-export function NovoEmprestimo({ db, executar, aoSalvar }) {
-  const [f, setF] = useState(novo)
+// dia: o dia em que o empréstimo é registrado (hoje ou até 2 dias atrás, escolhido em "Empréstimos de...")
+export function NovoEmprestimo({ db, executar, dia = hoje(), aoSalvar }) {
+  const [f, setF] = useState(() => novo(dia))
+  // mudou o dia: a data da primeira parcela acompanha (se a pessoa não tinha mudado ela)
+  const diaAntes = useRef(dia)
+  useEffect(() => {
+    const antes = diaAntes.current
+    diaAntes.current = dia
+    if (antes !== dia) setF((x) => (x.primeira === somarDias(antes, 30) ? { ...x, primeira: somarDias(dia, 30) } : x))
+  }, [dia])
   const campo = (k) => ({ value: f[k], onChange: (e) => setF({ ...f, [k]: e.target.value }) })
   const clientes = db.clientes || []
   const valor = lerValor(f.valor)
@@ -31,6 +40,7 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
     if (!(valor > 0)) return aviso.alerta(t('Informe o valor emprestado.'))
     if (!(juros >= 0)) return aviso.alerta(t('Confira os juros.'))
     if (!f.primeira) return aviso.alerta(t('Informe a data combinada para o pagamento.'))
+    if (dia > hoje()) return aviso.alerta(t('Não dá para registrar empréstimo em data futura.'))
     // cliente: escolhido, com o mesmo nome de um cadastrado, ou novo
     let cliente = clientes.find((c) => c.id === f.clienteId)
     const cpf = cliente ? '' : lerCPF(f.cpf)
@@ -47,8 +57,10 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
     const ext = db.caixa ? extratoCaixa(db) : null
     if (ext && valor > ext.saldo && !(await confirmar(t('O caixa tem {saldo}. Emprestar {valor} vai deixar o saldo negativo. Continuar?', { saldo: brl(ext.saldo), valor: brl(valor) })))) return
     const c = calcularEmprestimo(valor, juros, n)
+    // hoje usa a hora atual; dia passado, a hora atual naquele dia (igual às vendas)
+    const quando = dia === hoje() ? Date.now() : new Date(`${dia}T${new Date().toTimeString().slice(0, 8)}`).getTime()
     const emp = {
-      id: uid(), data: Date.now(), dia: hoje(), valor: c.valor, jurosPct: juros, total: c.total, obs: f.obs.trim(),
+      id: uid(), data: quando, dia, valor: c.valor, jurosPct: juros, total: c.total, obs: f.obs.trim(),
       fiado: {
         clienteId: cliente.id, cliente: cliente.nome, telefone: cliente.telefone || '',
         parcelas: datas.map((vencimento, k) => ({ id: uid(), n: k + 1, vencimento, valor: c.parcelas[k], recebimentos: [] })),
@@ -56,7 +68,7 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
     }
     if (await executar((A) => A.salvarEmprestimo(emp))) {
       aviso.ok(t('Empréstimo registrado.'), t('{total} a receber de {cliente} em {n} parcela(s). Acompanhe na aba Cobranças.', { total: brl(c.total), cliente: cliente.nome, n }))
-      setF(novo())
+      setF(novo(dia))
       aoSalvar?.()
     }
   }
@@ -123,7 +135,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
     <>
       <div className="dia-topo">
         <h3>{dia === hoje() ? t('Empréstimos de hoje') : t('Empréstimos de {data}', { data: dataBR(dia) })}</h3>
-        {setDia && <input type="date" value={dia} onChange={(e) => setDia(e.target.value || hoje())} aria-label={t('Dia')} />}
+        {setDia && <input type="date" value={dia} max={hoje()} onChange={(e) => setDia(e.target.value || hoje())} aria-label={t('Dia')} />}
       </div>
       {celular ? (
         // no celular: cada empréstimo é um cartão
