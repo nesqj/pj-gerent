@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useState } from 'react'
+import { useCelular } from '../useCelular.js'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { IconeDireita } from '../icones.jsx'
@@ -9,20 +10,6 @@ import { brl, dataBR, hoje, lerValor as numero, norm, PAGAMENTOS, recebidoDaParc
 // Fiado (contas a receber): cada parcela de cada venda fiado.
 // "Recebeu" registra o pagamento (total ou parcial) e entra no caixa; "Não pagou" só é prejuízo no que não cobre o que saiu.
 // O lucro conta no dia da venda/empréstimo; o que o cliente não pagar sai do lucro.
-// tela de celular? (a lista vira cartões; no computador continua a tabela)
-const TELA_CELULAR = '(max-width: 767px)'
-function useCelular() {
-  const [celular, setCelular] = useState(() => window.matchMedia?.(TELA_CELULAR).matches ?? false)
-  useEffect(() => {
-    const mq = window.matchMedia?.(TELA_CELULAR)
-    if (!mq) return
-    const mudou = () => setCelular(mq.matches)
-    mq.addEventListener('change', mudou)
-    return () => mq.removeEventListener('change', mudou)
-  }, [])
-  return celular
-}
-
 const SITUACOES = {
   atrasada: { nome: 'Atrasado', classe: 'bad' },
   vence_hoje: { nome: 'Vence hoje', classe: 'warn' },

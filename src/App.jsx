@@ -37,7 +37,7 @@ const GRUPOS = [
     nome: 'Operações',
     itens: [
       { id: 'inicio', nome: 'Início', icone: IconeInicio },
-      { id: 'vendas', nome: 'Novo Registro', icone: IconeCarrinho },
+      { id: 'vendas', nome: 'Vender', icone: IconeCarrinho },
       { id: 'fiado', nome: 'Cobranças', icone: IconeFiado },
       { id: 'caixa', nome: 'Controle de caixa', icone: IconeCaixa },
       { id: 'analise', nome: 'Análise', icone: IconeGrafico },

@@ -1231,4 +1231,12 @@ export default {
   'Dinheiro retirado': 'Money withdrawn',
   'Dinheiro retirado do caixa.': 'Money withdrawn from the register.',
   'Ex: conta de luz, aluguel, uso pessoal...': 'E.g. electricity bill, rent, personal use...',
+  'Vendas de hoje': 'Sales today',
+  'Empréstimos de hoje': 'Loans today',
+  'Dia': 'Day',
+  'prejuízo {valor}': 'loss {valor}',
+  'lucro {valor}': 'profit {valor}',
+  'Desconto': 'Discount',
+  'Excluir venda': 'Delete sale',
+  'vai receber {valor}': 'will receive {valor}',
 }

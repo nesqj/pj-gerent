@@ -9,7 +9,8 @@ import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento } from '.
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
 import { Catalogo, MenuVender } from './VenderMenu.jsx'
-import { IconeVoltar } from '../icones.jsx'
+import { IconeCarrinho, IconeVoltar } from '../icones.jsx'
+import { useCelular } from '../useCelular.js'
 
 const itemNovo = { k: '', qtd: '1', preco: '', forn: '' } // preco: digitado só para produtos do estoque; forn: fornecedor escolhido
 
@@ -21,6 +22,7 @@ const modoPedido = () => {
 
 export default function Vendas({ db, executar, irPara, visita }) {
   const [modo, setModo] = useState(modoPedido) // 'menu', 'venda', 'emprestimo' ou 'catalogo'
+  const celular = useCelular()
   // tocou de novo em Vender estando nesta tela: volta para o menu (o carrinho da venda continua guardado)
   const primeira = useRef(true)
   useEffect(() => { if (primeira.current) { primeira.current = false; return } setModo(modoPedido()) }, [visita])
@@ -439,11 +441,48 @@ export default function Vendas({ db, executar, irPara, visita }) {
         <EmprestimosDoDia db={db} dia={dia} setDia={setDia} executar={executar} irPara={irPara} />
       ) : (<>
       {/* ---------- Vendas do dia ---------- */}
-      <div className="linha-titulo">
-        <h3>{t('Vendas de {data}', { data: dataBR(dia) })}</h3>
-        <input type="date" value={dia} max={hoje()} onChange={(e) => setDia(e.target.value || hoje())} />
+      <div className="dia-topo">
+        <h3>{dia === hoje() ? t('Vendas de hoje') : t('Vendas de {data}', { data: dataBR(dia) })}</h3>
+        <input type="date" value={dia} max={hoje()} onChange={(e) => setDia(e.target.value || hoje())} aria-label={t('Dia')} />
       </div>
 
+      {celular ? (
+        // no celular: cada venda é um cartão
+        <div className="cb-lista">
+          {vendasDia.length === 0 && <div className="cb-vazio">{t('Nenhuma venda neste dia.')}</div>}
+          {vendasDia.map((v) => {
+            const res = lucroVenda(v)
+            const temCustoV = v.itens.some((i) => i.custo != null)
+            const custoV = v.itens.reduce((c, i) => c + (+i.qtd || 0) * (+i.custo || 0), 0)
+            return (
+              <div key={v.id} className={'cb-item' + (res.lucro < 0 ? ' atrasada' : '')}>
+                <div className="cb-topo">
+                  <span className="cb-avatar"><IconeCarrinho /></span>
+                  <span className="cb-quem">
+                    <b className="quebra-linhas">{v.itens.map((i) => `${i.qtd}× ${i.produto}${i.marca ? ` (${i.marca})` : ''}`).join(', ')}</b>
+                    <small>{hora(v.data)} · {textoPagamento(v)}</small>
+                  </span>
+                  <span className="cb-valor">
+                    <b>{brl(faturamentoVenda(v))}</b>
+                    {temCustoV && <small className={res.lucro < 0 ? 'bad' : 'ok'}>{res.lucro < 0 ? t('prejuízo {valor}', { valor: brl(-res.lucro) }) : t('lucro {valor}', { valor: brl(res.lucro) })}</small>}
+                  </span>
+                </div>
+                {obsDaVenda(v) && <small className="cb-detalhe">{obsDaVenda(v)}</small>}
+                {(v.pagamentos || []).filter((p) => p.forma === TROCA).map((p, k) => <small key={k} className="cb-detalhe">{t('Troca: {item}', { item: p.item })}</small>)}
+                {v.fiado && <small className="cb-detalhe">{t('Fiado de {cliente}', { cliente: v.fiado.cliente })}</small>}
+                <div className="vd-numeros">
+                  <span><small>{t('Custo')}</small>{temCustoV ? brl(custoV) : '-'}</span>
+                  <span><small>{t('Valor')}</small>{brl(v.total)}</span>
+                  {+v.fiado?.juros > 0 && <span><small>{t('Juros')}</small>{brl(v.fiado.juros)}</span>}
+                  {v.descontoPct > 0 && <span><small>{t('Desconto')}</small>{num(v.descontoPct, 2)}%</span>}
+                </div>
+                {res.perda > 0 && res.lucro >= 0 && <small className="cb-detalhe bad">{t('perda de {valor} abaixo do custo', { valor: brl(res.perda) })}</small>}
+                <div className="cb-rodape vd-rodape"><button className="link pequeno bad" onClick={() => excluir(v)}>{t('Excluir venda')}</button></div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
       <div className="tw">
         <table>
           <thead><tr><th>{t('Hora')}</th><th>{t('Itens')}</th><th>{t('Pagamento')}</th><th className="n">{t('Custo')}</th><th className="n">{t('Valor')}</th>{temJurosDia && <th className="n">{t('Juros')}</th>}<th className="n">{t('Total')}</th><th className="n">{t('Lucro')}</th><th></th></tr></thead>
@@ -478,6 +517,7 @@ export default function Vendas({ db, executar, irPara, visita }) {
           </tbody>
         </table>
       </div>
+      )}
       {semCusto && <small>* {t('Algum item vendido não tinha custo informado; o lucro considera custo zero para ele.')}</small>}
       </>)}
     </section>

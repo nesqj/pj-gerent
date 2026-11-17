@@ -5,6 +5,8 @@ import { formatarCPF, lerCPF, soDigitos } from '../utils.js'
 import { brl, calcularEmprestimo, dataBR, extratoCaixa, hoje, hora, lerValor, lucroEmprestimo, norm, num, resumoFiado, uid } from '../utils.js'
 import { vencimentos } from './PagamentoVenda.jsx'
 import BuscaCliente from './BuscaCliente.jsx'
+import { IconeCobranca } from '../icones.jsx'
+import { useCelular } from '../useCelular.js'
 import { AvisoCliente } from './Clientes.jsx'
 
 // Empréstimo de dinheiro (crediário) com juros simples ao mês.
@@ -107,6 +109,7 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
 // Empréstimos feitos no dia (na aba Novo Registro)
 export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
   const lista = (db.emprestimos || []).filter((e) => e.dia === dia).sort((a, b) => b.data - a.data)
+  const celular = useCelular()
 
   async function excluir(e) {
     const f = resumoFiado(e)
@@ -118,10 +121,45 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
 
   return (
     <>
-      <div className="linha-titulo">
-        <h3>{t('Empréstimos de {data}', { data: dataBR(dia) })}</h3>
-        {setDia && <input type="date" value={dia} onChange={(e) => setDia(e.target.value || hoje())} />}
+      <div className="dia-topo">
+        <h3>{dia === hoje() ? t('Empréstimos de hoje') : t('Empréstimos de {data}', { data: dataBR(dia) })}</h3>
+        {setDia && <input type="date" value={dia} onChange={(e) => setDia(e.target.value || hoje())} aria-label={t('Dia')} />}
       </div>
+      {celular ? (
+        // no celular: cada empréstimo é um cartão
+        <div className="cb-lista">
+          {lista.length === 0 && <div className="cb-vazio">{t('Nenhum empréstimo neste dia.')}</div>}
+          {lista.map((e) => {
+            const l = lucroEmprestimo(e)
+            const n = e.fiado?.parcelas?.length || 1
+            const total = (e.fiado?.parcelas || []).reduce((s, p) => s + (+p.valor || 0), 0) // quanto vai receber com os juros
+            return (
+              <div key={e.id} className="cb-item">
+                <div className="cb-topo">
+                  <span className="cb-avatar"><IconeCobranca /></span>
+                  <span className="cb-quem">
+                    <b>{e.fiado?.cliente}</b>
+                    <small>{hora(e.data)} · {n}× · {t('{p}% ao mês', { p: num(e.jurosPct || 0, 2) })}</small>
+                  </span>
+                  <span className="cb-valor">
+                    <b>{brl(e.valor)}</b>
+                    <small>{t('vai receber {valor}', { valor: brl(total) })}</small>
+                  </span>
+                </div>
+                {(e.foraDoCaixa || e.obs) && <small className="cb-detalhe">{[e.foraDoCaixa && t('fora do caixa'), e.obs].filter(Boolean).join(' · ')}</small>}
+                <div className="vd-numeros">
+                  <span><small>{t('Emprestado')}</small>{brl(e.valor)}</span>
+                  <span><small>{t('Recebido')}</small>{brl(l.recebido)}</span>
+                </div>
+                <div className="cb-rodape vd-rodape">
+                  <button className="link pequeno" onClick={() => irPara?.('fiado')}>{t('Ver em Cobranças')}</button>
+                  <button className="link pequeno bad" onClick={() => excluir(e)}>{t('Excluir')}</button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
       <div className="tw">
         <table>
           <thead><tr><th>{t('Hora')}</th><th>{t('Cliente')}</th><th className="n">{t('Emprestado')}</th><th className="n">{t('Recebido')}</th><th className="n">{t('Lucro (juros)')}</th><th></th></tr></thead>
@@ -149,6 +187,7 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
           </tbody>
         </table>
       </div>
+      )}
     </>
   )
 }

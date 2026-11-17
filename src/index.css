@@ -1152,3 +1152,17 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 .calc-pct input { width: 84px; text-align: right; font-size: 17px; font-weight: 600; padding: 10px 12px; border-radius: 12px }
 .calc-pct i { font-style: normal; color: var(--mut); font-weight: 600 }
 .calc-linha > .calc-pct { flex-direction: row; align-items: center }
+
+/* ---------- Vendas e empréstimos do dia no estilo do app ---------- */
+.dia-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 22px 0 12px }
+.dia-topo h3 { margin: 0; font-size: 18px }
+.dia-topo input[type=date] { width: auto; flex: 0 0 auto; border-radius: 999px; padding: 8px 14px; background: var(--card); border: 1px solid var(--bd); color: var(--txt); font-size: 14px; min-height: 0 }
+.quebra-linhas { white-space: normal !important; overflow: visible !important }
+.cb-valor small.ok { color: var(--verde) }
+.cb-valor small { font-size: 12px }
+.vd-numeros { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px }
+.vd-numeros span { flex: 1 1 0; min-width: 80px; display: flex; flex-direction: column; gap: 2px; background: var(--campo); border-radius: 12px; padding: 8px 12px; font-size: 14px; font-weight: 600 }
+.vd-numeros small { color: var(--mut); font-weight: 400; font-size: 12px }
+.vd-rodape { justify-content: flex-end; gap: 16px }
+.link.bad { color: var(--bad) }
+
