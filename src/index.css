@@ -1198,3 +1198,7 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
   .modo-loja main .inicio > h2 { display: none }
   .modo-loja .vd-topo h2 { font-size: 26px; font-weight: 700 }
 }
+
+/* celular: voltar para a Minha conta nas telas que abrem por ela */
+.voltar-conta { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; color: var(--txt); padding: 6px 0; margin: 0 0 6px; font-size: 15px; font-weight: 500; min-height: 0 !important; cursor: pointer }
+.voltar-conta svg { width: 20px; height: 20px }

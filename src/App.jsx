@@ -107,6 +107,9 @@ const BARRA_BAIXO = [
   { id: 'analise', nome: 'Análise', icone: IconeGrafico },
 ]
 
+// telas que no celular abrem pela Minha conta (não estão na barra de baixo): ganham o botão de voltar
+const ABAS_DA_CONTA = ['estoque', 'forn', 'clientes', 'termos', 'ajuda', 'config']
+
 const chaveLoja = (uid) => 'pjgerent-loja-' + uid
 
 export default function App() {
@@ -533,6 +536,9 @@ export default function App() {
           </div>
         )}
         <main>
+          {!noAdmin && ABAS_DA_CONTA.includes(aba) && (
+            <button className="voltar-conta so-celular" onClick={() => irPara('perfil')} aria-label={t('Voltar')}><IconeVoltar /><span>{t('Minha conta')}</span></button>
+          )}
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
           {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} perfil={perfil} nome={nomeUsuario} />}
           {!noAdmin && aba === 'termos' && <Termos />}
