@@ -33,7 +33,7 @@ import {
 // Falha de conexão (o iPhone mostra "Load failed"; outros navegadores "Failed to fetch"): vale tentar de novo
 const TENTATIVAS = 2
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
-const falhaDeRede = (e) => /load failed|failed to fetch|networkerror|network request failed|verifique a internet/i.test(e?.message || '')
+const falhaDeRede = (e) => /load failed|failed to fetch|networkerror|network request failed|abort|verifique a internet/i.test(`${e?.name || ''} ${e?.message || ''}`)
 const mensagemDeCarga = (e) => (falhaDeRede(e)
   ? t('Não conseguimos falar com o servidor. Confira a internet e toque em Tentar de novo.')
   : e?.message || t('Não foi possível carregar os dados.'))
@@ -244,7 +244,12 @@ export default function App() {
 
   useEffect(() => {
     if (!supabaseConfigurado) return setSessao(null)
-    Auth.obterSessao().then((s) => { setSessao(s); if (s) carregarConta(s) })
+    // se a checagem do login não responder (ex.: Safari travado), mostra a tela de entrar em vez de "Carregando..." sem fim
+    let respondeu = false
+    const limite = setTimeout(() => { if (!respondeu) setSessao((x) => (x === undefined ? null : x)) }, 10000)
+    Auth.obterSessao()
+      .then((s) => { respondeu = true; clearTimeout(limite); setSessao(s); if (s) carregarConta(s) })
+      .catch(() => { respondeu = true; clearTimeout(limite); setSessao(null) })
     return Auth.aoMudar((evento, s) => {
       if (evento === 'PASSWORD_RECOVERY') setRecuperando(true)
       if (evento === 'SIGNED_OUT') { Armazenamento.limpar(); setDb(null); setSessao(null); setLoja(null); setLojas([]) }
