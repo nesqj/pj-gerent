@@ -48,7 +48,7 @@ export default function Configuracoes({ db, executar, usuario, loja, adminPlataf
   if (item) {
     const Pagina = { perfil: Perfil, celular: AppCelular, organizacao: Organizacao, marca: Marca, cobranca: PlanoCobranca, backup: Backup }[item.id]
     return (
-      <section>
+      <section className="config-sub">
         <h2>{t(item.nome)}</h2>
         <button className="voltar" onClick={() => setAberta(null)}>← {t('Configurações')}</button>
         <div className="config-titulo">

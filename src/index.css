@@ -1215,3 +1215,11 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 
 .vd-rodape .link:not(.bad) { color: var(--txt) }
 .vd-rodape a.link { text-decoration: none; font-size: 13px; font-weight: 500 }
+
+/* celular, dentro de uma página das Configurações: só o "← Configurações" e o título uma vez */
+@media (max-width: 767px) {
+  .modo-loja main:has(.config-sub) > .voltar-conta { display: none }
+  .modo-loja main section.config-sub > h2 { display: none }
+  .config-sub > button.voltar { color: var(--txt); font-size: 15px; padding: 6px 0 10px; min-height: 0 }
+  .config-sub .config-titulo h3 { font-size: 26px; font-weight: 700 }
+}
