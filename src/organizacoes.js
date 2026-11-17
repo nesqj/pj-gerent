@@ -1,4 +1,4 @@
-// Lojas (organizações), equipe e painel da plataforma — chamadas às funções do banco
+// Lojas (organizações) e painel da plataforma — chamadas às funções do banco
 // (ver supabase/organizacoes.sql). Quem pode o quê é conferido no próprio banco.
 import { t } from './i18n.js'
 import { supabase } from './supabase.js'
@@ -62,17 +62,8 @@ export async function buscarOrg(id) {
   return data
 }
 
-// ---------- equipe de uma loja
+// ---------- usuário de uma loja (cada loja tem um único usuário; o painel só mostra quem é)
 export const equipe = (o) => chamar('equipe_da_org', { o })
-export async function convites(o) {
-  const { data, error } = await supabase.from('convites').select('email, papel, criado_em').eq('org_id', o).order('criado_em')
-  if (error) throw new Error(t('Não foi possível concluir. Verifique a internet e tente de novo.'))
-  return data
-}
-export const adicionarMembro = (o, email, papel) => chamar('adicionar_membro', { o, email_pessoa: email, novo_papel: papel })
-export const mudarPapel = (o, pessoa, papel) => chamar('mudar_papel', { o, pessoa, novo_papel: papel })
-export const removerMembro = (o, pessoa) => chamar('remover_membro', { o, pessoa })
-export const cancelarConvite = (o, email) => chamar('cancelar_convite', { o, email_pessoa: email })
 
 // ---------- painel da plataforma
 export const criarOrg = (nome, emailAdmin) => chamar('criar_org', { nome_loja: nome, email_admin: emailAdmin || null })

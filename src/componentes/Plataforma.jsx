@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { aviso, confirmar, perguntar } from '../avisos-tela.jsx'
 import * as Org from '../organizacoes.js'
-import Equipe from './Equipe.jsx'
 import Cobranca from './Cobranca.jsx'
 import CobrancaLoja from './CobrancaLoja.jsx'
 import MarcaPlataforma from './MarcaPlataforma.jsx'
@@ -91,7 +90,7 @@ const FILTROS_ORG = [
   { id: 'cobranca', nome: 'Com pagamento pendente' },
 ]
 
-function Organizacoes({ abrirLoja, meuId, aoMudarLojas, orgSel, setOrgSel }) {
+function Organizacoes({ abrirLoja, aoMudarLojas, orgSel, setOrgSel }) {
   const [dados, erro, recarregar] = useCarga(async () => {
     const [orgs, cobranca, planos] = await Promise.all([Org.usoDasOrgs(), Org.cobrancaResumo().catch(() => []), Org.planos().catch(() => [])])
     const porOrg = Object.fromEntries(cobranca.map((c) => [c.org_id, c]))
@@ -121,7 +120,7 @@ function Organizacoes({ abrirLoja, meuId, aoMudarLojas, orgSel, setOrgSel }) {
 
   if (!dados) return <Estado erro={erro} recarregar={recarregar} />
   const org = dados.orgs.find((o) => o.id === orgSel)
-  if (org) return <DetalheOrg org={org} voltar={() => setOrgSel(null)} recarregar={async () => { await recarregar(); aoMudarLojas?.() }} abrirLoja={abrirLoja} meuId={meuId} />
+  if (org) return <DetalheOrg org={org} voltar={() => setOrgSel(null)} recarregar={async () => { await recarregar(); aoMudarLojas?.() }} abrirLoja={abrirLoja} />
 
   const pendente = (o) => ['atrasada', 'suspensa', 'aguardando'].includes(o.cob?.situacao)
   const lista = dados.orgs.filter((o) => norm(o.nome).includes(norm(busca)) &&
@@ -154,16 +153,15 @@ function Organizacoes({ abrirLoja, meuId, aoMudarLojas, orgSel, setOrgSel }) {
       </div>
       <div className="tw">
         <table>
-          <thead><tr><th>{t('Loja')}</th><th>{t('Situação')}</th><th>{t('Plano')}</th><th>{t('Cobrança')}</th><th className="n">{t('Pessoas')}</th><th className="n">{t('Vendas')}</th><th>{t('Criada em')}</th><th></th></tr></thead>
+          <thead><tr><th>{t('Loja')}</th><th>{t('Situação')}</th><th>{t('Plano')}</th><th>{t('Cobrança')}</th><th className="n">{t('Vendas')}</th><th>{t('Criada em')}</th><th></th></tr></thead>
           <tbody>
-            {lista.length === 0 && <tr><td colSpan="8" className="vazio">{dados.orgs.length ? t('Nada encontrado.') : t('Nenhuma loja ainda. Crie a primeira acima.')}</td></tr>}
+            {lista.length === 0 && <tr><td colSpan="7" className="vazio">{dados.orgs.length ? t('Nada encontrado.') : t('Nenhuma loja ainda. Crie a primeira acima.')}</td></tr>}
             {lista.map((o) => (
               <tr key={o.id}>
                 <td><button className="link" onClick={() => setOrgSel(o.id)}>{o.nome}</button></td>
                 <td><Situacao suspensa={o.suspensa} /></td>
                 <td>{o.cob?.plano || '-'}</td>
                 <td><span className={Org.SITUACOES[o.cob?.situacao]?.classe}>{Org.nomeSituacao(o.cob?.situacao || 'isenta')}</span></td>
-                <td className="n">{o.membros}{o.convites > 0 && <small> (+{o.convites} {t('convite(s)')})</small>}</td>
                 <td className="n">{o.vendas}</td>
                 <td>{dataTs(o.criada_em)}</td>
                 <td className="n">
@@ -183,14 +181,14 @@ const ABAS_ORG = [
   { id: 'geral', nome: 'Visão geral' },
   { id: 'cadastro', nome: 'Cadastro' },
   { id: 'cobranca', nome: 'Cobrança' },
-  { id: 'equipe', nome: 'Equipe' },
   { id: 'atividade', nome: 'Atividade' },
 ]
 
-function DetalheOrg({ org, voltar, recarregar, abrirLoja, meuId }) {
+function DetalheOrg({ org, voltar, recarregar, abrirLoja }) {
   const [aba, setAba] = useState('geral')
   const [nome, setNome] = useState(org.nome)
   const [atividade] = useCarga(() => Org.auditoria({ org: org.id, limite: 100 }), [org.id])
+  const [usuarios] = useCarga(() => Org.equipe(org.id), [org.id]) // cada loja tem um único usuário
 
   async function fazer(fn) {
     try { await fn(); await recarregar(); return true } catch (e) { aviso.erro(e.message); return false }
@@ -216,7 +214,7 @@ function DetalheOrg({ org, voltar, recarregar, abrirLoja, meuId }) {
         <>
           <div className="cards">
             <div className="card"><small>{t('Cobrança')}</small><b className={Org.SITUACOES[org.cob?.situacao]?.classe}>{Org.nomeSituacao(org.cob?.situacao || 'isenta')}</b>{org.cob?.plano && <small>{org.cob.plano}</small>}</div>
-            <div className="card"><small>{t('Pessoas')}</small><b>{org.membros}</b></div>
+            <div className="card"><small>{t('Usuário da loja')}</small><b className="quebra">{usuarios ? (usuarios.map((u) => u.email).join(', ') || t('Nenhum ainda')) : '…'}</b>{org.convites > 0 && <small>{t('Convite enviado, aguardando a pessoa criar a conta')}</small>}</div>
             <div className="card"><small>{t('Fornecedores')}</small><b>{org.fornecedores}</b></div>
             <div className="card"><small>{t('Produtos cadastrados')}</small><b>{org.produtos}</b></div>
             <div className="card"><small>{t('Vendas')}</small><b>{org.vendas}</b></div>
@@ -233,12 +231,12 @@ function DetalheOrg({ org, voltar, recarregar, abrirLoja, meuId }) {
           <div className="painel zona-perigo">
             <p><b>{t('Zona de perigo')}</b></p>
             <p><small>{org.suspensa
-              ? t('Loja suspensa: ninguém da equipe consegue abrir nem alterar os dados. Os dados continuam guardados.')
-              : t('Suspender bloqueia o acesso de toda a equipe desta loja, sem apagar nada. Dá para reativar quando quiser.')}</small></p>
+              ? t('Loja suspensa: o usuário da loja não consegue abrir nem alterar os dados. Os dados continuam guardados.')
+              : t('Suspender bloqueia o acesso do usuário desta loja, sem apagar nada. Dá para reativar quando quiser.')}</small></p>
             <div className="botoes">
               {org.suspensa
                 ? <button className="sec" onClick={() => fazer(() => Org.suspenderOrg(org.id, false))}>{t('Reativar loja')}</button>
-                : <button className="del" onClick={async () => await confirmar(t('Suspender a loja "{nome}"? A equipe perde o acesso até você reativar.', { nome: org.nome })) && fazer(() => Org.suspenderOrg(org.id, true))}>{t('Suspender loja')}</button>}
+                : <button className="del" onClick={async () => await confirmar(t('Suspender a loja "{nome}"? O usuário perde o acesso até você reativar.', { nome: org.nome })) && fazer(() => Org.suspenderOrg(org.id, true))}>{t('Suspender loja')}</button>}
               {org.suspensa && <button className="del" onClick={excluir}>{t('Excluir loja e todos os dados')}</button>}
             </div>
             {!org.suspensa && <p><small>{t('Para excluir a loja, suspenda primeiro.')}</small></p>}
@@ -247,7 +245,6 @@ function DetalheOrg({ org, voltar, recarregar, abrirLoja, meuId }) {
       )}
       {aba === 'cadastro' && <CadastroOrg orgId={org.id} />}
       {aba === 'cobranca' && <CobrancaLoja orgId={org.id} admin onMudou={recarregar} />}
-      {aba === 'equipe' && <Equipe orgId={org.id} podeGerir meuId={meuId} />}
       {aba === 'atividade' && (atividade ? <ListaAuditoria eventos={atividade} /> : <p className="vazio">{t('Carregando...')}</p>)}
     </section>
   )
