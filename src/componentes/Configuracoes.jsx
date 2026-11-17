@@ -24,7 +24,7 @@ const SECOES = [
     titulo: 'Empresa',
     itens: [
       { id: 'organizacao', nome: 'Logs', desc: 'A loja e a atividade recente.', icone: IconeLista },
-      { id: 'marca', nome: 'Marca', desc: 'A logo da sua marca, para o catálogo.', icone: IconePaleta },
+      { id: 'marca', nome: 'Marca', desc: 'O nome e a logo da sua marca, para o catálogo.', icone: IconePaleta },
       { id: 'cobranca', nome: 'Plano e cobrança', desc: 'Seu plano, a situação do pagamento, faturas e troca de plano.', icone: IconeCobranca },
     ],
   },
@@ -53,7 +53,7 @@ export default function Configuracoes({ db, executar, usuario, loja, adminPlataf
         <button className="voltar-conta" onClick={() => setAberta(null)}><IconeVoltar /><span>{t('Configurações')}</span></button>
         <div className="config-titulo">
           <h3>{t(item.nome)}</h3>
-          <small>{t({ perfil: 'Informações pessoais. O e-mail de acesso ainda não pode ser trocado.', marca: 'A logo da sua marca. Ela vai aparecer no catálogo da sua loja.' }[item.id] || item.desc)}</small>
+          <small>{t({ perfil: 'Informações pessoais. O e-mail de acesso ainda não pode ser trocado.', marca: 'O nome e a logo da sua marca. Eles vão aparecer no catálogo da sua loja.' }[item.id] || item.desc)}</small>
         </div>
         {Pagina
           ? <Pagina db={db} executar={executar} usuario={usuario} loja={loja} adminPlataforma={adminPlataforma} />
@@ -265,9 +265,12 @@ async function reduzirLogo(file) {
 }
 
 function Marca({ db, executar }) {
-  const atual = db.config?.logo || ''
-  const [logo, setLogo] = useState(atual)
+  // nome e logo da marca, para o catálogo (o nome antigo "nomeLoja" serve de ponto de partida)
+  const atual = { nome: db.config?.nomeMarca ?? db.config?.nomeLoja ?? '', logo: db.config?.logo || '' }
+  const [nome, setNome] = useState(atual.nome)
+  const [logo, setLogo] = useState(atual.logo)
   const [erro, setErro] = useState('')
+  const mudou = nome.trim() !== atual.nome || logo !== atual.logo
 
   async function escolherLogo(e) {
     const file = e.target.files[0]
@@ -286,13 +289,17 @@ function Marca({ db, executar }) {
 
   function salvar(e) {
     e.preventDefault()
-    // guarda só a logo (nome, cores e logo do tema escuro não existem mais)
+    // guarda o nome e a logo (cores e logo do tema escuro não existem mais)
     const { nomeLoja, cor, corEscuro, logoEscuro, ...resto } = db.config || {}
-    executar((A) => A.salvarConfig({ ...resto, logo }), t('Logo salva.'))
+    executar((A) => A.salvarConfig({ ...resto, nomeMarca: nome.trim(), logo }), t('Marca salva.'))
   }
 
   return (
     <form onSubmit={salvar} className="form-config">
+      <label className="largo">{t('Nome da sua marca')}
+        <input maxLength={60} placeholder={t('Ex: PJ Celulares')} value={nome} onChange={(e) => setNome(e.target.value)} />
+        <small>{t('Vai aparecer no catálogo da sua loja.')}</small>
+      </label>
       <div className="largo campo-arquivo">
         <span className="rotulo-campo">{t('Logo da sua marca')}</span>
         <div className="logo-marca">
@@ -302,9 +309,9 @@ function Marca({ db, executar }) {
           <label className="botao-arquivo">{logo ? t('Trocar logo') : t('Escolher logo')}<input type="file" accept="image/png,image/jpeg" hidden onChange={escolherLogo} /></label>
           {logo && <button type="button" className="sec" onClick={() => setLogo('')}>{t('Remover logo')}</button>}
         </div>
-        <small className={erro ? 'bad' : ''}>{erro || t('Vai aparecer no catálogo da sua loja. PNG ou JPG, de preferência com fundo transparente. A imagem é reduzida sozinha para ficar leve (até 100 KB).')}</small>
+        <small className={erro ? 'bad' : ''}>{erro || t('PNG ou JPG, de preferência com fundo transparente. A imagem é reduzida sozinha para ficar leve (até 100 KB).')}</small>
       </div>
-      <div className="acoes-form largo"><button type="submit" disabled={logo === atual}>{t('Salvar')}</button></div>
+      <div className="acoes-form largo"><button type="submit" disabled={!mudou}>{t('Salvar')}</button></div>
     </form>
   )
 }

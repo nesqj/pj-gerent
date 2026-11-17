@@ -1222,3 +1222,6 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
   .modo-loja main section.config-sub > h2 { display: none }
   .config-sub .config-titulo h3 { font-size: 26px; font-weight: 700 }
 }
+/* Marca: título da logo igual ao do nome; "Trocar logo" e "Remover logo" do mesmo tamanho */
+form.form-config .rotulo-campo { color: var(--txt); font-weight: 500; font-size: 13px }
+form.form-config .cor-linha .botao-arquivo, form.form-config .cor-linha button.sec { border-radius: 999px; padding: 10px 18px; font-size: 14px; font-weight: 600; min-height: 0; line-height: 1.2 }
