@@ -49,11 +49,40 @@ async function rodarTudo() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return `HTTP ${res.status}`
   }))
+  let sessao = null
   r.push(await etapa('Login guardado', async () => {
     const { data, error } = await supabase.auth.getSession()
     if (error) throw error
-    return data.session ? `logado (${data.session.user.email})` : 'ninguém logado'
+    sessao = data.session
+    return sessao ? `logado (${sessao.user.email})` : 'ninguém logado'
   }))
+  if (!sessao) return r
+  // daqui para baixo: os mesmos pedidos que o app faz ao abrir, só lendo (não altera nada)
+  const token = sessao.access_token || ''
+  r.push(await etapa('Tamanho do login (token)', async () => `${token.length} caracteres`))
+  r.push(await etapa('Banco com login: conexão direta', async () => {
+    const res = await fetch(`${URL_BANCO}/rest/v1/rpc/minhas_orgs`, {
+      method: 'POST', headers: { apikey: CHAVE, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store',
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const lojas = await res.json()
+    return `HTTP ${res.status} · ${lojas.length} loja(s)`
+  }))
+  let lojaId = null
+  r.push(await etapa('Suas lojas (como o app busca)', async () => {
+    const { data, error } = await supabase.rpc('minhas_orgs')
+    if (error) throw new Error(error.message)
+    lojaId = data?.[0]?.id || null
+    return `${data.length} loja(s)${data[0] ? ': ' + data.map((o) => o.nome).join(', ') : ''}`
+  }))
+  if (lojaId) {
+    r.push(await etapa('Dados da loja (como o app baixa)', async () => {
+      const { data, error } = await supabase.from('dados_org').select('conteudo, versao').eq('org_id', lojaId).maybeSingle()
+      if (error) throw new Error(error.message)
+      const tam = JSON.stringify(data?.conteudo || {}).length
+      return `versão ${data?.versao ?? 0} · ${Math.round(tam / 1024)} KB`
+    }, 20000))
+  }
   return r
 }
 
