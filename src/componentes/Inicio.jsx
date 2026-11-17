@@ -10,7 +10,7 @@ import { Avatar } from './MinhaConta.jsx'
 import { Calculadora } from './VenderMenu.jsx'
 
 // Início: o que está acontecendo hoje, numa olhada só. Não calcula nada novo:
-// usa as mesmas contas do Novo Registro (vendas do dia), do Controle de caixa (saldo e reservado),
+// usa as mesmas contas da aba Vender (vendas do dia), do Controle de caixa (saldo e reservado),
 // de Cobranças (a receber e atrasados) e do Estoque (o que está acabando).
 // completo = false (vendedor): sem lucro e sem caixa.
 const r2 = (x) => Math.round(x * 100) / 100

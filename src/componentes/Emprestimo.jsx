@@ -106,7 +106,7 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
   )
 }
 
-// Empréstimos feitos no dia (na aba Novo Registro)
+// Empréstimos feitos no dia (na aba Vender)
 export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
   const lista = (db.emprestimos || []).filter((e) => e.dia === dia).sort((a, b) => b.data - a.data)
   const celular = useCelular()

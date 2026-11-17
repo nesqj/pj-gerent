@@ -518,7 +518,7 @@ export default function Vendas({ db, executar, irPara, visita }) {
         </table>
       </div>
       )}
-      {semCusto && <small>* {t('Algum item vendido não tinha custo informado; o lucro considera custo zero para ele.')}</small>}
+      {semCusto && <small className="nota-dia">{t('Algum item vendido não tinha custo informado; o lucro considera custo zero para ele.')}</small>}
       </>)}
     </section>
   )

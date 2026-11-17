@@ -743,7 +743,7 @@ label > select { width: 100%; text-overflow: ellipsis }
 .rotulo-custo { display: flex; align-items: center; justify-content: space-between; gap: 6px }
 .modo-custo { display: inline-flex; border: 1px solid var(--bd); border-radius: 6px; overflow: hidden }
 .modo-custo button { background: transparent; border: none; color: var(--mut); padding: 1px 8px; font-size: 11px; cursor: pointer; border-radius: 0 }
-.modo-custo button.ativo { background: var(--pri); color: #fff }
+.modo-custo button.ativo { background: var(--pri); color: var(--pri-txt) }
 
 .campo-custo { display: flex; flex-direction: column; font-size: 13px; color: var(--mut); gap: 6px; min-width: 0 }
 /* carrinho: custo do avulso editável */
@@ -1173,9 +1173,8 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 .tela-registro .finalizar input, .tela-registro .painel select { border-radius: 14px; padding: 12px 14px; font-size: 16px; min-height: 48px }
 .tela-registro .lf-preco input { min-height: 0 }
 .tela-registro input.somente-leitura { border-radius: 14px }
-.tela-registro form button, .tela-registro .finalizar > button { border-radius: 999px; padding: 12px 20px; font-size: 15px; font-weight: 600; min-height: 48px }
-.tela-registro form button.link, .tela-registro form .modo-custo button, .tela-registro form button.custo-link { min-height: 0; padding: revert; border-radius: revert; font-size: revert }
-.tela-registro .modo-custo button { border-radius: 999px }
+/* só os botões principais (os itens das listas de busca e os pequenos ficam como estão) */
+.tela-registro form > button, .tela-registro .finalizar > button { border-radius: 999px; padding: 12px 20px; font-size: 15px; font-weight: 600; min-height: 48px }
 .tela-registro .painel { border-radius: 20px; padding: 18px }
 .tela-registro > p { margin: 0 0 12px; color: var(--mut); font-size: 13px }
 .tela-registro > p small { font-size: 13px }
@@ -1189,3 +1188,6 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 
 .tela-registro .busca-produto input, .tela-registro input.busca { padding-left: 42px !important; background-position: 14px center }
 @media (max-width: 767px) { .tela-registro .painel label select, .tela-registro .painel label input { width: 100% } .tela-registro .painel label { flex: 1 1 100% } }
+.nota-dia { display: block; color: var(--mut); margin-top: 10px }
+.modo-custo { border-radius: 999px }
+.modo-custo button, .tela-registro .modo-custo button { min-height: 0 !important; padding: 2px 10px; border-radius: 999px }
