@@ -3,6 +3,7 @@ import { podeFazer } from '../armazenamento.js'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import NovoProduto, { marcasDisponiveis, trabalhaCom } from './NovoProduto.jsx'
 import { t } from '../i18n.js'
+import { useCelular } from '../useCelular.js'
 import { brl, pct, chave, descricaoPreco, escolhaProduto, gravarPrecoFornecedor, lerValor, nomeFornecedor, norm, produtosAVenda } from '../utils.js'
 
 // ---------- Na tela do produto: adicionar um fornecedor ou mudar/remover o preço de um
@@ -50,6 +51,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const criadoEm = (o) => { const n = parseInt(String(o.id || '').slice(0, 8), 36); return Number.isFinite(n) && n > 1e12 ? n : (o.atualizado || 0) }
   const cadastro = (k) => Math.min(...fornecedoresDe(k).map(criadoEm))
   const b = norm(busca)
+  const celular = useCelular()
   const tabela = itens.filter((i) => !b || norm(i.produto + ' ' + i.marca + ' ' + nomeFornecedor(db, i.fornecedorId)).includes(b))
   if (ordem === 'recentes') tabela.sort((x, y) => cadastro(y.k) - cadastro(x.k))
   const qtdMarcados = tabela.filter((i) => marcados[i.k]).length
@@ -116,6 +118,64 @@ export default function PrecosVenda({ db, executar, embutido }) {
   }
 
 
+  // % / preço / lucro de uma linha (enquanto digita: mexeu na %, recalcula o preço; mexeu no preço, recalcula a %)
+  const contaLinha = (i) => {
+    const d = rascunho[i.k]
+    // enquanto digita: mexeu na %, recalcula o preço; mexeu no preço, recalcula a %
+    const precoVer = d?.campo === 'pct' ? i.custo * (1 + (lerValor(d.valor) || 0) / 100) : d?.campo === 'preco' ? lerValor(d.valor) : i.preco
+    const pctVer = d?.campo === 'preco' ? aumento(i.custo, lerValor(d.valor)) : d?.campo === 'pct' ? lerValor(d.valor) : aumento(i.custo, i.preco)
+    const lucro = (Number.isFinite(precoVer) ? precoVer : 0) - i.custo
+    const campo = (nome, valor, casas) => ({
+      value: d?.campo === nome ? d.valor : paraTexto(valor, casas),
+      onChange: (e) => setRascunho({ ...rascunho, [i.k]: { campo: nome, valor: e.target.value } }),
+      onBlur: () => confirmarLinha(i),
+      onKeyDown: (e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') limparRascunho(i.k) },
+      disabled: !podeEditarPreco,
+    })
+    return { precoVer, pctVer, lucro, campo }
+  }
+
+  // painel de edição do produto: nome, marca e fornecedores (na tabela e no cartão)
+  const painelEdicao = (i) => (
+    <div className="edicao-produto">
+      {nomeEd && (
+        <form className="ep-nome-form" onSubmit={(e) => { e.preventDefault(); salvarNome(i) }}>
+          <label>{t('Nome do produto')}<input maxLength={80} value={nomeEd.produto} onChange={(e) => setNomeEd({ ...nomeEd, produto: e.target.value })} /></label>
+          <label>{t('Marca')}
+            <select value={nomeEd.marca} onChange={(e) => setNomeEd({ ...nomeEd, marca: e.target.value })}>
+              {[...new Set([i.marca || '', ...marcasDisponiveis(db)])].map((m) => <option key={m} value={m}>{m || t('(sem marca)')}</option>)}
+            </select>
+          </label>
+          <button type="submit" className="edit" disabled={nomeEd.produto.trim() === i.produto && nomeEd.marca === (i.marca || '')}>{t('Salvar')}</button>
+        </form>
+      )}
+      <b>{t('Fornecedores de {produto}', { produto: i.produto + (i.marca ? ' — ' + i.marca : '') })}</b>
+      {ofertas.map((o, n) => (
+        <div key={o.id} className={'ep-linha' + (n === 0 ? ' best' : '')}>
+          <span className="ep-nome">{nomeFornecedor(db, o.fornecedorId)}{n === 0 && <small> · {t('mais barato')}</small>}</span>
+          {ff.editando?.id === o.id
+            ? <span className="lf-preco"><span>R$</span><input inputMode="decimal" autoFocus value={ff.editando.preco} onChange={(e) => ff.setEditando({ ...ff.editando, preco: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') ff.salvarPreco(o); if (e.key === 'Escape') ff.setEditando(null) }} /></span>
+            : <span className="ep-preco">{brl(o.preco)}</span>}
+          <span className="acoes-fiado">
+            {ff.editando?.id === o.id
+              ? <><button className="edit" onClick={() => ff.salvarPreco(o)}>{t('Salvar')}</button>{' '}<button className="sec" onClick={() => ff.setEditando(null)}>×</button></>
+              : <><button className="edit" onClick={() => ff.setEditando({ id: o.id, preco: String(o.preco).replace('.', ',') })}>{t('Mudar preço')}</button>{' '}<button className="del" onClick={() => ff.remover(o)}>{t('Remover')}</button></>}
+          </span>
+        </div>
+      ))}
+      {ff.semEste.length > 0 && (
+        <form className="ep-adicionar" onSubmit={ff.adicionar}>
+          <select value={ff.novo.fornecedorId || ff.semEste[0].id} onChange={(e) => ff.setNovo({ ...ff.novo, fornecedorId: e.target.value })}>
+            {ff.semEste.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+          </select>
+          <span className="lf-preco"><span>R$</span><input inputMode="decimal" placeholder="0,00" value={ff.novo.preco} onChange={(e) => ff.setNovo({ ...ff.novo, preco: e.target.value })} /></span>
+          <button type="submit" className="edit">+ {t('Adicionar fornecedor')}</button>
+        </form>
+      )}
+    </div>
+  )
+
   return (
     <section>
       {embutido ? (
@@ -155,6 +215,41 @@ export default function PrecosVenda({ db, executar, embutido }) {
               </div>
             )}
           </div>}
+          {celular ? (
+            // no celular: cartão compacto (produto, preço e lucro em cima; % e preço para editar embaixo)
+            <div className="cb-lista">
+              {tabela.length === 0 && <div className="cb-vazio">{t('Nada encontrado.')}</div>}
+              {tabela.map((i) => {
+                const { precoVer, pctVer, lucro, campo } = contaLinha(i)
+                const outros = fornecedoresDe(i.k).length - 1
+                return (
+                  <div key={i.k} className={'cb-item pv-item' + (marcados[i.k] ? ' marcado' : '')}>
+                    <div className="cb-topo">
+                      <input type="checkbox" className="pv-marca" checked={!!marcados[i.k]} onChange={(e) => setMarcados({ ...marcados, [i.k]: e.target.checked })} aria-label={t('Selecionar')} />
+                      <span className="cb-quem">
+                        <b className="quebra-linhas">{i.produto}</b>
+                        <small>{[i.marca, nomeFornecedor(db, i.fornecedorId) + (outros > 0 ? ` +${outros}` : '')].filter(Boolean).join(' · ')} · {t('custo {valor}', { valor: brl(i.custo) })}</small>
+                      </span>
+                      <span className="cb-valor">
+                        <b>{brl(Number.isFinite(precoVer) ? precoVer : 0)}</b>
+                        <small className={lucro < 0 ? 'bad' : 'ok'}>{lucro < 0 ? '− ' + brl(-lucro) : brl(lucro)}{precoVer > 0 ? ` · ${pct((lucro / precoVer) * 100)}` : ''}</small>
+                      </span>
+                    </div>
+                    <div className="pv-campos">
+                      <span className="lf-preco calc-campo"><input inputMode="decimal" {...campo('pct', pctVer)} aria-label={t('Aumento (%)')} /><span style={{ paddingRight: 10 }}>%</span></span>
+                      <span className="lf-preco calc-campo"><span>R$</span><input inputMode="decimal" {...campo('preco', precoVer, 2)} aria-label={t('Preço de venda')} /></span>
+                    </div>
+                    {!fixo(i) && <small className="cb-detalhe warn">{t('sem preço definido (= custo)')}</small>}
+                    <div className="cb-rodape vd-rodape">
+                      <button className="link pequeno" onClick={() => { ff.setEditando(null); setNomeEd({ produto: i.produto, marca: i.marca || '' }); setSel(sel === i.k ? '' : i.k) }}>{sel === i.k ? t('Fechar') : t('Editar')}</button>
+                      <button className="link pequeno bad" onClick={() => excluirProduto(i)}>{t('Excluir')}</button>
+                    </div>
+                    {sel === i.k && painelEdicao(i)}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
           <div className="tw">
             <table className="tabela-calc">
               <thead>
@@ -178,18 +273,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
                       </td>
                       <td className="n">{brl(i.custo)}</td>
                       {(() => {
-                        const d = rascunho[i.k]
-                        // enquanto digita: mexeu na %, recalcula o preço; mexeu no preço, recalcula a %
-                        const precoVer = d?.campo === 'pct' ? i.custo * (1 + (lerValor(d.valor) || 0) / 100) : d?.campo === 'preco' ? lerValor(d.valor) : i.preco
-                        const pctVer = d?.campo === 'preco' ? aumento(i.custo, lerValor(d.valor)) : d?.campo === 'pct' ? lerValor(d.valor) : aumento(i.custo, i.preco)
-                        const lucro = (Number.isFinite(precoVer) ? precoVer : 0) - i.custo
-                        const campo = (nome, valor, casas) => ({
-                          value: d?.campo === nome ? d.valor : paraTexto(valor, casas),
-                          onChange: (e) => setRascunho({ ...rascunho, [i.k]: { campo: nome, valor: e.target.value } }),
-                          onBlur: () => confirmarLinha(i),
-                          onKeyDown: (e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') limparRascunho(i.k) },
-                          disabled: !podeEditarPreco,
-                        })
+                        const { precoVer, pctVer, lucro, campo } = contaLinha(i)
                         return (
                           <>
                             <td className="n"><span className="lf-preco calc-campo"><input inputMode="decimal" {...campo('pct', pctVer)} /><span style={{ paddingRight: 10 }}>%</span></span></td>
@@ -212,43 +296,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
                     {sel === i.k && (
                       <tr className="linha-edicao-produto">
                         <td colSpan="10">
-                          <div className="edicao-produto">
-                            {nomeEd && (
-                              <form className="ep-nome-form" onSubmit={(e) => { e.preventDefault(); salvarNome(i) }}>
-                                <label>{t('Nome do produto')}<input maxLength={80} value={nomeEd.produto} onChange={(e) => setNomeEd({ ...nomeEd, produto: e.target.value })} /></label>
-                                <label>{t('Marca')}
-                                  <select value={nomeEd.marca} onChange={(e) => setNomeEd({ ...nomeEd, marca: e.target.value })}>
-                                    {[...new Set([i.marca || '', ...marcasDisponiveis(db)])].map((m) => <option key={m} value={m}>{m || t('(sem marca)')}</option>)}
-                                  </select>
-                                </label>
-                                <button type="submit" className="edit" disabled={nomeEd.produto.trim() === i.produto && nomeEd.marca === (i.marca || '')}>{t('Salvar')}</button>
-                              </form>
-                            )}
-                            <b>{t('Fornecedores de {produto}', { produto: i.produto + (i.marca ? ' — ' + i.marca : '') })}</b>
-                            {ofertas.map((o, n) => (
-                              <div key={o.id} className={'ep-linha' + (n === 0 ? ' best' : '')}>
-                                <span className="ep-nome">{nomeFornecedor(db, o.fornecedorId)}{n === 0 && <small> · {t('mais barato')}</small>}</span>
-                                {ff.editando?.id === o.id
-                                  ? <span className="lf-preco"><span>R$</span><input inputMode="decimal" autoFocus value={ff.editando.preco} onChange={(e) => ff.setEditando({ ...ff.editando, preco: e.target.value })}
-                                      onKeyDown={(e) => { if (e.key === 'Enter') ff.salvarPreco(o); if (e.key === 'Escape') ff.setEditando(null) }} /></span>
-                                  : <span className="ep-preco">{brl(o.preco)}</span>}
-                                <span className="acoes-fiado">
-                                  {ff.editando?.id === o.id
-                                    ? <><button className="edit" onClick={() => ff.salvarPreco(o)}>{t('Salvar')}</button>{' '}<button className="sec" onClick={() => ff.setEditando(null)}>×</button></>
-                                    : <><button className="edit" onClick={() => ff.setEditando({ id: o.id, preco: String(o.preco).replace('.', ',') })}>{t('Mudar preço')}</button>{' '}<button className="del" onClick={() => ff.remover(o)}>{t('Remover')}</button></>}
-                                </span>
-                              </div>
-                            ))}
-                            {ff.semEste.length > 0 && (
-                              <form className="ep-adicionar" onSubmit={ff.adicionar}>
-                                <select value={ff.novo.fornecedorId || ff.semEste[0].id} onChange={(e) => ff.setNovo({ ...ff.novo, fornecedorId: e.target.value })}>
-                                  {ff.semEste.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
-                                </select>
-                                <span className="lf-preco"><span>R$</span><input inputMode="decimal" placeholder="0,00" value={ff.novo.preco} onChange={(e) => ff.setNovo({ ...ff.novo, preco: e.target.value })} /></span>
-                                <button type="submit" className="edit">+ {t('Adicionar fornecedor')}</button>
-                              </form>
-                            )}
-                          </div>
+                          {painelEdicao(i)}
                         </td>
                       </tr>
                     )}
@@ -257,6 +305,7 @@ export default function PrecosVenda({ db, executar, embutido }) {
               </tbody>
             </table>
           </div>
+          )}
         </>
       )}
     </section>

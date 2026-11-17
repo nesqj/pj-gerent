@@ -1223,3 +1223,12 @@ form.form-config .cor-linha .botao-arquivo, form.form-config .cor-linha button.s
 .forn-marcas h3 { margin: 0 0 6px; font-size: 15px }
 .forn-preco-edit { width: 120px }
 
+/* ---------- tabela de preços: cartão compacto no celular ---------- */
+.pv-item { gap: 8px }
+.pv-item.marcado { border-color: var(--pri) }
+.pv-marca { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--pri); margin: 0 }
+.pv-campos { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px }
+.pv-campos .lf-preco { width: 100%; min-width: 0 }
+.pv-campos input { min-height: 40px !important; padding: 8px 10px !important; font-size: 15px !important }
+.pv-item .edicao-produto { border-top: 1px solid var(--bd); padding-top: 10px; margin-top: 2px }
+

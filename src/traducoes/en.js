@@ -1221,4 +1221,6 @@ export default {
   'No celular, a barra de baixo leva para Início, Cobranças, Extrato, Análise e Vender.': 'On the phone, the bottom bar takes you to Home, Collections, Statement, Analytics and Sell.',
   'Toque na sua foto, no Início, para abrir a Minha conta: Estoque, Fornecedores, Clientes, Configurações e as suas lojas.': 'Tap your photo on Home to open My account: Stock, Suppliers, Customers, Settings and your stores.',
   'Defina o preço de venda de cada produto, digitando o valor ou a % sobre o custo. Em "Editar" você muda o nome, a marca ou os fornecedores.': 'Set the selling price of each product by typing the amount or the % over cost. In "Edit" you change the name, brand or suppliers.',
+  'custo {valor}': 'cost {valor}',
+  'Selecionar': 'Select',
 }
