@@ -78,69 +78,20 @@ export async function gravarPrecoFornecedor(A, db, form) {
   if (form.id && dup) await A.excluirPrecoFornecedor(form.id)
 }
 
-// ---------- Regras de preço ----------
-// Cada regra: { id, nome, percentual } → preço = custo + percentual% do custo.
-// Ex.: custo 100, +30% = 130. Percentual 0 (ou vazio) = preço igual ao custo.
-// db.regras = lista de regras; db.regraPadraoId = regra usada nos produtos sem escolha (null = nenhuma).
-// db.precoProduto[chave] = escolha de cada produto:
-//   { tipo: 'padrao' } | { tipo: 'regra', regraId } | { tipo: 'nenhuma' } | { tipo: 'fixo', valor }
-export const REGRA_ZERADA = { percentual: 0 }
-
-// Regras antigas tinham multiplicador e valor somado: o multiplicador vira porcentagem
-// (×2 = +100%, ×2 com +10% = +120%) e o valor somado em R$ deixa de existir.
-const paraPercentual = (r) => {
-  const m = +r.multiplicador || 0, p = +r.percentual || 0
-  return m > 0 ? Math.round((m * (1 + p / 100) - 1) * 10000) / 100 : p
-}
-const normalizarRegra = (r) => ({ id: r.id, nome: r.nome, percentual: paraPercentual(r) })
-
-// Lista de regras (converte a regra única das versões anteriores, se existir)
-export function regrasDe(db) {
-  if (Array.isArray(db?.regras)) return db.regras.map(normalizarRegra)
-  const antiga = db?.regra
-  if (antiga && (+antiga.multiplicador || +antiga.acrescimo)) {
-    return [normalizarRegra({ id: 'padrao', nome: t('Regra padrão'), ...antiga })]
-  }
-  return []
-}
-export function regraPadraoDe(db) {
-  const regras = regrasDe(db)
-  const id = db?.regraPadraoId !== undefined ? db.regraPadraoId : regras[0]?.id ?? null
-  return regras.find((r) => r.id === id) || null
-}
-
-export function calcularVenda(custo, regra = REGRA_ZERADA) {
-  const p = +regra.percentual || 0
-  return Math.round(+custo * (1 + p / 100) * 100) / 100
-}
-
-// Regra em texto, ex.: "+ 30%" (vazio quando a regra está zerada)
-function partesRegra(regra) {
-  const p = +regra.percentual || 0
-  return p > 0 ? `+ ${num(p, 2)}%` : ''
-}
-export const formulaRegra = (regra) => partesRegra(regra) || t('+ 0% (preço = custo)')
-
+// ---------- Preço de venda dos produtos dos fornecedores ----------
+// db.precoProduto[chave] = { tipo: 'fixo', valor }. Sem preço fixo, o preço de venda é igual ao custo.
 export const escolhaProduto = (db, k) => db?.precoProduto?.[k] || { tipo: 'padrao' }
 
-// Preço de venda de um produto conforme a escolha dele.
-// Retorna { preco, tipo ('regra'|'nenhuma'|'fixo'), regra, padrao (true se veio da regra padrão) }
+// Preço de venda de um produto: o fixo, ou o custo quando ainda não tem preço definido.
+// Retorna { preco, tipo ('fixo'|'nenhuma') }
 export function resolverPreco(db, k, custo) {
   const e = escolhaProduto(db, k)
-  if (e.tipo === 'fixo' && e.valor !== '' && e.valor != null) return { preco: +e.valor, tipo: 'fixo', regra: null, padrao: false }
-  // "sem regra" não é mais uma opção: quem estava assim passa a usar a regra padrão
-  const regra = e.tipo === 'regra' ? regrasDe(db).find((r) => r.id === e.regraId) : regraPadraoDe(db)
-  const padrao = e.tipo !== 'regra' || !regra
-  if (!regra) return { preco: +custo, tipo: 'nenhuma', regra: null, padrao: true }
-  return { preco: calcularVenda(custo, regra), tipo: 'regra', regra, padrao }
+  if (e.tipo === 'fixo' && e.valor !== '' && e.valor != null) return { preco: +e.valor, tipo: 'fixo' }
+  return { preco: +custo, tipo: 'nenhuma' }
 }
 
-// Como o preço foi formado, em texto curto (ex.: "Telas: × 2 + R$ 40,00", "Preço fixo")
-export function descricaoPreco(r) {
-  if (r.tipo === 'fixo') return t('Preço fixo')
-  if (r.tipo === 'nenhuma') return r.padrao ? t('Sem regra (padrão)') : t('Sem regra')
-  return `${r.regra.nome}${r.padrao ? ' (' + t('padrão') + ')' : ''}: ${formulaRegra(r.regra)}`
-}
+// Como o preço foi formado, em texto curto
+export const descricaoPreco = (r) => (r.tipo === 'fixo' ? t('Preço fixo') : t('Sem preço definido'))
 
 // Todos os produtos (produto + marca) com o fornecedor mais barato e o preço de venda de cada um
 export function produtosAVenda(db) {

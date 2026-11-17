@@ -63,11 +63,37 @@ async function buscar() {
   const { data, error } = resposta || await consultar(org.id)
   if (error) throw new Error(t('Não foi possível carregar os dados do banco. Verifique a internet e tente de novo.'))
   db = { ...vazio(), ...(data?.conteudo || {}) }
+  converterRegrasAntigas(db)
   versao = data?.versao ?? 0
   carregadoDe = org.id
 }
 
-// Carrega os dados da loja ativa: { fornecedores, precosForn, vendas, entradas, regras, regraPadraoId, precoProduto, config, perfil }
+// Regras de preço antigas (a tela que criava regras não existe mais): os produtos que ainda dependiam
+// de uma regra viram preço fixo no mesmo valor de antes, e as regras saem dos dados.
+// A conversão fica gravada no próximo salvamento da loja (até lá, é refeita a cada carga).
+function converterRegrasAntigas(d) {
+  if (!('regras' in d) && !('regra' in d) && !('regraPadraoId' in d)) return
+  const antiga = d.regra && (+d.regra.multiplicador || +d.regra.acrescimo) ? [{ id: 'padrao', ...d.regra }] : []
+  const regras = Array.isArray(d.regras) ? d.regras : antiga
+  // regra antiga: multiplicador (×2 = +100%) ou porcentagem
+  const pct = (r) => { const m = +r.multiplicador || 0, p = +r.percentual || 0; return m > 0 ? (m * (1 + p / 100) - 1) * 100 : p }
+  const padraoId = d.regraPadraoId !== undefined ? d.regraPadraoId : regras[0]?.id ?? null
+  const custos = new Map() // custo de cada produto = o fornecedor mais barato
+  for (const p of d.precosForn || []) { const k = chave(p.produto, p.marca); if (!custos.has(k) || +p.preco < custos.get(k)) custos.set(k, +p.preco) }
+  d.precoProduto = { ...(d.precoProduto || {}) }
+  for (const [k, custo] of custos) {
+    const e = d.precoProduto[k] || { tipo: 'padrao' }
+    if (e.tipo === 'fixo' && e.valor !== '' && e.valor != null) continue
+    const regra = regras.find((r) => r.id === (e.tipo === 'regra' ? e.regraId : padraoId))
+    if (regra && pct(regra) > 0) d.precoProduto[k] = { tipo: 'fixo', valor: Math.round(custo * (1 + pct(regra) / 100) * 100) / 100 }
+    else delete d.precoProduto[k]
+  }
+  delete d.regras
+  delete d.regraPadraoId
+  delete d.regra
+}
+
+// Carrega os dados da loja ativa: { fornecedores, precosForn, vendas, entradas, precoProduto, config, perfil, ... }
 // Busca no banco só na primeira vez (ou quando troca de loja); depois usa a cópia em memória.
 export async function carregar() {
   const usuario = await idUsuario()
@@ -179,7 +205,7 @@ export const excluirFornecedor = (id) => mudar('fornecedor.excluido', (d) => {
 export const salvarPrecoFornecedor = (p) => upsert('precosForn', 'preco-fornecedor.salvo', p, resumo('precosForn', p))
 export const excluirPrecoFornecedor = (id) => remover('precosForn', 'preco-fornecedor.excluido', id)
 // Muda o nome/marca de um produto em todos os fornecedores. Se o fornecedor já tinha o produto com o nome novo,
-// fica só um (o renomeado). A regra de preço do produto vai junto para o nome novo.
+// fica só um (o renomeado). O preço de venda do produto vai junto para o nome novo.
 export const renomearProduto = (k, produto, marca) => mudar('preco-fornecedor.salvo', (d) => {
   const nk = chave(produto, marca)
   const doProduto = d.precosForn.filter((p) => chave(p.produto, p.marca) === k)
@@ -207,7 +233,7 @@ export async function salvarPerfil(p) {
 export const salvarConfig = (c) => mudar('config.salva', (d) => { d.config = c; return c }, c.nomeLoja || null)
 
 
-// Escolha de preço de um produto (chave produto|marca); null volta para a regra padrão
+// Preço de venda de um produto (chave produto|marca); null tira o preço fixo (volta a ser o custo)
 // vários preços fixos de uma vez: { chave: valor }
 export const fixarPrecos = (mapa) => mudar('preco-venda.salvo', (d) => {
   d.precoProduto = { ...d.precoProduto }

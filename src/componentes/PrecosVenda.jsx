@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useState } from 'react'
 import { podeFazer } from '../armazenamento.js'
 import { aviso, confirmar } from '../avisos-tela.jsx'
 import NovoProduto, { marcasDisponiveis, trabalhaCom } from './NovoProduto.jsx'
@@ -70,11 +70,6 @@ export default function PrecosVenda({ db, executar, embutido }) {
   const paraTexto = (n, casas) => (n == null || !Number.isFinite(n) ? '' : (casas ? r2(n).toFixed(casas) : String(r2(n))).replace('.', ','))
   const fixo = (i) => escolhaProduto(db, i.k).tipo === 'fixo'
   const aumento = (custo, preco) => (custo > 0 ? ((preco - custo) / custo) * 100 : null)
-  // produtos que ainda usam uma regra antiga: viram preço fixo no valor de hoje (uma vez só)
-  const pendentes = itens.filter((i) => !fixo(i) && i.resolucao.tipo === 'regra')
-  useEffect(() => {
-    if (podeEditarPreco && pendentes.length) executar((A) => A.fixarPrecos(Object.fromEntries(pendentes.map((i) => [i.k, r2(i.preco)]))))
-  }, [pendentes.length]) // eslint-disable-line react-hooks/exhaustive-deps
   const limparRascunho = (k) => setRascunho((r) => { const n = { ...r }; delete n[k]; return n })
   async function salvarPrecoVenda(i, valor) {
     limparRascunho(i.k)

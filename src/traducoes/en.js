@@ -265,15 +265,10 @@ export default {
   'Salvar nova senha': 'Save new password',
   'Voltar para o login': 'Back to sign in',
   // ---------- Regras de preço por produto ----------
-  'Regra padrão': 'Default rule',
   'Preço fixo': 'Fixed price',
-  'Sem regra (padrão)': 'No rule (default)',
-  'Sem regra': 'No rule',
-  'padrão': 'default',
   'Selecionar todos': 'Select all',
-  'Preço da aba "Fornecedores" ({regra}).': 'Price from the "Suppliers" tab ({regra}).',
+  'Preço da aba "Fornecedores" ({como}).': 'Price from the "Suppliers" tab ({como}).',
   // ---------- Regra por porcentagem ----------
-  '+ 0% (preço = custo)': '+ 0% (price = cost)',
   // ---------- Desconto ----------
   'Desconto (%)': 'Discount (%)',
   'Opcional': 'Optional',
@@ -1220,4 +1215,5 @@ export default {
   'Loja suspensa: o usuário da loja não consegue abrir nem alterar os dados. Os dados continuam guardados.': 'Store suspended: the store user cannot open or change the data. The data is kept.',
   'Suspender bloqueia o acesso do usuário desta loja, sem apagar nada. Dá para reativar quando quiser.': 'Suspending blocks access for this store user without deleting anything. You can reactivate it anytime.',
   'Suspender a loja "{nome}"? O usuário perde o acesso até você reativar.': 'Suspend the store "{nome}"? The user loses access until you reactivate it.',
+  'Sem preço definido': 'No price set',
 }

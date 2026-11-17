@@ -130,7 +130,7 @@ export default function Vendas({ db, executar, irPara, visita }) {
     .sort((a, b) => a.custo - b.custo))
 
   const fornEscolhido = (o) => (o?.origem === 'fornecedor' ? (fornecedoresDo(o).find((f) => f.id === item.forn) || fornecedoresDo(o)[0]) : null)
-  // preço de venda de um produto de fornecedor: a regra do produto aplicada sobre o custo do fornecedor escolhido
+  // preço de venda de um produto de fornecedor: o preço fixo dele (ou o custo do fornecedor escolhido, se não tiver)
   const precoDoForn = (o) => { const f = fornEscolhido(o); return f ? resolverPreco(db, o.k, f.custo).preco : o?.preco }
 
   function escolherProduto(k) {
@@ -361,7 +361,7 @@ export default function Vendas({ db, executar, irPara, visita }) {
         {selecionado?.origem === 'estoque'
           ? <small>{t('Produto do estoque: digite o preço pelo qual está vendendo.')}</small>
           : selecionado
-          ? <small>{t('Preço da aba "Fornecedores" ({regra}).', { regra: descricaoPreco(selecionado.resolucao) })}</small>
+          ? <small>{t('Preço da aba "Fornecedores" ({como}).', { como: descricaoPreco(selecionado.resolucao) })}</small>
           : null}
         {selecionado?.origem === 'fornecedor' && selecionado.resolucao.tipo === 'nenhuma' && <small className="warn"> {t('Este produto está sem preço definido: o preço de venda é igual ao custo. Defina na aba "Fornecedores".')}</small>}
         {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
