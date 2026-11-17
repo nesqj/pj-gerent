@@ -175,15 +175,6 @@ export default function App() {
       setModo('carregando')
       try { localStorage.setItem(chaveLoja(s.usuario.id), ativa.id) } catch { /* sem acesso */ }
       let d = await Armazenamento.carregar()
-      const locais = Armazenamento.contaVazia(d) && Armazenamento.podeFazer('tudo.substituido') && Armazenamento.dadosDoNavegador()
-      if (locais && !sessionStorage.getItem('migracao-recusada')) {
-        if (await confirmar(t('Encontramos dados salvos neste navegador (da versão sem banco de dados). Enviar esses dados para a loja "{loja}"?', { loja: ativa.nome }))) {
-          await Armazenamento.substituirTudo(locais)
-          Armazenamento.esquecerDadosDoNavegador()
-          d = await Armazenamento.carregar()
-          aviso.ok(t('Dados enviados para a loja!'))
-        } else sessionStorage.setItem('migracao-recusada', '1')
-      }
       // primeiro acesso: usa o nome do cadastro no Perfil, se ainda não tiver
       if (s?.usuario?.nome && !d.perfil?.nome) {
         await Armazenamento.salvarPerfil({ ...d.perfil, nome: s.usuario.nome })

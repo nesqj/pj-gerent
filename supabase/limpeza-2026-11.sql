@@ -6,7 +6,8 @@
 -- 2) Tabela antiga "dados_loja" (primeira versão do app, antes de existir "loja"). Os dados dela já foram
 --    copiados para as lojas (dados_org) e ela ficou só como reserva.
 --    TRAVA: só apaga se TODAS as contas que tinham dados lá já têm a loja com a cópia. Se faltar alguma,
---    não apaga a tabela e avisa. Apagar não tem volta.
+--    para tudo e não altera nada. Apagar não tem volta.
+-- 3) Coluna "migrada_de" das lojas: só marcava quais lojas vieram da tabela antiga.
 
 -- 1) funções de equipe sem uso
 drop function if exists public.mudar_papel(uuid, uuid, text);
@@ -29,18 +30,27 @@ begin
    where not exists (select 1 from public.organizacoes g where g.migrada_de = d.user_id);
 
   if faltando > 0 then
-    raise exception 'Não apaguei a tabela antiga: % conta(s) dela ainda não têm a loja com os dados copiados. As funções de equipe já foram removidas.', faltando;
+    raise exception 'Nada foi alterado: % conta(s) da tabela antiga ainda não têm a loja com os dados copiados.', faltando;
   end if;
 
   drop trigger if exists dados_loja_tocar on public.dados_loja;
   drop table public.dados_loja;
   drop function if exists public.dados_loja_tocar();
-  raise notice 'Pronto: tabela antiga dados_loja apagada.';
+  raise notice 'Tabela antiga dados_loja apagada.';
 end $$;
+
+-- 3) coluna migrada_de (o gatilho que cria a assinatura das lojas novas usava ela: é recriado sem ela)
+drop trigger if exists org_nova_assinatura on public.organizacoes;
+create trigger org_nova_assinatura after insert on public.organizacoes
+  for each row execute function public.org_nova_assinatura();
+alter table public.organizacoes drop column if exists migrada_de;
 
 -- Conferência final (só mostra): deve vir vazia
 select 'sobrou: ' || p.proname as item
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public' and p.proname in ('mudar_papel', 'remover_membro', 'cancelar_convite', 'sobra_admin', 'dados_loja_tocar')
 union all
-select 'sobrou: tabela dados_loja' where to_regclass('public.dados_loja') is not null;
+select 'sobrou: tabela dados_loja' where to_regclass('public.dados_loja') is not null
+union all
+select 'sobrou: coluna migrada_de' where exists (
+  select 1 from information_schema.columns where table_schema = 'public' and table_name = 'organizacoes' and column_name = 'migrada_de');

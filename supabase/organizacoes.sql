@@ -1,15 +1,8 @@
--- PJ GERENT — lojas (organizações), equipe, convites, painel da plataforma e cobrança
+-- PJ GERENT — lojas (organizações), convites, painel da plataforma e cobrança
 -- Como usar: abra "SQL Editor" no Supabase, cole este arquivo inteiro e clique em "Run".
 -- Pode rodar mais de uma vez sem problema.
 --
--- NÃO APAGA NADA. Os dados que cada conta já tinha (tabela dados_loja) são COPIADOS para uma loja
--- nova daquela conta, com ela como administradora. A tabela dados_loja continua lá, intacta, como reserva.
---
--- Papéis numa loja:
---   admin     tudo, inclusive a equipe e restaurar cópia de segurança
---   gerente   tudo, menos a equipe e restaurar cópia de segurança
---   vendedor  registra vendas e entradas no estoque; o resto só vê
---   leitor    só vê
+-- Cada loja tem um único usuário, o dono (papel "admin"): só ele grava os dados da loja.
 -- Administrador da plataforma: vê e administra todas as lojas (painel "Admin Plataforma").
 
 -- ============================================================ tabelas
@@ -20,7 +13,6 @@ create table if not exists public.organizacoes (
   suspensa boolean not null default false,
   criada_em timestamptz not null default now(),
   criada_por uuid references auth.users (id) on delete set null,
-  migrada_de uuid unique -- conta cujos dados antigos (dados_loja) deram origem a esta loja
 );
 
 create table if not exists public.membros (
@@ -526,29 +518,11 @@ begin
   end loop;
 end $$;
 
--- ============================================================ trazer os dados antigos (sem apagar)
--- Cada conta que tinha dados em dados_loja ganha uma loja com esses dados, e vira admin dela.
+-- ============================================================ administrador da plataforma
 -- O primeiro usuário cadastrado vira administrador da plataforma, se ainda não houver nenhum.
 
 do $$
-declare
-  r record;
-  nova uuid;
 begin
-  -- a tabela antiga pode já ter sido apagada (limpeza-2026-11.sql): aí não há nada para trazer
-  if to_regclass('public.dados_loja') is not null then
-    for r in
-      select d.user_id, d.conteudo from public.dados_loja d
-      where not exists (select 1 from public.organizacoes g where g.migrada_de = d.user_id)
-    loop
-      insert into public.organizacoes (nome, criada_por, migrada_de)
-      values (left(coalesce(nullif(btrim(r.conteudo->'config'->>'nomeLoja'), ''), 'Minha loja'), 60), r.user_id, r.user_id)
-      returning id into nova;
-      insert into public.membros (org_id, user_id, papel) values (nova, r.user_id, 'admin');
-      insert into public.dados_org (org_id, conteudo, atualizado_por) values (nova, r.conteudo, r.user_id);
-    end loop;
-  end if;
-
   if not exists (select 1 from public.admins_plataforma) then
     insert into public.admins_plataforma (user_id)
     select id from auth.users order by created_at limit 1;
@@ -749,7 +723,7 @@ begin
 end $$;
 drop trigger if exists org_nova_assinatura on public.organizacoes;
 create trigger org_nova_assinatura after insert on public.organizacoes
-  for each row when (new.migrada_de is null) execute function public.org_nova_assinatura();
+  for each row execute function public.org_nova_assinatura();
 
 -- ============================================================ cobrança: funções para as telas
 

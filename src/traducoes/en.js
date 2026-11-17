@@ -307,8 +307,6 @@ export default {
   'Enviar link': 'Send link',
   'Não tem conta?': 'No account?',
   // Lojas, equipe e painel da plataforma
-  'Encontramos dados salvos neste navegador (da versão sem banco de dados). Enviar esses dados para a loja "{loja}"?': 'We found data saved in this browser (from the version without a database). Send this data to the store "{loja}"?',
-  'Dados enviados para a loja!': 'Data sent to the store!',
   'Admin Plataforma': 'Platform Admin',
   'Sua conta ainda não tem acesso': 'Your account has no access yet',
   'Você entrou como {email}, mas ainda não faz parte de nenhuma loja. Peça ao administrador para colocar este e-mail na loja e depois toque em "Verificar de novo".': 'You signed in as {email}, but you are not part of any store yet. Ask the administrator to add this email to the store, then tap "Check again".',

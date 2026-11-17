@@ -10,7 +10,6 @@ import { t } from './i18n.js'
 import { supabase } from './supabase.js'
 import { chave, norm, resumoFiado } from './utils.js'
 
-const CHAVE_NAVEGADOR = 'gerenciador-precos-v1' // onde a versão sem banco guardava os dados
 const vazio = () => ({ fornecedores: [], precosForn: [], vendas: [], entradas: [], movCaixa: [], clientes: [], emprestimos: [], custosPagos: [] })
 
 let org = null          // loja ativa: { id, nome, papel, suspensa, criada_por_mim }
@@ -169,21 +168,6 @@ function resumo(lista, x) {
 }
 
 // A loja ainda não tem nada salvo?
-export const contaVazia = (d) => !['fornecedores', 'precosForn', 'vendas', 'entradas'].some((k) => d?.[k]?.length) && !d?.regras?.length
-
-// Dados que a versão sem banco deixou guardados neste navegador (ou null)
-export function dadosDoNavegador() {
-  try {
-    const d = JSON.parse(localStorage.getItem(CHAVE_NAVEGADOR))
-    return d && !contaVazia(d) ? d : null
-  } catch {
-    return null
-  }
-}
-export function esquecerDadosDoNavegador() {
-  try { localStorage.removeItem(CHAVE_NAVEGADOR) } catch { /* sem acesso */ }
-}
-
 export const salvarFornecedor = (f) => upsert('fornecedores', 'fornecedor.salvo', f, f.nome)
 export const excluirFornecedor = (id) => mudar('fornecedor.excluido', (d) => {
   const f = d.fornecedores.find((x) => x.id === id)
