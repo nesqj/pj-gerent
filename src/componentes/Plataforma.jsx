@@ -214,7 +214,7 @@ function DetalheOrg({ org, voltar, recarregar, abrirLoja }) {
         <>
           <div className="cards">
             <div className="card"><small>{t('Cobrança')}</small><b className={Org.SITUACOES[org.cob?.situacao]?.classe}>{Org.nomeSituacao(org.cob?.situacao || 'isenta')}</b>{org.cob?.plano && <small>{org.cob.plano}</small>}</div>
-            <div className="card"><small>{t('Usuário da loja')}</small><b className="quebra">{usuarios ? (usuarios.map((u) => u.email).join(', ') || t('Nenhum ainda')) : '…'}</b>{org.convites > 0 && <small>{t('Convite enviado, aguardando a pessoa criar a conta')}</small>}</div>
+            <div className="card"><small>{t('Usuário da loja')}</small><b className="card-email">{usuarios ? (usuarios.map((u) => u.email).join(', ') || t('Nenhum ainda')) : '…'}</b>{org.convites > 0 && <small>{t('Convite enviado, aguardando a pessoa criar a conta')}</small>}</div>
             <div className="card"><small>{t('Fornecedores')}</small><b>{org.fornecedores}</b></div>
             <div className="card"><small>{t('Produtos cadastrados')}</small><b>{org.produtos}</b></div>
             <div className="card"><small>{t('Vendas')}</small><b>{org.vendas}</b></div>

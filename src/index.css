@@ -1191,3 +1191,4 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 @media (prefers-reduced-motion: reduce) { .tela-carregando img { animation: none } }
 .login-rodape button.link { color: var(--mut); font-weight: 500 }
 .login-rodape button.link:hover { color: var(--txt) }
+.card b.card-email { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; word-break: break-word }
