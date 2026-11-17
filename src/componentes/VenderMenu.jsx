@@ -45,27 +45,16 @@ export function Catalogo() {
 }
 
 // ---------- Calculadora de taxas ----------
-// Toda vez que abre, a taxa começa em 0%: a pessoa digita a % da maquininha para o número de parcelas.
+// Toda vez que abre, a taxa começa em 0%. A % digitada vale para qualquer número de parcelas (mudar as parcelas não muda a taxa).
 const r2 = (n) => Math.round(n * 100) / 100
 
 export function Calculadora({ onFechar }) {
   const [valor, setValor] = useState('')
   const [parcelas, setParcelas] = useState(1)
-  const [taxas, setTaxas] = useState(() => Array(12).fill('')) // % de 1x a 12x (só enquanto a calculadora está aberta)
-
-  // a taxa (em texto, como a pessoa digitou) do número de parcelas escolhido
-  const taxaTxt = taxas[parcelas - 1]
+  const [taxaTxt, setTaxaTxt] = useState('') // % como a pessoa digitou
   const taxa = Math.max(0, Math.min(99, lerValor(taxaTxt) || 0))
-  function mudarTaxa(txt) {
-    setTaxas(taxas.map((x, i) => (i === parcelas - 1 ? txt : x)))
-  }
-
-  // ao mudar as parcelas, a % digitada continua (se aquela parcela ainda não tiver uma % própria)
-  function mudarParcelas(n) {
-    const atual = taxas[parcelas - 1]
-    if (String(atual).trim() && !String(taxas[n - 1]).trim()) setTaxas(taxas.map((x, i) => (i === n - 1 ? atual : x)))
-    setParcelas(n)
-  }
+  const mudarTaxa = (txt) => setTaxaTxt(txt)
+  const mudarParcelas = (n) => setParcelas(n)
 
   const v = lerValor(valor) || 0
   // o cliente paga o valor + a taxa (ex.: 100 em 5x com 10% = 110, 5x de 22)
