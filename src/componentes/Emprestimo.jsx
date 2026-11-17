@@ -107,9 +107,6 @@ export function NovoEmprestimo({ db, executar, aoSalvar }) {
 // Empréstimos feitos no dia (na aba Novo Registro)
 export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
   const lista = (db.emprestimos || []).filter((e) => e.dia === dia).sort((a, b) => b.data - a.data)
-  const lucros = lista.map(lucroEmprestimo)
-  const emprestado = lista.reduce((s, e) => s + (+e.valor || 0), 0)
-  const jurosConfirmados = Math.round(lucros.reduce((s, l) => s + l.lucro, 0) * 100) / 100
 
   async function excluir(e) {
     const f = resumoFiado(e)
@@ -124,14 +121,6 @@ export function EmprestimosDoDia({ db, dia, setDia, executar, irPara }) {
       <div className="linha-titulo">
         <h3>{t('Empréstimos de {data}', { data: dataBR(dia) })}</h3>
         {setDia && <input type="date" value={dia} onChange={(e) => setDia(e.target.value || hoje())} />}
-      </div>
-      <div className="cards">
-        <div className="card"><small>{t('Empréstimos')}</small><b>{lista.length}</b></div>
-        <div className="card"><small>{t('Emprestado')}</small><b>{brl(emprestado)}</b></div>
-        <div className={'card' + (jurosConfirmados < 0 ? ' card-prejuizo' : '')}>
-          <small>{t('Lucro (juros)')}</small>
-          <b className={jurosConfirmados < 0 ? 'bad' : 'ok'}>{jurosConfirmados < 0 ? '− ' + brl(-jurosConfirmados) : brl(jurosConfirmados)}</b>
-        </div>
       </div>
       <div className="tw">
         <table>

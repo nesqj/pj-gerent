@@ -4,7 +4,7 @@ import { avisar } from '../avisos.js'
 import { t } from '../i18n.js'
 import { chave, lerValor, resolverPreco } from '../utils.js'
 import { TROCA } from '../utils.js'
-import { brl, num, faturamentoVenda, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, PAGAMENTOS, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
+import { brl, num, faturamentoVenda, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, descricaoPreco, produtosAVenda, uid, lucroDe, lucroItem, lucroVenda, pagamentosDaVenda, resumoFiado } from '../utils.js'
 import PagamentoVenda, { calcularFiado, montarPagamento, novoPagamento } from './PagamentoVenda.jsx'
 import { EmprestimosDoDia, NovoEmprestimo } from './Emprestimo.jsx'
 import { podeFazer } from '../armazenamento.js'
@@ -263,14 +263,7 @@ export default function Vendas({ db, executar, irPara, visita }) {
   const limiteRegistro = (() => { const d = new Date(hoje() + 'T12:00:00'); d.setDate(d.getDate() - DIAS_PARA_TRAS); return d.toISOString().slice(0, 10) })()
   const podeRegistrar = dia >= limiteRegistro && dia <= hoje()
   const temJurosDia = vendasDia.some((v) => +v.fiado?.juros > 0) // coluna Juros só aparece se alguma venda do dia teve
-  const totalDia = vendasDia.reduce((s, v) => s + faturamentoVenda(v), 0)
-  // lucro estimado das vendas do dia (o fiado conta na hora; o que o cliente não pagar sai depois)
-  const lucroDia = Math.round(vendasDia.reduce((s, v) => s + lucroVenda(v).lucro, 0) * 100) / 100
-  const perdasDia = vendasDia.reduce((s, v) => s + lucroVenda(v).perda, 0)
-  const vendasComPrejuizo = vendasDia.filter((v) => lucroVenda(v).perda > 0).length
   const semCusto = vendasDia.some((v) => v.itens.some((i) => i.custo == null))
-  const somaForma = (forma) => vendasDia.reduce((s, v) => s + pagamentosDaVenda(v).filter((x) => x.forma === forma).reduce((a, x) => a + x.valor, 0), 0)
-  const porPagamento = [...PAGAMENTOS, TROCA, 'Fiado'].map((p) => ({ p, total: somaForma(p) })).filter((x) => !['Fiado', TROCA].includes(x.p) || x.total > 0) // Fiado: o que ficou para depois nas vendas do dia
   const textoPagamento = (v) => { const l = pagamentosDaVenda(v); return l.length > 1 ? l.map((x) => `${t(x.forma)} ${brl(x.valor)}`).join(' + ') : t(l[0]?.forma || v.pagamento) }
 
   if (modo === 'menu') return <MenuVender podeVender podeEmprestar={podeEmprestar} abrir={setModo} />
@@ -449,25 +442,6 @@ export default function Vendas({ db, executar, irPara, visita }) {
       <div className="linha-titulo">
         <h3>{t('Vendas de {data}', { data: dataBR(dia) })}</h3>
         <input type="date" value={dia} max={hoje()} onChange={(e) => setDia(e.target.value || hoje())} />
-      </div>
-
-      <div className="cards">
-        <div className="card"><small>{t('Vendas')}</small><b>{vendasDia.length}</b></div>
-        <div className="card"><small>{t('Total vendido')}</small><b>{brl(totalDia)}</b></div>
-        <div className={'card' + (lucroDia < 0 ? ' card-prejuizo' : '')}>
-          <small>{lucroDia < 0 ? t('Prejuízo estimado') : t('Lucro estimado')}{semCusto ? ' *' : ''}</small>
-          <b className={lucroDia < 0 ? 'bad' : 'ok'}>{lucroDia < 0 ? '− ' + brl(-lucroDia) : brl(lucroDia)}</b>
-        </div>
-        {perdasDia > 0 && (
-          <div className="card card-prejuizo">
-            <small>{t('Perdas')}</small>
-            <b className="bad">− {brl(perdasDia)}</b>
-            <small>{t('{n} venda(s) com item abaixo do custo', { n: vendasComPrejuizo })}</small>
-          </div>
-        )}
-        {porPagamento.map(({ p, total }) => (
-          <div key={p} className="card"><small>{t(p)}</small><b>{brl(total)}</b></div>
-        ))}
       </div>
 
       <div className="tw">
