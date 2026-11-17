@@ -1,5 +1,5 @@
 -- PJ GERENT — lojas (organizações), equipe, convites, painel da plataforma e cobrança
--- Como usar: depois do esquema.sql, abra "SQL Editor" no Supabase, cole este arquivo inteiro e clique em "Run".
+-- Como usar: abra "SQL Editor" no Supabase, cole este arquivo inteiro e clique em "Run".
 -- Pode rodar mais de uma vez sem problema.
 --
 -- NÃO APAGA NADA. Os dados que cada conta já tinha (tabela dados_loja) são COPIADOS para uma loja
@@ -570,16 +570,19 @@ declare
   r record;
   nova uuid;
 begin
-  for r in
-    select d.user_id, d.conteudo from public.dados_loja d
-    where not exists (select 1 from public.organizacoes g where g.migrada_de = d.user_id)
-  loop
-    insert into public.organizacoes (nome, criada_por, migrada_de)
-    values (left(coalesce(nullif(btrim(r.conteudo->'config'->>'nomeLoja'), ''), 'Minha loja'), 60), r.user_id, r.user_id)
-    returning id into nova;
-    insert into public.membros (org_id, user_id, papel) values (nova, r.user_id, 'admin');
-    insert into public.dados_org (org_id, conteudo, atualizado_por) values (nova, r.conteudo, r.user_id);
-  end loop;
+  -- a tabela antiga pode já ter sido apagada (limpeza-2026-11.sql): aí não há nada para trazer
+  if to_regclass('public.dados_loja') is not null then
+    for r in
+      select d.user_id, d.conteudo from public.dados_loja d
+      where not exists (select 1 from public.organizacoes g where g.migrada_de = d.user_id)
+    loop
+      insert into public.organizacoes (nome, criada_por, migrada_de)
+      values (left(coalesce(nullif(btrim(r.conteudo->'config'->>'nomeLoja'), ''), 'Minha loja'), 60), r.user_id, r.user_id)
+      returning id into nova;
+      insert into public.membros (org_id, user_id, papel) values (nova, r.user_id, 'admin');
+      insert into public.dados_org (org_id, conteudo, atualizado_por) values (nova, r.conteudo, r.user_id);
+    end loop;
+  end if;
 
   if not exists (select 1 from public.admins_plataforma) then
     insert into public.admins_plataforma (user_id)

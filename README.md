@@ -23,19 +23,16 @@ Os arquivos ficam em `dist/` (é o que a Vercel publica).
 
 No SQL Editor do Supabase, rode, nesta ordem:
 
-1. `supabase/esquema.sql`
-2. `supabase/organizacoes.sql`: lojas, equipe, convites, auditoria e painel da plataforma
+1. `supabase/organizacoes.sql`: lojas, auditoria, painel da plataforma e cobrança
+2. `supabase/seguranca-2026-11.sql`: cada loja com um único usuário (só o dono grava)
+3. `supabase/limpeza-2026-11.sql`: apaga a tabela antiga `dados_loja` (só se tudo dela já foi copiado para as lojas)
 
-Os dois podem ser rodados de novo sem problema e não apagam nada.
+Os dois primeiros podem ser rodados de novo sem problema.
 
 ## Lojas e papéis
 
 - Cada loja (organização) tem os próprios dados, guardados em `dados_org`.
-- Papéis na loja:
-  - **Administrador**: tudo.
-  - **Gerente**: tudo, menos a equipe e restaurar cópia de segurança.
-  - **Vendedor**: vendas e entradas no estoque.
-  - **Somente leitura**: só vê.
+- Cada loja tem **um único usuário**, o dono (papel Administrador). Só o administrador da plataforma coloca ou tira pessoas de uma loja (aba Equipe da loja, no painel).
 - O **administrador da plataforma** vê todas as lojas no painel "Admin Plataforma": Dashboard, Organizações, Usuários, Administradores, Uso, Auditoria e Cadastro. Abra o painel pelo seletor de loja no topo → "Gerenciar organizações".
 - **Cadastro** (no painel) tem dois interruptores. **Apenas por convite**: só entra quem foi colocado numa loja. **Com aprovação**: quem cria conta sem convite pede a loja, e ela só é criada quando o administrador aprova. Com os dois desligados, a conta nova ganha uma loja na hora.
 - **Marca** (no painel): nome, cores, logos e tema da plataforma. Vale na tela de entrada e nas lojas sem marca própria.
