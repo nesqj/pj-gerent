@@ -3,7 +3,7 @@ import { aviso, confirmar } from '../avisos-tela.jsx'
 import CobrancaLoja from './CobrancaLoja.jsx'
 import { ListaAuditoria } from './ListaAuditoria.jsx'
 import * as Org from '../organizacoes.js'
-import { IconeBackup, IconeCelular, IconeCobranca, IconeDireita, IconeEscudo, IconePaleta, IconePerfil, IconePredio } from '../icones.jsx'
+import { IconeBackup, IconeCelular, IconeCobranca, IconeDireita, IconeEscudo, IconePaleta, IconePerfil, IconePredio, IconeVoltar } from '../icones.jsx'
 import { Avatar } from './MinhaConta.jsx'
 import EditarFoto from './EditarFoto.jsx'
 import { avisar, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
@@ -50,7 +50,7 @@ export default function Configuracoes({ db, executar, usuario, loja, adminPlataf
     return (
       <section className="config-sub">
         <h2>{t(item.nome)}</h2>
-        <button className="voltar" onClick={() => setAberta(null)}>← {t('Configurações')}</button>
+        <button className="voltar-conta" onClick={() => setAberta(null)}><IconeVoltar /><span>{t('Configurações')}</span></button>
         <div className="config-titulo">
           <h3>{t(item.nome)}</h3>
           <small>{t({ perfil: 'Informações pessoais. O e-mail de acesso ainda não pode ser trocado.', marca: 'A logo da sua marca. Ela vai aparecer no catálogo da sua loja.' }[item.id] || item.desc)}</small>
