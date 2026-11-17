@@ -7,9 +7,9 @@ const chave = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 export const supabaseConfigurado = Boolean(url && chave)
 
-// Conexão que não fica pendurada para sempre: se o servidor não responder em 20 s, desiste
+// Conexão que não fica pendurada para sempre: se o servidor não responder em 15 s, desiste
 // (aí o app mostra o erro e tenta de novo, em vez de ficar em "Carregando..." sem fim).
-const LIMITE_MS = 20000
+const LIMITE_MS = 15000
 function fetchComLimite(recurso, opcoes = {}) {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), LIMITE_MS)

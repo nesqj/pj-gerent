@@ -44,8 +44,24 @@ async function idUsuario() {
   return data.session.user
 }
 
+const consultar = (id) => supabase.from('dados_org').select('conteudo, versao').eq('org_id', id).maybeSingle()
+
+// Começa a baixar os dados de uma loja antes de ela ser aberta (ao abrir o app, junto com o login),
+// para não esperar um pedido depois do outro. O resultado é usado uma vez só, na próxima abertura dessa loja.
+let adiantado = null // { orgId, promessa }
+export function adiantarCarga(orgId) {
+  if (!supabase || !orgId || adiantado?.orgId === orgId) return
+  adiantado = { orgId, promessa: Promise.resolve(consultar(orgId)).catch(() => null) }
+}
+
 async function buscar() {
-  const { data, error } = await supabase.from('dados_org').select('conteudo, versao').eq('org_id', org.id).maybeSingle()
+  let resposta = null
+  if (adiantado?.orgId === org.id) {
+    resposta = await adiantado.promessa
+    adiantado = null
+    if (resposta?.error) resposta = null // deu erro no adiantado: busca de novo agora
+  }
+  const { data, error } = resposta || await consultar(org.id)
   if (error) throw new Error(t('Não foi possível carregar os dados do banco. Verifique a internet e tente de novo.'))
   db = { ...vazio(), ...(data?.conteudo || {}) }
   versao = data?.versao ?? 0
@@ -83,6 +99,7 @@ export function limpar() {
   versao = 0
   carregadoDe = null
   perfil = null
+  adiantado = null
 }
 
 // ---------- gravação

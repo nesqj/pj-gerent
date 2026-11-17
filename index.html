@@ -26,7 +26,18 @@
     <title>PJ GERENT</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- logo no meio da tela desde o primeiro instante (o app substitui quando terminar de carregar) -->
+    <style>
+      #abertura { position: fixed; inset: 0; display: grid; place-items: center; background: #0a0a0a }
+      #abertura img { width: min(180px, 50vw); max-height: 120px; object-fit: contain; animation: pulsa 1.6s ease-in-out infinite }
+      #abertura .claro { display: none }
+      [data-theme="light"] #abertura { background: #ffffff }
+      [data-theme="light"] #abertura .escuro { display: none }
+      [data-theme="light"] #abertura .claro { display: block }
+      @keyframes pulsa { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: .55; transform: scale(.97) } }
+      @media (prefers-reduced-motion: reduce) { #abertura img { animation: none } }
+    </style>
+    <div id="root"><div id="abertura"><img class="escuro" src="/logos/logo-escuro-menu.png" alt="" /><img class="claro" src="/logos/logo-claro-menu.png" alt="" /></div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

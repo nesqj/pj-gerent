@@ -205,14 +205,16 @@ export default function App() {
     setErroCarga('')
     setModo('carregando')
     try {
+      // última loja aberta neste aparelho: já começa a baixar os dados dela enquanto entra na conta (ganha tempo)
+      let salva = null
+      try { salva = localStorage.getItem(chaveLoja(s.usuario.id)) } catch { /* sem acesso */ }
+      Armazenamento.adiantarCarga(salva)
       const info = await Org.entrar()
       admin.current = !!info?.admin
       setPedido(info?.pedido || null)
       setAdminPlataforma(admin.current)
       const lista = await Org.minhasOrgs()
       setLojas(lista)
-      let salva = null
-      try { salva = localStorage.getItem(chaveLoja(s.usuario.id)) } catch { /* sem acesso */ }
       let alvo = lista.find((o) => o.id === salva) || lista.find((o) => !o.suspensa) || lista[0]
       if (!lista.some((o) => o.id === salva) && salva && admin.current) {
         const g = await Org.buscarOrg(salva).catch(() => null)
