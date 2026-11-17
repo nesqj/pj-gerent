@@ -1228,7 +1228,6 @@ export default {
   'Qual o valor da venda?': 'What is the sale amount?',
   'Seu cliente paga': 'Your customer pays',
   '{n}x de {valor}': '{n}x of {valor}',
-  'Você recebe': 'You receive',
   'Menos parcelas': 'Fewer installments',
   'Mais parcelas': 'More installments',
   'Repassar taxa': 'Pass fee on',

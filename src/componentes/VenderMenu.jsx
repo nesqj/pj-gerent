@@ -71,7 +71,6 @@ export function Calculadora({ onFechar }) {
   const v = lerValor(valor) || 0
   // repassar a taxa: o cliente paga a mais para você receber o valor cheio
   const clientePaga = v > 0 ? r2(repassar ? v / (1 - taxa / 100) : v) : 0
-  const voceRecebe = v > 0 ? r2(repassar ? v : v * (1 - taxa / 100)) : 0
   const nParc = parcelas
 
   return createPortal(
@@ -109,7 +108,6 @@ export function Calculadora({ onFechar }) {
         <div className="calc-resultado">
           <div><span>{t('Seu cliente paga')}</span><b>{brl(clientePaga)}</b></div>
           {nParc > 1 && <div className="calc-parc"><span /><small>{t('{n}x de {valor}', { n: nParc, valor: brl(r2(clientePaga / nParc)) })}</small></div>}
-          <div><span>{t('Você recebe')}</span><b>{brl(voceRecebe)}</b></div>
         </div>
       </div>
     </div>,
