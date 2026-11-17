@@ -1189,3 +1189,5 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 .tela-carregando img { width: min(180px, 50vw); max-height: 120px; object-fit: contain; animation: logo-pulsa 1.6s ease-in-out infinite }
 @keyframes logo-pulsa { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: .55; transform: scale(.97) } }
 @media (prefers-reduced-motion: reduce) { .tela-carregando img { animation: none } }
+.login-rodape button.link { color: var(--mut); font-weight: 500 }
+.login-rodape button.link:hover { color: var(--txt) }
