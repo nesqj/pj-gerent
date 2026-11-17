@@ -244,23 +244,44 @@ function PlanoCobranca({ loja }) {
 }
 
 // ---------- Marca ----------
-const LIMITE_LOGO = 512 * 1024
+// Logo: a imagem escolhida é reduzida no próprio aparelho (lado maior até 400 px) e precisa ficar com até 100 KB.
+// PNG continua PNG (mantém o fundo transparente); JPG vira JPG mais leve.
+const LADO_LOGO = 400
+const LIMITE_LOGO = 100 * 1024
+async function reduzirLogo(file) {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = url })
+    const escala = Math.min(1, LADO_LOGO / Math.max(img.naturalWidth, img.naturalHeight))
+    const c = document.createElement('canvas')
+    c.width = Math.max(1, Math.round(img.naturalWidth * escala))
+    c.height = Math.max(1, Math.round(img.naturalHeight * escala))
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+    if (file.type === 'image/png') return c.toDataURL('image/png')
+    let foto = c.toDataURL('image/jpeg', 0.85)
+    if (foto.length * 0.75 > LIMITE_LOGO) foto = c.toDataURL('image/jpeg', 0.6)
+    return foto
+  } finally { URL.revokeObjectURL(url) }
+}
 
 function Marca({ db, executar }) {
   const atual = db.config?.logo || ''
   const [logo, setLogo] = useState(atual)
   const [erro, setErro] = useState('')
 
-  function escolherLogo(e) {
+  async function escolherLogo(e) {
     const file = e.target.files[0]
     e.target.value = ''
     setErro('')
     if (!file) return
     if (!['image/png', 'image/jpeg'].includes(file.type)) return setErro(t('Use um arquivo PNG ou JPG.'))
-    if (file.size > LIMITE_LOGO) return setErro(t('O arquivo passa de 512 KB.'))
-    const r = new FileReader()
-    r.onload = () => setLogo(r.result)
-    r.readAsDataURL(file)
+    try {
+      const reduzida = await reduzirLogo(file)
+      if (reduzida.length * 0.75 > LIMITE_LOGO) return setErro(t('Mesmo reduzida, a logo passa de 100 KB. Tente uma imagem mais simples ou em JPG.'))
+      setLogo(reduzida)
+    } catch {
+      setErro(t('Não foi possível usar esta imagem.'))
+    }
   }
 
   function salvar(e) {
@@ -281,7 +302,7 @@ function Marca({ db, executar }) {
           <label className="botao-arquivo">{logo ? t('Trocar logo') : t('Escolher logo')}<input type="file" accept="image/png,image/jpeg" hidden onChange={escolherLogo} /></label>
           {logo && <button type="button" className="sec" onClick={() => setLogo('')}>{t('Remover logo')}</button>}
         </div>
-        <small className={erro ? 'bad' : ''}>{erro || t('Vai aparecer no catálogo da sua loja. PNG ou JPG, até 512 KB, de preferência com fundo transparente.')}</small>
+        <small className={erro ? 'bad' : ''}>{erro || t('Vai aparecer no catálogo da sua loja. PNG ou JPG, de preferência com fundo transparente. A imagem é reduzida sozinha para ficar leve (até 100 KB).')}</small>
       </div>
       <div className="acoes-form largo"><button type="submit" disabled={logo === atual}>{t('Salvar')}</button></div>
     </form>

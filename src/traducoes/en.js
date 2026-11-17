@@ -1210,7 +1210,8 @@ export default {
   'Trocar logo': 'Change logo',
   'Escolher logo': 'Choose logo',
   'Logo salva.': 'Logo saved.',
-  'Vai aparecer no catálogo da sua loja. PNG ou JPG, até 512 KB, de preferência com fundo transparente.': 'It will appear in your store catalog. PNG or JPG, up to 512 KB, preferably with a transparent background.',
   'A logo da sua marca, para o catálogo.': 'Your brand logo, for the catalog.',
   'A logo da sua marca. Ela vai aparecer no catálogo da sua loja.': 'Your brand logo. It will appear in your store catalog.',
+  'Mesmo reduzida, a logo passa de 100 KB. Tente uma imagem mais simples ou em JPG.': 'Even reduced, the logo is over 100 KB. Try a simpler image or a JPG.',
+  'Vai aparecer no catálogo da sua loja. PNG ou JPG, de preferência com fundo transparente. A imagem é reduzida sozinha para ficar leve (até 100 KB).': 'It will appear in your store catalog. PNG or JPG, preferably with a transparent background. The image is reduced automatically to stay light (up to 100 KB).',
 }
