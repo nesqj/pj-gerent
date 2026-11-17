@@ -45,42 +45,26 @@ export function Catalogo() {
 }
 
 // ---------- Calculadora de taxas ----------
-// Não vem nenhuma taxa pronta: a pessoa digita a % da maquininha dela para cada número de parcelas (1x a 12x).
-// O que ela digitar fica guardado neste aparelho, para a próxima vez.
-const CHAVE = 'calc-taxas-v2'
-const VAZIO = { pix: '', debito: '', credito: Array(12).fill('') }
-function lerTaxas() {
-  try {
-    const s = JSON.parse(localStorage.getItem(CHAVE) || 'null')
-    if (s && Array.isArray(s.credito) && s.credito.length === 12) return s
-  } catch { /* sem acesso */ }
-  return VAZIO
-}
+// Toda vez que abre, a taxa começa em 0%: a pessoa digita a % da maquininha para o número de parcelas.
 const r2 = (n) => Math.round(n * 100) / 100
 
 export function Calculadora({ onFechar }) {
   const [valor, setValor] = useState('')
   const [parcelas, setParcelas] = useState(1)
   const [repassar, setRepassar] = useState(false)
-  const [taxas, setTaxas] = useState(lerTaxas)
+  const [taxas, setTaxas] = useState(() => Array(12).fill('')) // % de 1x a 12x (só enquanto a calculadora está aberta)
 
   // a taxa (em texto, como a pessoa digitou) do número de parcelas escolhido
-  const taxaTxt = taxas.credito[parcelas - 1]
+  const taxaTxt = taxas[parcelas - 1]
   const taxa = Math.max(0, Math.min(99, lerValor(taxaTxt) || 0))
   function mudarTaxa(txt) {
-    const novas = { ...taxas, credito: taxas.credito.map((x, i) => (i === parcelas - 1 ? txt : x)) }
-    setTaxas(novas)
-    try { localStorage.setItem(CHAVE, JSON.stringify(novas)) } catch { /* sem acesso */ }
+    setTaxas(taxas.map((x, i) => (i === parcelas - 1 ? txt : x)))
   }
 
   // ao mudar as parcelas, a % digitada continua (se aquela parcela ainda não tiver uma % própria)
   function mudarParcelas(n) {
-    const atual = taxas.credito[parcelas - 1]
-    if (String(atual).trim() && !String(taxas.credito[n - 1]).trim()) {
-      const novas = { ...taxas, credito: taxas.credito.map((x, i) => (i === n - 1 ? atual : x)) }
-      setTaxas(novas)
-      try { localStorage.setItem(CHAVE, JSON.stringify(novas)) } catch { /* sem acesso */ }
-    }
+    const atual = taxas[parcelas - 1]
+    if (String(atual).trim() && !String(taxas[n - 1]).trim()) setTaxas(taxas.map((x, i) => (i === n - 1 ? atual : x)))
     setParcelas(n)
   }
 
@@ -113,12 +97,12 @@ export function Calculadora({ onFechar }) {
         </div>
 
         <label className="calc-linha">
-          <span>{t('Taxa da maquininha')}<small>{t('Para {n}x · fica guardada neste aparelho', { n: parcelas })}</small></span>
+          <span>{t('Taxa da maquininha')}</span>
           <span className="calc-pct"><input inputMode="decimal" placeholder="0" value={taxaTxt} onChange={(e) => mudarTaxa(e.target.value)} /><i>%</i></span>
         </label>
 
         <label className="calc-linha calc-chave">
-          <span>{t('Repassar taxa')}<small>{t('O cliente paga a taxa e você recebe o valor cheio')}</small></span>
+          <span>{t('Repassar taxa')}</span>
           <input type="checkbox" className="interruptor" checked={repassar} onChange={(e) => setRepassar(e.target.checked)} />
         </label>
 

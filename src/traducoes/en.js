@@ -1232,11 +1232,9 @@ export default {
   'Menos parcelas': 'Fewer installments',
   'Mais parcelas': 'More installments',
   'Repassar taxa': 'Pass fee on',
-  'O cliente paga a taxa e você recebe o valor cheio': 'The customer pays the fee and you receive the full amount',
   'Taxa da maquininha': 'Card machine fee',
   '{n}x': '{n}x',
   'Dinheiro retirado': 'Money withdrawn',
   'Dinheiro retirado do caixa.': 'Money withdrawn from the register.',
   'Ex: conta de luz, aluguel, uso pessoal...': 'E.g. electricity bill, rent, personal use...',
-  'Para {n}x · fica guardada neste aparelho': 'For {n}x · saved on this device',
 }
