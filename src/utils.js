@@ -530,4 +530,3 @@ export function perdasNaoPago(lista) {
   }
   return l
 }
-export const somaPerdas = (perdas, de, ate = de) => Math.round(perdas.filter((x) => x.dia >= de && x.dia <= ate).reduce((s, x) => s + x.valor, 0) * 100) / 100

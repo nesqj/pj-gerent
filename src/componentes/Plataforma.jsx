@@ -5,6 +5,7 @@ import Equipe from './Equipe.jsx'
 import Cobranca from './Cobranca.jsx'
 import CobrancaLoja from './CobrancaLoja.jsx'
 import MarcaPlataforma from './MarcaPlataforma.jsx'
+import { ListaAuditoria } from './ListaAuditoria.jsx'
 import { t } from '../i18n.js'
 import { brl, dataTs, hora, norm } from '../utils.js'
 
@@ -516,28 +517,6 @@ function Auditoria() {
       <p><small>{t('Mostrando {n} de {total} registros carregados.', { n: lista.length, total: eventos.length })}</small>{' '}
         {eventos.length >= limite && <button className="link pequeno" onClick={() => setLimite(limite + 300)}>{t('Carregar mais')}</button>}</p>
     </section>
-  )
-}
-
-export function ListaAuditoria({ eventos, mostrarLoja, onAbrir }) {
-  return (
-    <div className="tw">
-      <table>
-        <thead><tr><th>{t('Quando')}</th>{mostrarLoja && <th>{t('Loja')}</th>}<th>{t('Quem')}</th><th>{t('Ação')}</th><th>{t('Detalhe')}</th></tr></thead>
-        <tbody>
-          {eventos.length === 0 && <tr><td colSpan={mostrarLoja ? 5 : 4} className="vazio">{t('Nenhum registro.')}</td></tr>}
-          {eventos.map((e) => (
-            <tr key={e.id} className={onAbrir ? 'clicavel' : ''} onClick={onAbrir ? () => onAbrir(e.id) : undefined}>
-              <td>{momento(e.criado_em)}</td>
-              {mostrarLoja && <td>{e.org_nome || (e.org_id ? '-' : t('Plataforma'))}</td>}
-              <td>{e.email || t('Sistema')}</td>
-              <td>{Org.nomeAcao(e.acao)}</td>
-              <td className="quebra">{e.detalhe || '-'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }
 

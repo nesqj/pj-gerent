@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { aviso, confirmar } from './avisos-tela.jsx'
 import * as Armazenamento from './armazenamento.js'
 import * as Org from './organizacoes.js'
@@ -15,14 +15,13 @@ import Clientes from './componentes/Clientes.jsx'
 import Configuracoes from './componentes/Configuracoes.jsx'
 import Ajuda from './componentes/Ajuda.jsx'
 import Login from './componentes/Login.jsx'
-import Plataforma from './componentes/Plataforma.jsx'
 import SeletorLoja from './componentes/SeletorLoja.jsx'
 import CobrancaLoja from './componentes/CobrancaLoja.jsx'
 import * as Auth from './auth.js'
 import { supabaseConfigurado } from './supabase.js'
 import { observarTabelas } from './tabelasResponsivas.js'
-import { definirIdioma, t } from './i18n.js'
-import { corTextoSobre, definirFuso, FUSO_PADRAO, hexValido, hoje } from './utils.js'
+import { aoCarregarIdioma, definirIdioma, t } from './i18n.js'
+import { corTextoSobre, definirFuso, FUSO_PADRAO, hexValido } from './utils.js'
 import pacote from '../package.json'
 import { LOGO_PADRAO_APP, LOGO_PADRAO_CLARO, LOGO_PADRAO_ESCURO, NOME_APP } from './marca.js'
 import {
@@ -38,6 +37,9 @@ const falhaDeRede = (e) => /load failed|failed to fetch|networkerror|network req
 const mensagemDeCarga = (e) => (falhaDeRede(e)
   ? t('Não conseguimos falar com o servidor. Confira a internet e toque em Tentar de novo.')
   : e?.message || t('Não foi possível carregar os dados.'))
+
+// painel do administrador da plataforma: só é baixado por quem abre ele
+const Plataforma = lazy(() => import('./componentes/Plataforma.jsx'))
 
 // Grupos e itens da barra lateral (dentro de uma loja)
 const GRUPOS = [
@@ -114,6 +116,9 @@ const chaveLoja = (uid) => 'pjgerent-loja-' + uid
 
 export default function App() {
   const [db, setDb] = useState(null)
+  // as traduções em inglês chegam depois (só para quem usa inglês): redesenha a tela quando chegarem
+  const [, setTraducoes] = useState(0)
+  useEffect(() => aoCarregarIdioma(() => setTraducoes((n) => n + 1)), [])
   const [aba, setAba] = useState('inicio')
   const [fechados, setFechados] = useState({})       // grupos recolhidos
   const [recolhida, setRecolhida] = useState(false)  // barra lateral só com ícones
@@ -552,7 +557,7 @@ export default function App() {
           {!noAdmin && daConta && ABAS_DA_CONTA.includes(aba) && (
             <button className="voltar-conta so-celular" onClick={voltarParaConta} aria-label={t('Voltar')}><IconeVoltar /><span>{t('Minha conta')}</span></button>
           )}
-          {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
+          {noAdmin && <Suspense fallback={null}><Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} /></Suspense>}
           {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} perfil={perfil} nome={nomeUsuario} />}
           {!noAdmin && aba === 'termos' && <Termos />}
           {!noAdmin && contaAberta && <MinhaConta db={db} perfil={perfil} nome={nomeUsuario} email={sessao?.usuario?.email} loja={loja} lojas={lojas}
