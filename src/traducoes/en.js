@@ -1220,7 +1220,6 @@ export default {
   '{n}x de {valor}': '{n}x of {valor}',
   'Menos parcelas': 'Fewer installments',
   'Mais parcelas': 'More installments',
-  'Repassar taxa': 'Pass fee on',
   'Taxa da maquininha': 'Card machine fee',
   '{n}x': '{n}x',
   'Dinheiro retirado': 'Money withdrawn',

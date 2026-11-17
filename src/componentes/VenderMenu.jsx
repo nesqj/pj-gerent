@@ -51,7 +51,6 @@ const r2 = (n) => Math.round(n * 100) / 100
 export function Calculadora({ onFechar }) {
   const [valor, setValor] = useState('')
   const [parcelas, setParcelas] = useState(1)
-  const [repassar, setRepassar] = useState(false)
   const [taxas, setTaxas] = useState(() => Array(12).fill('')) // % de 1x a 12x (só enquanto a calculadora está aberta)
 
   // a taxa (em texto, como a pessoa digitou) do número de parcelas escolhido
@@ -69,8 +68,8 @@ export function Calculadora({ onFechar }) {
   }
 
   const v = lerValor(valor) || 0
-  // repassar a taxa: o cliente paga a mais para você receber o valor cheio
-  const clientePaga = v > 0 ? r2(repassar ? v / (1 - taxa / 100) : v) : 0
+  // o cliente paga o valor + a taxa (ex.: 100 em 5x com 10% = 110, 5x de 22)
+  const clientePaga = v > 0 ? r2(v * (1 + taxa / 100)) : 0
   const nParc = parcelas
 
   return createPortal(
@@ -98,11 +97,6 @@ export function Calculadora({ onFechar }) {
         <label className="calc-linha">
           <span>{t('Taxa da maquininha')}</span>
           <span className="calc-pct"><input inputMode="decimal" placeholder="0" value={taxaTxt} onChange={(e) => mudarTaxa(e.target.value)} /><i>%</i></span>
-        </label>
-
-        <label className="calc-linha calc-chave">
-          <span>{t('Repassar taxa')}</span>
-          <input type="checkbox" className="interruptor" checked={repassar} onChange={(e) => setRepassar(e.target.checked)} />
         </label>
 
         <div className="calc-resultado">

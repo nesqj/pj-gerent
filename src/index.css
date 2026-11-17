@@ -569,7 +569,6 @@ input.campo-erro { border-color: var(--bad) !important; box-shadow: 0 0 0 3px va
 
 /* ---------- Prejuízo (venda abaixo do custo) ---------- */
 tr.linha-prejuizo td { background: color-mix(in srgb, var(--bad) 9%, transparent) }
-.card.card-prejuizo { border-color: var(--bad-borda); background: color-mix(in srgb, var(--bad) 8%, var(--card)) }
 .resultado-venda { display: block; margin-top: 4px; font-weight: 600 }
 
 /* ---------- Análise ---------- */
@@ -1140,11 +1139,6 @@ i.q.fat { background: var(--bd-forte) } i.q.luc { background: var(--verde) } i.q
 .calc-passo > span small { color: var(--mut); font-size: 12px }
 .calc-passo .in-icone { width: 38px; height: 38px; font-size: 22px; background: var(--campo) }
 .calc-passo .in-icone:disabled { opacity: .35; cursor: default }
-.calc-chave { cursor: pointer }
-.interruptor { appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 46px; height: 28px; border-radius: 999px; background: var(--campo); border: 1px solid var(--bd); position: relative; cursor: pointer; transition: background .15s; margin: 0; padding: 0 }
-.interruptor::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--txt); transition: transform .15s }
-.interruptor:checked { background: var(--verde); border-color: var(--verde) }
-.interruptor:checked::after { transform: translateX(18px); background: #fff }
 
 label.calc-linha { flex-direction: row; align-items: center; text-align: left; color: var(--txt); font-size: 15px }
 .calc-resultado { margin-top: 14px }
