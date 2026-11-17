@@ -31,6 +31,14 @@ import {
   IconeUsuarios, IconeVoltar, IconePaleta, IconeCobranca, IconeCaixa, IconeFiado, IconeInicio, IconeMais, IconeExtrato,
 } from './icones.jsx'
 
+// Falha de conexão (o iPhone mostra "Load failed"; outros navegadores "Failed to fetch"): vale tentar de novo
+const TENTATIVAS = 2
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
+const falhaDeRede = (e) => /load failed|failed to fetch|networkerror|network request failed|verifique a internet/i.test(e?.message || '')
+const mensagemDeCarga = (e) => (falhaDeRede(e)
+  ? t('Não conseguimos falar com o servidor. Confira a internet e toque em Tentar de novo.')
+  : e?.message || t('Não foi possível carregar os dados.'))
+
 // Grupos e itens da barra lateral (dentro de uma loja)
 const GRUPOS = [
   {
@@ -143,7 +151,7 @@ export default function App() {
   }
 
   // Abre uma loja: carrega os dados dela e, se estiver vazia, oferece trazer os dados deste navegador
-  async function abrirLoja(o, s = sessao) {
+  async function abrirLoja(o, s = sessao, tentativa = 0) {
     setErroCarga('')
     setMenuAberto(false)
     if (o.suspensa && !admin.current) { setLoja(o); setDb(null); setModo('suspensa'); return }
@@ -178,12 +186,14 @@ export default function App() {
       setModo('loja')
       verFaixa(ativa)
     } catch (e) {
-      setErroCarga(e.message || t('Não foi possível carregar os dados.'))
+      // a conexão caiu por um instante (comum no celular ao voltar para o app): tenta de novo sozinho
+      if (falhaDeRede(e) && tentativa < TENTATIVAS) { await esperar(1500 * (tentativa + 1)); return abrirLoja(o, s, tentativa + 1) }
+      setErroCarga(mensagemDeCarga(e))
     }
   }
 
   // Depois do login: entra na plataforma (aceita convites), busca as lojas e abre a última usada
-  async function carregarConta(s) {
+  async function carregarConta(s, tentativa = 0) {
     setErroCarga('')
     setModo('carregando')
     try {
@@ -207,7 +217,8 @@ export default function App() {
       if (!alvo) { setDb(null); setLoja(null); setModo(admin.current ? 'admin' : 'semLoja'); if (admin.current) setTelaAdmin('orgs'); return }
       await abrirLoja(alvo, s)
     } catch (e) {
-      setErroCarga(e.message || t('Não foi possível carregar os dados.'))
+      if (falhaDeRede(e) && tentativa < TENTATIVAS) { await esperar(1500 * (tentativa + 1)); return carregarConta(s, tentativa + 1) }
+      setErroCarga(mensagemDeCarga(e))
     }
   }
 
