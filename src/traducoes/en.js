@@ -164,7 +164,6 @@ export default {
   'Verificação em duas etapas, códigos de recuperação e sessões.': 'Two-step verification, recovery codes and sessions.',
   'App no celular': 'Mobile app',
   'Instale o sistema na tela de início do celular e receba os avisos.': 'Install the system on your phone\'s home screen and get alerts.',
-  'Organização': 'Organization',
   'Cópia de segurança': 'Backup',
   'Baixe uma cópia dos dados ou restaure de um arquivo.': 'Download a copy of your data or restore from a file.',
   'Em construção — o conteúdo desta seção ainda vai ser definido.': 'Under construction — this section\'s content is still to be defined.',
@@ -1215,4 +1214,5 @@ export default {
   'Nenhum produto no estoque. Toque em "Entrada de produtos".': 'No products in stock. Tap "Product intake".',
   'Sem estoque': 'Out of stock',
   'custo {valor}/un.': 'cost {valor}/unit',
+  'Logs': 'Logs',
 }

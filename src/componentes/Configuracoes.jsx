@@ -3,7 +3,7 @@ import { aviso, confirmar } from '../avisos-tela.jsx'
 import CobrancaLoja from './CobrancaLoja.jsx'
 import { ListaAuditoria } from './ListaAuditoria.jsx'
 import * as Org from '../organizacoes.js'
-import { IconeBackup, IconeCelular, IconeCobranca, IconeDireita, IconeEscudo, IconePaleta, IconePerfil, IconePredio, IconeVoltar } from '../icones.jsx'
+import { IconeBackup, IconeCelular, IconeCobranca, IconeDireita, IconeEscudo, IconePaleta, IconeLista, IconePerfil, IconeVoltar } from '../icones.jsx'
 import { Avatar } from './MinhaConta.jsx'
 import EditarFoto from './EditarFoto.jsx'
 import { avisar, pedirPermissaoAvisos, permissaoAvisos } from '../avisos.js'
@@ -23,7 +23,7 @@ const SECOES = [
   {
     titulo: 'Empresa',
     itens: [
-      { id: 'organizacao', nome: 'Organização', desc: 'A loja e a atividade recente.', icone: IconePredio },
+      { id: 'organizacao', nome: 'Logs', desc: 'A loja e a atividade recente.', icone: IconeLista },
       { id: 'marca', nome: 'Marca', desc: 'A logo da sua marca, para o catálogo.', icone: IconePaleta },
       { id: 'cobranca', nome: 'Plano e cobrança', desc: 'Seu plano, a situação do pagamento, faturas e troca de plano.', icone: IconeCobranca },
     ],
