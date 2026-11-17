@@ -310,6 +310,19 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
   const doCliente = (e) => { const k = e.fiado?.clienteId || e.fiado?.cliente || '?'; if (!cli.has(k)) cli.set(k, { nome: e.fiado?.cliente || '-', n: 0, emprestado: 0, recebido: 0, lucro: 0 }); return cli.get(k) }
   for (const e of lista) { const c = doCliente(e); c.n++; c.emprestado += +e.valor || 0 }
   for (const x of recebimentos) { const c = doCliente(x.e); c.recebido += x.valor; c.lucro += x.lucro }
+  // empréstimo com "Não pagou": a parte do valor emprestado que não voltou sai do lucro do cliente
+  // (no período em que foi marcado), para o painel bater com o Resultado do empréstimo (o que voltou − o que saiu)
+  for (const e of todos) {
+    const f = resumoFiado(e)
+    if (!f?.naoPago || f.pendente) continue
+    const marcadas = (e.fiado?.parcelas || []).filter((p) => p.naoPaga).map((p) => p.naoPagaEm?.dia || e.dia)
+    const quando = marcadas.length ? marcadas.sort().at(-1) : e.dia
+    if (quando < de || quando > ate) continue
+    const total = +e.total || 0, valor = +e.valor || 0
+    const pago = (e.fiado?.parcelas || []).reduce((a, p) => a + (p.recebimentos || []).reduce((b, r) => b + (+r.valor || 0), 0), 0)
+    const perda = Math.max(0, valor - (total > 0 ? pago * (valor / total) : pago))
+    if (perda > 0.004) doCliente(e).lucro -= perda
+  }
   const clientes = [...cli.values()].sort((a, b) => b.lucro - a.lucro || b.emprestado - a.emprestado)
 
   // por forma de recebimento (o que voltou no período)
@@ -353,7 +366,7 @@ function AnaliseEmprestimos({ db, de, ate, n }) {
                     <span className="lp-nome">{c.nome}</span>
                     <span>{c.n}</span>
                     <span>{brl(c.emprestado)}</span>
-                    <span className="ok">{brl(c.lucro)}</span>
+                    <span className={c.lucro < 0 ? 'bad' : 'ok'}>{c.lucro < 0 ? '− ' + brl(-c.lucro) : brl(c.lucro)}</span>
                   </div>
                 ))}
               </div>
