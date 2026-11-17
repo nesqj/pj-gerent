@@ -56,7 +56,6 @@ function lerTaxas() {
   } catch { /* sem acesso */ }
   return VAZIO
 }
-const pctTxt = (p) => String(Math.round(p * 100) / 100).replace('.', ',') + '%'
 const r2 = (n) => Math.round(n * 100) / 100
 
 export function Calculadora({ onFechar }) {
@@ -92,7 +91,6 @@ export function Calculadora({ onFechar }) {
   // repassar a taxa: o cliente paga a mais para você receber o valor cheio
   const clientePaga = v > 0 ? r2(repassar ? v / (1 - taxa / 100) : v) : 0
   const voceRecebe = v > 0 ? r2(repassar ? v : v * (1 - taxa / 100)) : 0
-  const custo = r2(clientePaga - voceRecebe)
   const nParc = forma === 'credito' ? parcelas : 1
   const nomeOpcao = forma === 'credito' ? t('Crédito {n}x', { n: parcelas }) : forma === 'debito' ? t('Débito') : t('Pix')
 
@@ -139,7 +137,6 @@ export function Calculadora({ onFechar }) {
         <div className="calc-resultado">
           <div><span>{t('Seu cliente paga')}</span><b>{brl(clientePaga)}</b></div>
           {nParc > 1 && <div className="calc-parc"><span /><small>{t('{n}x de {valor}', { n: nParc, valor: brl(r2(clientePaga / nParc)) })}</small></div>}
-          <div><span>{t('Taxa ({p})', { p: pctTxt(taxa) })}</span><b>{custo > 0 ? '− ' + brl(custo) : brl(0)}</b></div>
           <div><span>{t('Você recebe')}</span><b>{brl(voceRecebe)}</b></div>
         </div>
       </div>
