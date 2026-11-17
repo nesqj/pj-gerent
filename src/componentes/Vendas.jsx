@@ -13,14 +13,9 @@ import { IconeVoltar } from '../icones.jsx'
 
 const itemNovo = { k: '', qtd: '1', preco: '', forn: '' } // preco: digitado só para produtos do estoque; forn: fornecedor escolhido
 
-// qual tela abrir: o menu "Vender" (padrão), direto o empréstimo (botão Empréstimo do Início)
-// ou direto as vendas de um dia (link de uma data em Cobranças ou no Extrato)
+// qual tela abrir: o menu "Vender" (padrão) ou direto as vendas de um dia (link de uma data em Cobranças ou no Extrato)
 const modoPedido = () => {
-  try {
-    const m = sessionStorage.getItem('registro-modo'); sessionStorage.removeItem('registro-modo')
-    if (m === 'emprestimo' && podeFazer('emprestimo.salvo')) return m
-    if (m === 'venda' || sessionStorage.getItem('vendas-dia')) return 'venda'
-  } catch { /* sem acesso */ }
+  try { if (sessionStorage.getItem('vendas-dia')) return 'venda' } catch { /* sem acesso */ }
   return 'menu'
 }
 

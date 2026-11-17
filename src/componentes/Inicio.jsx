@@ -4,7 +4,7 @@ import { podeFazer } from '../armazenamento.js'
 import { custosDasVendas, reservadoCustos } from '../utils.js'
 import { brl, calcularEstoque, extratoCaixa, faturamentoVenda, hoje, hora, lucroVenda, pagamentosDaVenda, recebidoDaParcela, situacaoParcela } from '../utils.js'
 import {
-  IconeCaixa, IconeCaixaProduto, IconeCalculadora, IconeCarrinho, IconeCobranca, IconeDireita, IconeFechar, IconeFiado, IconeOlho, IconeOlhoFechado, IconeSino, IconeUsuarios,
+  IconeCaixa, IconeCaixaProduto, IconeCalculadora, IconeCarrinho, IconeDireita, IconeFechar, IconeFiado, IconeOlho, IconeOlhoFechado, IconeSino, IconeUsuarios,
 } from '../icones.jsx'
 import { Avatar } from './MinhaConta.jsx'
 import { Calculadora } from './VenderMenu.jsx'
@@ -53,7 +53,6 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
   const custosAPagar = completo ? custosDasVendas(db).filter((c) => !c.pago && (c.data || 0) >= (caixa?.inicio || 0)) : []
 
   const abrirCobrancas = (filtro) => { try { sessionStorage.setItem('cobrancas-filtro', filtro) } catch { /* sem acesso */ } irPara('fiado') }
-  const abrirRegistro = (modo) => { try { sessionStorage.setItem('registro-modo', modo) } catch { /* sem acesso */ } irPara('vendas') }
 
   // cartões de atenção (deslizam para o lado)
   const alertas = [
@@ -66,7 +65,6 @@ export default function Inicio({ db, irPara, completo, perfil, nome }) {
   // botões redondos de ação rápida
   const acoes = [
     { nome: 'Vender', icone: IconeCarrinho, acao: () => irPara('vendas'), destaque: true },
-    emprestimos && { nome: 'Empréstimo', icone: IconeCobranca, acao: () => abrirRegistro('emprestimo') },
     { nome: 'Receber', icone: IconeFiado, acao: () => abrirCobrancas('abertos') },
     completo && { nome: 'Retirar', icone: IconeCaixa, acao: () => irPara('caixa') },
     { nome: 'Estoque', icone: IconeCaixaProduto, acao: () => irPara('estoque') },
