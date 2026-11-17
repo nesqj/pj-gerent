@@ -276,7 +276,6 @@ export default {
   'padrão': 'default',
   'Selecionar todos': 'Select all',
   'Preço da aba "Fornecedores" ({regra}).': 'Price from the "Suppliers" tab ({regra}).',
-  'Produtos dos fornecedores usam o preço da aba "Fornecedores".': 'Supplier products use the price from the "Suppliers" tab.',
   // ---------- Regra por porcentagem ----------
   '+ 0% (preço = custo)': '+ 0% (price = cost)',
   // ---------- Desconto ----------

@@ -1166,3 +1166,26 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 .vd-rodape { justify-content: flex-end; gap: 16px }
 .link.bad { color: var(--bad) }
 
+/* ---------- Formulários de venda e empréstimo no estilo do app ---------- */
+.tela-registro form { border-radius: 20px; padding: 18px; gap: 14px 12px; margin-bottom: 10px }
+.tela-registro label, .tela-registro .campo-custo { font-size: 13px; font-weight: 500; color: var(--mut) }
+.tela-registro form input:not(.cel):not([type=checkbox]):not([type=radio]), .tela-registro form select, .tela-registro form textarea,
+.tela-registro .finalizar input, .tela-registro .painel select { border-radius: 14px; padding: 12px 14px; font-size: 16px; min-height: 48px }
+.tela-registro .lf-preco input { min-height: 0 }
+.tela-registro input.somente-leitura { border-radius: 14px }
+.tela-registro form button, .tela-registro .finalizar > button { border-radius: 999px; padding: 12px 20px; font-size: 15px; font-weight: 600; min-height: 48px }
+.tela-registro form button.link, .tela-registro form .modo-custo button, .tela-registro form button.custo-link { min-height: 0; padding: revert; border-radius: revert; font-size: revert }
+.tela-registro .modo-custo button { border-radius: 999px }
+.tela-registro .painel { border-radius: 20px; padding: 18px }
+.tela-registro > p { margin: 0 0 12px; color: var(--mut); font-size: 13px }
+.tela-registro > p small { font-size: 13px }
+.aviso-suave { background: color-mix(in srgb, var(--warn) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); border-radius: 14px; padding: 12px 14px; font-size: 14px !important }
+.tela-registro .aviso-data { border-radius: 14px; padding: 10px 14px }
+.tela-registro .total-grande b { color: var(--txt) }
+@media (max-width: 767px) {
+  .tela-registro .finalizar > button { flex: 1 1 100% }
+  .tela-registro form > button { flex: 1 1 0 }
+}
+
+.tela-registro .busca-produto input, .tela-registro input.busca { padding-left: 42px !important; background-position: 14px center }
+@media (max-width: 767px) { .tela-registro .painel label select, .tela-registro .painel label input { width: 100% } .tela-registro .painel label { flex: 1 1 100% } }

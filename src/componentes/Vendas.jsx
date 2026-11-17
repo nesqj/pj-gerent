@@ -273,7 +273,7 @@ export default function Vendas({ db, executar, irPara, visita }) {
   if (modo === 'catalogo') return <section><div className="vd-topo com-voltar">{voltar}<h2>{t('Catálogo')}</h2></div><Catalogo /></section>
 
   return (
-    <section>
+    <section className="tela-registro">
       <div className="vd-topo com-voltar">{voltar}<h2>{modo === 'emprestimo' && podeEmprestar ? t('Novo empréstimo') : t('Nova venda')}</h2></div>
 
       {modo === 'emprestimo' && podeEmprestar ? (
@@ -362,12 +362,12 @@ export default function Vendas({ db, executar, irPara, visita }) {
           ? <small>{t('Produto do estoque: digite o preço pelo qual está vendendo.')}</small>
           : selecionado
           ? <small>{t('Preço da aba "Fornecedores" ({regra}).', { regra: descricaoPreco(selecionado.resolucao) })}</small>
-          : <small>{t('Produtos dos fornecedores usam o preço da aba "Fornecedores".')}</small>}
+          : null}
         {selecionado?.origem === 'fornecedor' && selecionado.resolucao.tipo === 'nenhuma' && <small className="warn"> {t('Este produto está sem preço definido: o preço de venda é igual ao custo. Defina na aba "Fornecedores".')}</small>}
         {abaixoDoCusto && <small className="bad"> {t('Abaixo do custo ({custo}): prejuízo de {valor} por unidade.', { custo: brl(selecionado.custo), valor: brl(selecionado.custo - +item.preco) })}</small>}
       </p>}
 
-      {doEstoque.length + semEstoque.length + dosFornecedores.length === 0 && <p className="warn">{t('Registre produtos no Estoque, cadastre nos fornecedores ou use "Produto ou serviço avulso".')}</p>}
+      {doEstoque.length + semEstoque.length + dosFornecedores.length === 0 && <p className="warn aviso-suave">{t('Registre produtos no Estoque, cadastre nos fornecedores ou use "Produto ou serviço avulso".')}</p>}
 
       {carrinho.length > 0 && (
         <div className="painel">
