@@ -1207,3 +1207,11 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 .logo-marca img { max-width: 85%; max-height: 85%; object-fit: contain }
 .logo-marca span { color: var(--mut); font-size: 13px }
 
+/* ---------- Clientes e Estoque no estilo do app ---------- */
+.pag-acoes { display: flex; justify-content: flex-end; margin: 0 0 14px }
+.botao-novo { border-radius: 999px; padding: 10px 18px; font-weight: 600; min-height: 0 !important }
+@media (max-width: 767px) { .pag-acoes { justify-content: stretch } .botao-novo { width: 100%; padding: 13px 18px; font-size: 15px } }
+.an-pilulas .pilula-sep { flex: 0 0 1px; align-self: stretch; background: var(--bd); margin: 4px 2px }
+
+.vd-rodape .link:not(.bad) { color: var(--txt) }
+.vd-rodape a.link { text-decoration: none; font-size: 13px; font-weight: 500 }

@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 import { confirmar } from '../avisos-tela.jsx'
 import { t } from '../i18n.js'
 import { brl, calcularEstoque, calcularLotes, classeEstoque, dataBR, hoje, hora, norm, uid } from '../utils.js'
+import { IconeCaixaProduto } from '../icones.jsx'
+import { useCelular } from '../useCelular.js'
 
 // Estoque próprio da loja: não tem fornecedor nem marca, e não se mistura com os preços dos fornecedores.
 // O preço de venda é digitado na aba Vender, na hora de vender.
@@ -13,6 +15,8 @@ export default function Estoque({ db, executar }) {
   const [busca, setBusca] = useState('')
   const [soFalta, setSoFalta] = useState(false)
   const [ordem, setOrdem] = useState('az') // 'az' ou 'recentes'
+  const [abrirForm, setAbrirForm] = useState(false) // formulário aparece ao tocar em "Entrada" ou "Editar"
+  const celular = useCelular()
   const refProduto = useRef(null)
   const campo = (k) => ({ value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) })
 
@@ -38,14 +42,12 @@ export default function Estoque({ db, executar }) {
     // editando: mantém id, data e dia originais
     const entrada = editando ? { ...editando, ...dados } : { id: uid(), data: Date.now(), dia: hoje(), ...dados }
     if (!entrada.foraDoCaixa) delete entrada.foraDoCaixa
-    if (await executar((A) => A.salvarEntrada(entrada), editando ? t('Entrada atualizada.') : t('Entrada registrada.'))) {
-      cancelarEdicao()
-      refProduto.current?.focus()
-    }
+    if (await executar((A) => A.salvarEntrada(entrada), editando ? t('Entrada atualizada.') : t('Entrada registrada.'))) cancelarEdicao()
   }
 
   function editarEntrada(en) {
     setEditando(en)
+    setAbrirForm(true)
     setForm({ produto: en.produto, qtd: String(saldoDe(en)), custo: en.custo != null ? String(en.custo) : '', obs: en.obs || '', doCaixa: !en.foraDoCaixa })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -53,6 +55,7 @@ export default function Estoque({ db, executar }) {
   function cancelarEdicao() {
     setEditando(null)
     setForm(novo)
+    setAbrirForm(false)
   }
 
   // Excluir tira do estoque o que ainda resta desta entrada. As vendas nunca são apagadas:
@@ -90,10 +93,12 @@ export default function Estoque({ db, executar }) {
 
 
   return (
-    <section>
+    <section className="tela-registro">
       <h2>{t('Estoque')}</h2>
 
+      {!abrirForm && <div className="pag-acoes"><button className="botao-novo" onClick={() => { setAbrirForm(true); setTimeout(() => refProduto.current?.focus(), 50) }}>+ {t('Entrada de produtos')}</button></div>}
       {/* ---------- Entrada de produtos ---------- */}
+      {abrirForm && <>
       <div className="linha-titulo"><h3>{editando ? t('Editando entrada de {data} às {hora}', { data: dataBR(editando.dia), hora: hora(editando.data) }) : t('Entrada de produtos')}</h3></div>
       <form onSubmit={registrar} className={editando ? 'form-edicao' : ''}>
         <label style={{ flex: '2 1 240px' }}>{t('Produto')} *
@@ -115,7 +120,7 @@ export default function Estoque({ db, executar }) {
           </label>
         )}
         <button type="submit">{editando ? t('Salvar alterações') : t('Registrar entrada')}</button>
-        {editando && <button type="button" className="sec" onClick={cancelarEdicao}>{t('Cancelar edição')}</button>}
+        <button type="button" className="sec" onClick={cancelarEdicao}>{t('Cancelar')}</button>
       </form>
       <datalist id="dlProdEstoque">{todos.map((p) => <option key={p.k} value={p.produto} />)}</datalist>
       <p><small>
@@ -125,33 +130,65 @@ export default function Estoque({ db, executar }) {
           ? t('"{produto}" já está no estoque ({n} un.). A quantidade será somada.', { produto: existente.produto, n: existente.saldo })
           : t('O preço de venda é informado na aba Vender, na hora de vender.')}
       </small></p>
+      </>}
 
-      {/* ---------- Resumo ---------- */}
-      <div className="cards">
-        <div className="card"><small>{t('Unidades em estoque')}</small><b>{unidades}</b></div>
-        <div className="card"><small>{t('Valor em estoque (custo)')}</small><b>{brl(valorCusto)}</b></div>
-        <div className="card"><small>{t('Produtos sem estoque')}</small><b className={semEstoque ? 'bad' : ''}>{semEstoque}</b></div>
+      {/* ---------- Resumo: o valor em destaque e os números em cartões ---------- */}
+      <div className="an-destaque">
+        <small>{t('Valor em estoque (custo)')}</small>
+        <b>{brl(valorCusto)}</b>
+      </div>
+      <div className="in-hoje an-cartoes">
+        <div className="in-numero"><small>{t('Unidades em estoque')}</small><b>{unidades}</b></div>
+        <div className="in-numero"><small>{t('Produtos sem estoque')}</small><b className={semEstoque ? 'bad' : ''}>{semEstoque}</b></div>
       </div>
 
       {/* ---------- Estoque atual ---------- */}
-      <div className="linha-titulo">
-        <h3>{t('Estoque atual')}</h3>
-        <label className="check"><input type="checkbox" checked={soFalta} onChange={(e) => setSoFalta(e.target.checked)} /> {t('Só sem estoque')}</label>
-      </div>
-      <div className="barra-produtos" style={{ marginBottom: 12 }}>
-        <input className="busca-icone" placeholder={t('Buscar produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
-        <div className="segmentado pequeno">
+      <div className="cb-busca">
+        <input className="busca" placeholder={t('Buscar produto...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <div className="an-pilulas">
+          <button className={!soFalta ? 'on' : ''} onClick={() => setSoFalta(false)}>{t('Em estoque')}</button>
+          <button className={soFalta ? 'on' : ''} onClick={() => setSoFalta(true)}>{t('Sem estoque')}</button>
+          <span className="pilula-sep" />
           <button className={ordem === 'az' ? 'on' : ''} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
           <button className={ordem === 'recentes' ? 'on' : ''} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
         </div>
       </div>
+      {celular ? (
+        // no celular: cada entrada é um cartão
+        <div className="cb-lista">
+          {linhas.length === 0 && <div className="cb-vazio">{(db.entradas || []).length ? t('Nada encontrado.') : t('Nenhum produto no estoque. Toque em "Entrada de produtos".')}</div>}
+          {linhas.map((en) => {
+            const resta = saldoDe(en)
+            return (
+              <div key={en.id} className="cb-item">
+                <div className="cb-topo">
+                  <span className="cb-avatar"><IconeCaixaProduto /></span>
+                  <span className="cb-quem">
+                    <b className="quebra-linhas">{en.produto}</b>
+                    <small>{en.custo != null ? t('custo {valor}/un.', { valor: brl(en.custo) }) : t('sem custo')} · {dataBR(en.dia)}</small>
+                  </span>
+                  <span className="cb-valor">
+                    <b className={classeEstoque(resta)}>{t('{n} un.', { n: resta })}</b>
+                    {en.custo != null && resta > 0 && <small>{brl(resta * en.custo)}</small>}
+                  </span>
+                </div>
+                {en.obs && <small className="cb-detalhe">{en.obs}</small>}
+                <div className="cb-rodape vd-rodape">
+                  <button className="link pequeno" onClick={() => editarEntrada(en)}>{t('Editar')}</button>
+                  <button className="link pequeno bad" onClick={() => excluirEntrada(en)}>{t('Excluir')}</button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
       <div className="tw">
         <table>
           <thead>
             <tr><th>{t('Produto')}</th><th className="n">{t('Qtd.')}</th><th className="n">{t('Custo unit.')}</th><th className="n">{t('Total')}</th><th>{t('Obs.')}</th><th></th></tr>
           </thead>
           <tbody>
-            {linhas.length === 0 && <tr><td colSpan="6" className="vazio">{(db.entradas || []).length ? t('Nada encontrado.') : t('Nenhum produto no estoque. Registre uma entrada acima.')}</td></tr>}
+            {linhas.length === 0 && <tr><td colSpan="6" className="vazio">{(db.entradas || []).length ? t('Nada encontrado.') : t('Nenhum produto no estoque. Toque em "Entrada de produtos".')}</td></tr>}
             {linhas.map((en) => {
               const resta = saldoDe(en)
               return (
@@ -171,6 +208,7 @@ export default function Estoque({ db, executar }) {
           </tbody>
         </table>
       </div>
+      )}
     </section>
   )
 }

@@ -107,10 +107,7 @@ export default {
   'Unidades em estoque': 'Units in stock',
   'Valor em estoque (custo)': 'Inventory value (cost)',
   'Produtos sem estoque': 'Out-of-stock products',
-  'Estoque atual': 'Current inventory',
-  'Só sem estoque': 'Out of stock only',
   'Buscar produto...': 'Search product...',
-  'Nenhum produto no estoque. Registre uma entrada acima.': 'No products in inventory. Record an intake above.',
 
   // ---------- Fornecedores ----------
   'Nome do fornecedor': 'Supplier name',
@@ -895,7 +892,6 @@ export default {
   'Ex: endereço, indicação, limite combinado...': 'E.g.: address, referral, agreed limit...',
   'Cadastrar': 'Add',
   'Nenhum cliente encontrado.': 'No customers found.',
-  'Nenhum cliente ainda. Cadastre acima, ou ao fazer uma venda fiado ou um empréstimo.': 'No customers yet. Add one above, or when making a credit sale or a loan.',
   'Parcelas pagas': 'Paid installments',
   '{valor} emprestado · {p}% ao mês': '{valor} lent · {p}% per month',
   // CPF
@@ -1214,4 +1210,9 @@ export default {
   'A logo da sua marca. Ela vai aparecer no catálogo da sua loja.': 'Your brand logo. It will appear in your store catalog.',
   'Mesmo reduzida, a logo passa de 100 KB. Tente uma imagem mais simples ou em JPG.': 'Even reduced, the logo is over 100 KB. Try a simpler image or a JPG.',
   'Vai aparecer no catálogo da sua loja. PNG ou JPG, de preferência com fundo transparente. A imagem é reduzida sozinha para ficar leve (até 100 KB).': 'It will appear in your store catalog. PNG or JPG, preferably with a transparent background. The image is reduced automatically to stay light (up to 100 KB).',
+  'Nenhum cliente ainda. Toque em "Novo cliente", ou cadastre ao fazer uma venda fiado ou um empréstimo.': 'No customers yet. Tap "New customer", or add one when making a credit sale or a loan.',
+  'Sem telefone e CPF': 'No phone or CPF',
+  'Nenhum produto no estoque. Toque em "Entrada de produtos".': 'No products in stock. Tap "Product intake".',
+  'Sem estoque': 'Out of stock',
+  'custo {valor}/un.': 'cost {valor}/unit',
 }
