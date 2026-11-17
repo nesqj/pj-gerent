@@ -25,7 +25,7 @@ No SQL Editor do Supabase, rode, nesta ordem:
 
 1. `supabase/organizacoes.sql`: lojas, auditoria, painel da plataforma e cobrança
 2. `supabase/seguranca-2026-11.sql`: cada loja com um único usuário (só o dono grava)
-3. `supabase/limpeza-2026-11.sql`: apaga a tabela antiga `dados_loja` (só se tudo dela já foi copiado para as lojas)
+3. `supabase/limpeza-2026-11.sql`: tira as funções de equipe sem uso e a tabela antiga `dados_loja` (só se tudo dela já foi copiado para as lojas)
 
 Os dois primeiros podem ser rodados de novo sem problema.
 

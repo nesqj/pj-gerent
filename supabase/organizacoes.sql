@@ -318,39 +318,6 @@ begin
   return 'convidado';
 end $$;
 
--- Impede que a loja fique sem nenhum administrador
-create or replace function public.sobra_admin(o uuid, sem uuid) returns boolean
-language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from public.membros where org_id = o and papel = 'admin' and user_id <> sem)
-$$;
-
-create or replace function public.mudar_papel(o uuid, pessoa uuid, novo_papel text) returns void
-language plpgsql security definer set search_path = '' as $$
-begin
-  if not public.pode_gerir_equipe(o) then raise exception 'sem-permissao'; end if;
-  if novo_papel not in ('admin', 'gerente', 'vendedor', 'leitor') then raise exception 'papel-invalido'; end if;
-  if novo_papel <> 'admin' and not public.sobra_admin(o, pessoa) then raise exception 'ultimo-admin'; end if;
-  update public.membros set papel = novo_papel where org_id = o and user_id = pessoa;
-  perform public.auditar(o, 'membro.papel', (select email from auth.users where id = pessoa) || ' → ' || novo_papel);
-end $$;
-
-create or replace function public.remover_membro(o uuid, pessoa uuid) returns void
-language plpgsql security definer set search_path = '' as $$
-begin
-  if not public.pode_gerir_equipe(o) then raise exception 'sem-permissao'; end if;
-  if not public.sobra_admin(o, pessoa) then raise exception 'ultimo-admin'; end if;
-  delete from public.membros where org_id = o and user_id = pessoa;
-  perform public.auditar(o, 'membro.removido', (select email from auth.users where id = pessoa));
-end $$;
-
-create or replace function public.cancelar_convite(o uuid, email_pessoa text) returns void
-language plpgsql security definer set search_path = '' as $$
-begin
-  if not public.pode_gerir_equipe(o) then raise exception 'sem-permissao'; end if;
-  delete from public.convites where org_id = o and email = lower(btrim(email_pessoa));
-  perform public.auditar(o, 'convite.cancelado', lower(btrim(email_pessoa)));
-end $$;
-
 -- ---------- painel da plataforma (só administradores da plataforma)
 
 create or replace function public.exigir_admin_plataforma() returns void
@@ -537,10 +504,9 @@ declare f text;
 begin
   foreach f in array array[
     'e_admin_plataforma()', 'papel_na_org(uuid)', 'e_membro(uuid)', 'pode_gerir_equipe(uuid)',
-    'auditar(uuid, text, text)', 'auditoria_conferir()', 'sobra_admin(uuid, uuid)', 'exigir_admin_plataforma()',
+    'auditar(uuid, text, text)', 'auditoria_conferir()', 'exigir_admin_plataforma()',
     'entrar_na_plataforma()', 'minhas_orgs()', 'salvar_dados(uuid, jsonb, integer)', 'equipe_da_org(uuid)',
-    'adicionar_membro(uuid, text, text)', 'mudar_papel(uuid, uuid, text)', 'remover_membro(uuid, uuid)',
-    'cancelar_convite(uuid, text)', 'criar_org(text, text)', 'renomear_org(uuid, text)', 'suspender_org(uuid, boolean)',
+    'adicionar_membro(uuid, text, text)', 'criar_org(text, text)', 'renomear_org(uuid, text)', 'suspender_org(uuid, boolean)',
     'excluir_org(uuid, text)', 'uso_das_orgs()', 'listar_usuarios()', 'listar_admins()', 'adicionar_admin(text)',
     'remover_admin(uuid)', 'definir_cadastro(boolean, boolean)', 'listar_pedidos()', 'aprovar_pedido(uuid, text)',
     'recusar_pedido(uuid)'
@@ -551,8 +517,7 @@ begin
   foreach f in array array[
     'e_admin_plataforma()', 'papel_na_org(uuid)', 'e_membro(uuid)', 'pode_gerir_equipe(uuid)',
     'entrar_na_plataforma()', 'minhas_orgs()', 'salvar_dados(uuid, jsonb, integer)', 'equipe_da_org(uuid)',
-    'adicionar_membro(uuid, text, text)', 'mudar_papel(uuid, uuid, text)', 'remover_membro(uuid, uuid)',
-    'cancelar_convite(uuid, text)', 'criar_org(text, text)', 'renomear_org(uuid, text)', 'suspender_org(uuid, boolean)',
+    'adicionar_membro(uuid, text, text)', 'criar_org(text, text)', 'renomear_org(uuid, text)', 'suspender_org(uuid, boolean)',
     'excluir_org(uuid, text)', 'uso_das_orgs()', 'listar_usuarios()', 'listar_admins()', 'adicionar_admin(text)',
     'remover_admin(uuid)', 'definir_cadastro(boolean, boolean)', 'listar_pedidos()', 'aprovar_pedido(uuid, text)',
     'recusar_pedido(uuid)'
