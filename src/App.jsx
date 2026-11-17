@@ -345,13 +345,15 @@ export default function App() {
   const [visitaVendas, setVisitaVendas] = useState(0)
   // aba de onde a Minha conta foi aberta (Início, Cobranças...): o voltar das telas da conta reabre a conta por cima dela
   const origemConta = useRef('inicio')
-  function irPara(id) {
+  const [daConta, setDaConta] = useState(false) // a tela atual foi aberta pela Minha conta? (só aí aparece o voltar)
+  function irPara(id, pelaConta = false) {
     setMenuAberto(false)
     if (id === 'perfil') {
       if (!ABAS_DA_CONTA.includes(aba)) origemConta.current = aba
       return setContaAberta(true)
     }
     setContaAberta(false)
+    setDaConta(pelaConta)
     if (id === 'vendas') setVisitaVendas((n) => n + 1)
     setAba(id)
     window.scrollTo(0, 0)
@@ -547,14 +549,14 @@ export default function App() {
           </div>
         )}
         <main>
-          {!noAdmin && ABAS_DA_CONTA.includes(aba) && (
+          {!noAdmin && daConta && ABAS_DA_CONTA.includes(aba) && (
             <button className="voltar-conta so-celular" onClick={voltarParaConta} aria-label={t('Voltar')}><IconeVoltar /><span>{t('Minha conta')}</span></button>
           )}
           {noAdmin && <Plataforma tela={telaAdmin} irPara={irParaAdmin} abrirLoja={(o) => abrirLoja(o)} meuId={sessao.usuario.id} aoMudarLojas={atualizarLojas} aoMudarMarca={setMarcaPlat} />}
           {!noAdmin && aba === 'inicio' && <Inicio db={db} irPara={irPara} completo={papel !== 'vendedor'} perfil={perfil} nome={nomeUsuario} />}
           {!noAdmin && aba === 'termos' && <Termos />}
           {!noAdmin && contaAberta && <MinhaConta db={db} perfil={perfil} nome={nomeUsuario} email={sessao?.usuario?.email} loja={loja} lojas={lojas}
-            adminPlataforma={adminPlataforma} podeVer={(id) => podeVer(papel, id)} irPara={irPara} executar={executar}
+            adminPlataforma={adminPlataforma} podeVer={(id) => podeVer(papel, id)} irPara={(id) => irPara(id, true)} executar={executar}
             onFechar={() => setContaAberta(false)} onTrocarLoja={(o) => abrirLoja(o)} onAdmin={() => irParaAdmin('orgs')} onSair={sairDoSistema} />}
           {!noAdmin && aba === 'vendas' && <Vendas db={db} executar={executar} irPara={irPara} visita={visitaVendas} />}
           {!noAdmin && aba === 'fiado' && <Fiado db={db} executar={executar} irPara={irPara} />}
