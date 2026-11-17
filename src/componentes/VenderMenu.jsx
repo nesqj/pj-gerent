@@ -45,7 +45,7 @@ export function Catalogo() {
 }
 
 // ---------- Calculadora de taxas ----------
-// Não vem nenhuma taxa pronta: a pessoa digita a % da maquininha dela para cada opção (débito, Pix, crédito 1x a 12x).
+// Não vem nenhuma taxa pronta: a pessoa digita a % da maquininha dela para cada número de parcelas (1x a 12x).
 // O que ela digitar fica guardado neste aparelho, para a próxima vez.
 const CHAVE = 'calc-taxas-v2'
 const VAZIO = { pix: '', debito: '', credito: Array(12).fill('') }
@@ -59,19 +59,16 @@ function lerTaxas() {
 const r2 = (n) => Math.round(n * 100) / 100
 
 export function Calculadora({ onFechar }) {
-  const [forma, setForma] = useState('credito')
   const [valor, setValor] = useState('')
   const [parcelas, setParcelas] = useState(1)
   const [repassar, setRepassar] = useState(false)
   const [taxas, setTaxas] = useState(lerTaxas)
 
-  // a taxa (em texto, como a pessoa digitou) da opção escolhida
-  const taxaTxt = forma === 'credito' ? taxas.credito[parcelas - 1] : taxas[forma]
+  // a taxa (em texto, como a pessoa digitou) do número de parcelas escolhido
+  const taxaTxt = taxas.credito[parcelas - 1]
   const taxa = Math.max(0, Math.min(99, lerValor(taxaTxt) || 0))
   function mudarTaxa(txt) {
-    const novas = forma === 'credito'
-      ? { ...taxas, credito: taxas.credito.map((x, i) => (i === parcelas - 1 ? txt : x)) }
-      : { ...taxas, [forma]: txt }
+    const novas = { ...taxas, credito: taxas.credito.map((x, i) => (i === parcelas - 1 ? txt : x)) }
     setTaxas(novas)
     try { localStorage.setItem(CHAVE, JSON.stringify(novas)) } catch { /* sem acesso */ }
   }
@@ -91,8 +88,7 @@ export function Calculadora({ onFechar }) {
   // repassar a taxa: o cliente paga a mais para você receber o valor cheio
   const clientePaga = v > 0 ? r2(repassar ? v / (1 - taxa / 100) : v) : 0
   const voceRecebe = v > 0 ? r2(repassar ? v : v * (1 - taxa / 100)) : 0
-  const nParc = forma === 'credito' ? parcelas : 1
-  const nomeOpcao = forma === 'credito' ? t('Crédito {n}x', { n: parcelas }) : forma === 'debito' ? t('Débito') : t('Pix')
+  const nParc = parcelas
 
   return createPortal(
     <div className="notif-fundo" onClick={onFechar}>
@@ -103,29 +99,21 @@ export function Calculadora({ onFechar }) {
           <span style={{ width: 44 }} />
         </div>
 
-        <div className="an-abas calc-abas">
-          {[['debito', 'Débito'], ['credito', 'Crédito'], ['pix', 'Pix']].map(([id, nome]) => (
-            <button key={id} className={forma === id ? 'on' : ''} onClick={() => setForma(id)}>{t(nome)}</button>
-          ))}
-        </div>
-
         <label className="calc-valor">{t('Qual o valor da venda?')}
           <input inputMode="decimal" placeholder="R$ 0,00" value={valor} onChange={(e) => setValor(e.target.value)} autoFocus />
         </label>
 
-        {forma === 'credito' && (
-          <div className="calc-linha">
-            <span>{t('Parcelas')}</span>
-            <div className="calc-passo">
-              <button className="in-icone" disabled={parcelas <= 1} onClick={() => mudarParcelas(parcelas - 1)} aria-label={t('Menos parcelas')}>‹</button>
-              <span>{t('{n}x', { n: parcelas })}</span>
-              <button className="in-icone" disabled={parcelas >= 12} onClick={() => mudarParcelas(parcelas + 1)} aria-label={t('Mais parcelas')}>›</button>
-            </div>
+        <div className="calc-linha">
+          <span>{t('Parcelas')}</span>
+          <div className="calc-passo">
+            <button className="in-icone" disabled={parcelas <= 1} onClick={() => mudarParcelas(parcelas - 1)} aria-label={t('Menos parcelas')}>‹</button>
+            <span>{t('{n}x', { n: parcelas })}</span>
+            <button className="in-icone" disabled={parcelas >= 12} onClick={() => mudarParcelas(parcelas + 1)} aria-label={t('Mais parcelas')}>›</button>
           </div>
-        )}
+        </div>
 
         <label className="calc-linha">
-          <span>{t('Taxa da maquininha')}<small>{t('Para {opcao} · fica guardada neste aparelho', { opcao: nomeOpcao })}</small></span>
+          <span>{t('Taxa da maquininha')}<small>{t('Para {n}x · fica guardada neste aparelho', { n: parcelas })}</small></span>
           <span className="calc-pct"><input inputMode="decimal" placeholder="0" value={taxaTxt} onChange={(e) => mudarTaxa(e.target.value)} /><i>%</i></span>
         </label>
 
