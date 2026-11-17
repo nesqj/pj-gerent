@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { t } from '../i18n.js'
 import { norm, uid } from '../utils.js'
+import { IconeCaminhao, IconeDireita } from '../icones.jsx'
 import FornecedorDetalhe from './FornecedorDetalhe.jsx'
 import { EditorMarcas } from './Marcas.jsx'
 import PrecosVenda from './PrecosVenda.jsx'
@@ -80,14 +81,12 @@ export default function Fornecedores({ db, executar }) {
     .sort((a, c) => a.nome.localeCompare(c.nome))
 
   return (
-    <section>
-      <div className="linha-titulo titulo-secao">
-        <h2>{t('Fornecedores')}</h2>
-        {!(cadastrando || db.fornecedores.length === 0) && <button onClick={() => setCadastrando(true)}>+ {t('Cadastrar fornecedor')}</button>}
-      </div>
-      <p className="texto-secao"><small>{t('Cadastre aqui de quem você compra, com o contato e as marcas que cada um trabalha. Clique no cartão do fornecedor para ver os produtos dele e atualizar os preços de custo.')}</small></p>
+    <section className="tela-registro">
+      <h2>{t('Fornecedores')}</h2>
       {/* o formulário fica fechado; abre pelo botão (ou já aberto quando ainda não há fornecedores) */}
-      {(cadastrando || db.fornecedores.length === 0) && (
+      {!(cadastrando || db.fornecedores.length === 0) && <div className="pag-acoes"><button className="botao-novo" onClick={() => setCadastrando(true)}>+ {t('Cadastrar fornecedor')}</button></div>}
+      {(cadastrando || db.fornecedores.length === 0) && (<>
+        <div className="linha-titulo"><h3>{t('Novo fornecedor')}</h3></div>
         <form onSubmit={salvar}>
           <CamposFornecedor form={form} setForm={setForm} />
           <button type="submit">{t('Cadastrar fornecedor')}</button>
@@ -95,22 +94,27 @@ export default function Fornecedores({ db, executar }) {
             ? <button type="button" className="sec" onClick={() => { setForm(fornecedorVazio); setCadastrando(false) }}>{t('Cancelar')}</button>
             : <button type="button" className="sec" onClick={() => setForm(fornecedorVazio)}>{t('Limpar')}</button>}
         </form>
-      )}
+      </>)}
 
-      <input className="busca" placeholder={t('Buscar por nome, cidade ou marca...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <div className="dia-topo"><h3>{t('Cadastrados ({n})', { n: db.fornecedores.length })}</h3></div>
+      <div className="cb-busca">
+        <input className="busca" placeholder={t('Buscar por nome, cidade ou marca...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+      </div>
 
-      {lista.length === 0 && <p className="vazio">{t('Nenhum fornecedor cadastrado.')}</p>}
-      <div className="lista-forn">
+      {/* cada fornecedor é um cartão: toque para abrir a página dele (produtos e preços) */}
+      <div className="lista-forn vd-lista">
+        {lista.length === 0 && <div className="cb-vazio">{db.fornecedores.length ? t('Nada encontrado.') : t('Nenhum fornecedor cadastrado.')}</div>}
         {lista.map((f) => {
           const qtd = db.precosForn.filter((p) => p.fornecedorId === f.id).length
           return (
-            <button key={f.id} className="card-forn" onClick={() => setAberto(f.id)}>
-              <div className="card-forn-topo">
+            <button key={f.id} className="vd-item forn-item" onClick={() => setAberto(f.id)}>
+              <span className="vd-icone"><IconeCaminhao /></span>
+              <span className="vd-txt">
                 <b>{f.nome}</b>
-                <span className="contador">{qtd === 1 ? t('1 produto') : t('{n} produtos', { n: qtd })}</span>
-              </div>
-              <small>{origem(f) || t('Origem não informada')}{(f.telefone || f.contato) ? ` · ${f.telefone || f.contato}` : ''}</small>
-              <div>{f.marcas.map((m) => <span key={m} className="tag">{m}</span>)}</div>
+                <small>{[origem(f), f.telefone || f.contato].filter(Boolean).join(' · ') || t('Origem não informada')}</small>
+                <small>{qtd === 1 ? t('1 produto') : t('{n} produtos', { n: qtd })}{f.marcas.length ? ' · ' + f.marcas.join(', ') : ''}</small>
+              </span>
+              <IconeDireita />
             </button>
           )
         })}

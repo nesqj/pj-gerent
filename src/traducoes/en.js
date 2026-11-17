@@ -216,16 +216,9 @@ export default {
   'Restaurar de um arquivo': 'Restore from a file',
 
   // ---------- Ajuda ----------
-  'Guia rápido de cada tela. Clique no nome para abrir.': 'Quick guide to each screen. Click a name to open it.',
   'Dicas': 'Tips',
   'Todo cadastro tem botões de Editar e Excluir.': 'Every record has Edit and Delete buttons.',
-  'No celular, o menu abre pelo botão ☰ no topo.': 'On mobile, open the menu with the ☰ button at the top.',
-  'O botão « no topo do menu deixa a barra lateral só com os ícones.': 'The « button at the top of the menu shrinks the sidebar to icons only.',
   'Tema claro ou escuro e idioma ficam em Configurações → Perfil.': 'Light or dark theme and language are in Settings → Profile.',
-  'Mostra faturamento, lucro, margem, ticket médio e os produtos e marcas que mais vendem. Escolha o período no topo; os números são comparados com o período anterior do mesmo tamanho.': 'Shows revenue, profit, margin, average ticket and the best-selling products and brands. Choose the period at the top; figures are compared with the previous period of the same length.',
-  'Cadastre o fornecedor, de onde ele é, contato e as marcas que ele trabalha. Clique no cartão para abrir a página dele, onde ficam os produtos e preços só daquele fornecedor. Embaixo fica a tabela de produtos: nela você define o preço de venda de cada um (digitando o preço ou a % sobre o custo).': 'Add the supplier, where they are, contact details and the brands they carry. Click the card to open their page, with that supplier\'s products and prices.',
-  'Registre os produtos que chegaram para revenda com quantidade e custo. Cada venda de um produto do estoque diminui a quantidade. As entradas podem ser editadas ou excluídas.': 'Record products that arrived for resale with quantity and cost. Each sale of an inventory product lowers the quantity. Intakes can be edited or deleted.',
-  'Perfil (nome, idioma, tema e fuso), marca da empresa, app no celular e cópia de segurança dos dados.': 'Profile (name, language, theme and time zone), company brand, mobile app and data backup.',
 
   // ---------- Login ----------
   'Sair': 'Sign out',
@@ -1009,8 +1002,6 @@ export default {
   'marca {marca}': 'brand {marca}',
   'preencha o custo ao lado': 'fill in the cost on the left',
   'Desmarcar todos': 'Deselect all',
-  'Cadastre aqui de quem você compra, com o contato e as marcas que cada um trabalha. Clique no cartão do fornecedor para ver os produtos dele e atualizar os preços de custo.': 'Register here who you buy from, with the contact and the brands each one works with. Click the supplier card to see their products and update cost prices.',
-  'Cadastre aqui os produtos e defina o preço de venda de cada um, digitando o valor ou a % sobre o custo. Clique em "Editar" para mudar o nome, a marca ou os fornecedores.': 'Register your products here and set each one\'s selling price by typing the amount or the % on cost. Click "Edit" to change the name, brand or suppliers.',
   'Informe o nome do produto ou serviço.': 'Enter the product or service name.',
   'Confira a quantidade.': 'Check the quantity.',
   'Informe o custo (0 se não tiver).': 'Enter the cost (0 if none).',
@@ -1217,4 +1208,17 @@ export default {
   'PNG ou JPG, de preferência com fundo transparente. A imagem é reduzida sozinha para ficar leve (até 100 KB).': 'PNG or JPG, preferably with a transparent background. The image is reduced automatically to stay light (up to 100 KB).',
   'O nome e a logo da sua marca, para o catálogo.': 'Your brand name and logo, for the catalog.',
   'O nome e a logo da sua marca. Eles vão aparecer no catálogo da sua loja.': 'Your brand name and logo. They will appear in your store catalog.',
+  'Novo fornecedor': 'New supplier',
+  'O resumo do dia: saldo disponível, o que você tem a receber, as vendas de hoje e atalhos. Toque no olho para esconder os valores e no sino para ver os avisos.': 'The day at a glance: available balance, what you have to receive, the sales of today and shortcuts. Tap the eye to hide the values and the bell to see the alerts.',
+  'Tudo o que ficou para receber: vendas fiado e empréstimos, parcela por parcela. Marque Recebeu ou Não pagou, mude a data combinada e cobre pelo WhatsApp.': 'Everything still to receive: credit sales and loans, installment by installment. Mark Received or Not paid, change the agreed date and charge via WhatsApp.',
+  'O dinheiro da loja: saldo disponível, o que entrou e saiu em cada dia, os custos a pagar e os botões para colocar ou retirar dinheiro.': 'The store money: available balance, what came in and went out each day, costs to pay and the buttons to add or withdraw money.',
+  'Faturamento, lucro, margem e os produtos que mais vendem. Escolha o período no topo; os números são comparados com o período anterior do mesmo tamanho.': 'Revenue, profit, margin and the best-selling products. Choose the period at the top; the numbers are compared with the previous period of the same length.',
+  'Registre os produtos que chegaram para revenda com quantidade e custo. Cada venda de um produto do estoque diminui a quantidade.': 'Record the products that arrived for resale with quantity and cost. Each sale of a stock product lowers the quantity.',
+  'Cadastre de quem você compra, com o contato e as marcas. Toque no fornecedor para ver os produtos e os preços de custo dele. Embaixo fica a tabela com o preço de venda de cada produto.': 'Register who you buy from, with contact and brands. Tap the supplier to see its products and cost prices. Below is the table with the selling price of each product.',
+  'O cadastro de quem compra fiado ou pega empréstimo: nome, CPF, WhatsApp e observação.': 'The records of who buys on credit or takes a loan: name, CPF, WhatsApp and notes.',
+  'Seu perfil (nome, idioma, tema e fuso), a marca da loja, o app no celular, os logs e a cópia de segurança dos dados.': 'Your profile (name, language, theme and time zone), the store brand, the mobile app, the logs and the data backup.',
+  'Guia rápido de cada tela. Toque para abrir.': 'Quick guide to each screen. Tap to open.',
+  'No celular, a barra de baixo leva para Início, Cobranças, Extrato, Análise e Vender.': 'On the phone, the bottom bar takes you to Home, Collections, Statement, Analytics and Sell.',
+  'Toque na sua foto, no Início, para abrir a Minha conta: Estoque, Fornecedores, Clientes, Configurações e as suas lojas.': 'Tap your photo on Home to open My account: Stock, Suppliers, Customers, Settings and your stores.',
+  'Defina o preço de venda de cada produto, digitando o valor ou a % sobre o custo. Em "Editar" você muda o nome, a marca ou os fornecedores.': 'Set the selling price of each product by typing the amount or the % over cost. In "Edit" you change the name, brand or suppliers.',
 }

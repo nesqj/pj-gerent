@@ -119,22 +119,22 @@ export default function PrecosVenda({ db, executar, embutido }) {
   return (
     <section>
       {embutido ? (
-        <div className="linha-titulo titulo-produtos">
-          <h3>{t('Produtos e preços de venda')}</h3>
-          {(db.fornecedores || []).length > 0 && !cadastrando && <button onClick={() => setCadastrando(true)}>+ {t('Cadastrar produto')}</button>}
-        </div>
+        <>
+          <div className="dia-topo titulo-produtos"><h3>{t('Produtos e preços de venda')}</h3></div>
+          {(db.fornecedores || []).length > 0 && !cadastrando && <div className="pag-acoes"><button className="botao-novo" onClick={() => setCadastrando(true)}>+ {t('Cadastrar produto')}</button></div>}
+        </>
       ) : <h2>{t('Tabela de Venda')}</h2>}
       {cadastrando && <NovoProduto db={db} executar={executar} aoTerminar={(k) => { setCadastrando(false); if (k) setSel(k) }} />}
-      <p><small>{t('Cadastre aqui os produtos e defina o preço de venda de cada um, digitando o valor ou a % sobre o custo. Clique em "Editar" para mudar o nome, a marca ou os fornecedores.')}</small></p>
+      <p className="texto-precos">{t('Defina o preço de venda de cada produto, digitando o valor ou a % sobre o custo. Em "Editar" você muda o nome, a marca ou os fornecedores.')}</p>
 
       {itens.length === 0 && <p className="warn">{t('Cadastre produtos nos fornecedores primeiro.')}</p>}
 
       {/* ---------- Tabela com todos os produtos ---------- */}
       {itens.length > 0 && (
         <>
-          <div className="barra-produtos">
-            <input className="busca-icone" placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
-            <div className="segmentado pequeno">
+          <div className="cb-busca">
+            <input className="busca" placeholder={t('Buscar produto, marca ou fornecedor...')} value={busca} onChange={(e) => setBusca(e.target.value)} />
+            <div className="an-pilulas">
               <button className={ordem === 'az' ? 'on' : ''} onClick={() => setOrdem('az')}>{t('A–Z')}</button>
               <button className={ordem === 'recentes' ? 'on' : ''} onClick={() => setOrdem('recentes')}>{t('Mais recentes')}</button>
             </div>
