@@ -63,36 +63,8 @@ async function buscar() {
   const { data, error } = resposta || await consultar(org.id)
   if (error) throw new Error(t('Não foi possível carregar os dados do banco. Verifique a internet e tente de novo.'))
   db = { ...vazio(), ...(data?.conteudo || {}) }
-  regrasPendentes = converterRegrasAntigas(db)
   versao = data?.versao ?? 0
   carregadoDe = org.id
-}
-
-// Regras de preço antigas (a tela que criava regras não existe mais): os produtos que ainda dependiam
-// de uma regra viram preço fixo no mesmo valor de antes, e as regras saem dos dados.
-// Ao abrir a loja, a conversão já é gravada no banco (quem pode salvar), e as regras somem de vez.
-let regrasPendentes = false
-function converterRegrasAntigas(d) {
-  if (!('regras' in d) && !('regra' in d) && !('regraPadraoId' in d)) return false
-  const antiga = d.regra && (+d.regra.multiplicador || +d.regra.acrescimo) ? [{ id: 'padrao', ...d.regra }] : []
-  const regras = Array.isArray(d.regras) ? d.regras : antiga
-  // regra antiga: multiplicador (×2 = +100%) ou porcentagem
-  const pct = (r) => { const m = +r.multiplicador || 0, p = +r.percentual || 0; return m > 0 ? (m * (1 + p / 100) - 1) * 100 : p }
-  const padraoId = d.regraPadraoId !== undefined ? d.regraPadraoId : regras[0]?.id ?? null
-  const custos = new Map() // custo de cada produto = o fornecedor mais barato
-  for (const p of d.precosForn || []) { const k = chave(p.produto, p.marca); if (!custos.has(k) || +p.preco < custos.get(k)) custos.set(k, +p.preco) }
-  d.precoProduto = { ...(d.precoProduto || {}) }
-  for (const [k, custo] of custos) {
-    const e = d.precoProduto[k] || { tipo: 'padrao' }
-    if (e.tipo === 'fixo' && e.valor !== '' && e.valor != null) continue
-    const regra = regras.find((r) => r.id === (e.tipo === 'regra' ? e.regraId : padraoId))
-    if (regra && pct(regra) > 0) d.precoProduto[k] = { tipo: 'fixo', valor: Math.round(custo * (1 + pct(regra) / 100) * 100) / 100 }
-    else delete d.precoProduto[k]
-  }
-  delete d.regras
-  delete d.regraPadraoId
-  delete d.regra
-  return true
 }
 
 // Carrega os dados da loja ativa: { fornecedores, precosForn, vendas, entradas, precoProduto, config, perfil, ... }
@@ -101,10 +73,6 @@ export async function carregar() {
   const usuario = await idUsuario()
   if (!org) throw new Error(t('Nenhuma loja selecionada.'))
   if (carregadoDe !== org.id) await buscar()
-  if (regrasPendentes && podeFazer('preco-venda.salvo')) {
-    regrasPendentes = false
-    try { await mudar('preco-venda.salvo', () => {}, t('Regras de preço antigas viraram preço fixo')) } catch { /* fica para o próximo salvamento */ }
-  }
   if (!perfil) {
     // perfil da conta; quem veio da versão antiga ainda tem o perfil guardado dentro dos dados da loja
     perfil = usuario.user_metadata?.perfil || (org.criada_por_mim && db.perfil) || {}
