@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { aviso, confirmar } from '../avisos-tela.jsx'
-import Equipe from './Equipe.jsx'
 import CobrancaLoja from './CobrancaLoja.jsx'
 import { ListaAuditoria } from './ListaAuditoria.jsx'
 import * as Org from '../organizacoes.js'
@@ -28,7 +27,7 @@ const SECOES = [
   {
     titulo: 'Empresa',
     itens: [
-      { id: 'organizacao', nome: 'Organização', desc: 'A loja, a equipe, os papéis de cada pessoa e a atividade.', icone: IconePredio },
+      { id: 'organizacao', nome: 'Organização', desc: 'A loja e a atividade recente.', icone: IconePredio },
       { id: 'marca', nome: 'Marca', desc: 'O nome e a cor que sua empresa mostra dentro do sistema.', icone: IconePaleta },
       { id: 'cobranca', nome: 'Plano e cobrança', desc: 'Seu plano, a situação do pagamento, faturas e troca de plano.', icone: IconeCobranca },
     ],
@@ -217,8 +216,8 @@ function AppCelular({ db, executar }) {
   )
 }
 
-// ---------- Organização (a loja e a equipe) ----------
-function Organizacao({ usuario, loja, adminPlataforma }) {
+// ---------- Organização (a loja e a atividade; cada loja tem um único usuário) ----------
+function Organizacao({ loja, adminPlataforma }) {
   const podeGerir = loja?.papel === 'admin' || adminPlataforma
   const [atividade, setAtividade] = useState(null)
   useEffect(() => {
@@ -231,12 +230,7 @@ function Organizacao({ usuario, loja, adminPlataforma }) {
     <>
       <div className="cards">
         <div className="card"><small>{t('Loja')}</small><b>{loja.nome}</b></div>
-        <div className="card"><small>{t('Seu papel')}</small><b>{Org.nomePapel(loja.papel)}</b></div>
       </div>
-      <p><small>{podeGerir
-        ? t('Coloque aqui as pessoas que trabalham nesta loja. Cada uma entra com o próprio e-mail e senha e só vê esta loja (e as outras em que estiver).')
-        : t('Só o administrador da loja pode mudar a equipe.')}</small></p>
-      <Equipe orgId={loja.id} podeGerir={podeGerir} meuId={usuario?.id} />
       {podeGerir && (
         <>
           <div className="linha-titulo"><h3>{t('Atividade recente')}</h3></div>

@@ -158,7 +158,9 @@ function ControleCaixa({ db, ext, executar, irPara, nomeLoja }) {
   }
   // baixar o extrato do período (planilha .csv)
   function baixar() {
-    const linhas = [['Data', 'Hora', 'Tipo', 'Descrição', 'Valor', 'Saldo'], ...[...doPeriodo].map((m) => [dataBR(m.dia), hora(m.data), nomeTipo(m), m.descricao || '', String(m.valor).replace('.', ','), String(m.saldo).replace('.', ',')])]
+    // texto que começa com = + - @ vira fórmula no Excel: um apóstrofo na frente faz ele aparecer só como texto
+    const texto = (s) => (/^[=+\-@\t\r]/.test(String(s)) ? "'" + s : String(s))
+    const linhas = [['Data', 'Hora', 'Tipo', 'Descrição', 'Valor', 'Saldo'], ...[...doPeriodo].map((m) => [dataBR(m.dia), hora(m.data), texto(nomeTipo(m)), texto(m.descricao || ''), String(m.valor).replace('.', ','), String(m.saldo).replace('.', ',')])]
     const csv = '\ufeff' + linhas.map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))

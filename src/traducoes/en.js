@@ -333,9 +333,6 @@ export default {
   'Seu papel nesta loja não permite fazer isso.': 'Your role in this store does not allow this.',
   'Esta loja está suspensa. Fale com o administrador da plataforma.': 'This store is suspended. Contact the platform administrator.',
   'Loja': 'Store',
-  'Seu papel': 'Your role',
-  'Coloque aqui as pessoas que trabalham nesta loja. Cada uma entra com o próprio e-mail e senha e só vê esta loja (e as outras em que estiver).': 'Add the people who work in this store here. Each one signs in with their own email and password and only sees this store (and any others they belong to).',
-  'Só o administrador da loja pode mudar a equipe.': 'Only the store administrator can change the team.',
   'Atividade recente': 'Recent activity',
   'Nome, cor e logo valem para todas as pessoas desta loja, em qualquer aparelho.': 'Name, color and logo apply to everyone in this store, on any device.',
   'Isso vai substituir todos os dados da loja "{loja}" pelos do arquivo, para todas as pessoas da loja. Continuar?': 'This will replace all data of the store "{loja}" with the file\'s data, for everyone in the store. Continue?',
@@ -460,7 +457,6 @@ export default {
   'Administrador da plataforma adicionado': 'Platform administrator added',
   'Administrador da plataforma removido': 'Platform administrator removed',
   'Modo de cadastro alterado': 'Sign-up mode changed',
-  'A loja, a equipe, os papéis de cada pessoa e a atividade.': 'The store, the team, each person\'s role and the activity.',
   'Loja excluída': 'Store deleted',
   'A plataforma precisa de pelo menos um administrador.': 'The platform needs at least one administrator.',
   // Cadastro com aprovação
@@ -1236,4 +1232,5 @@ export default {
   'Não dá: "{produto}" já foi vendido e o estoque ficaria em {n}. Exclua antes a venda desse produto na aba Vender.': 'Not possible: "{produto}" was already sold and the stock would be {n}. First delete the sale of this product in the Sell tab.',
   'Não conseguimos falar com o servidor. Confira a internet e toque em Tentar de novo.': 'We could not reach the server. Check your internet and tap Try again.',
   'Não dá para registrar empréstimo em data futura.': 'You cannot register a loan on a future date.',
+  'A loja e a atividade recente.': 'The store and recent activity.',
 }

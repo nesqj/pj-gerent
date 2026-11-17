@@ -120,11 +120,11 @@ language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.membros where org_id = o and user_id = (select auth.uid()))
 $$;
 
--- Pode administrar a equipe da loja?
+-- Pode administrar a equipe da loja? Cada loja tem um único usuário: só o administrador da plataforma mexe nisso
 create or replace function public.pode_gerir_equipe(o uuid) returns boolean
-language sql stable security definer set search_path = '' as $$
-  select public.e_admin_plataforma() or coalesce(public.papel_na_org(o) = 'admin', false)
-$$;
+language sql stable security definer set search_path = '' as $
+  select public.e_admin_plataforma()
+$;
 
 -- Registra na auditoria (e-mail e nome da loja preenchidos aqui, não pelo app)
 create or replace function public.auditar(o uuid, a text, d text default null) returns void
@@ -262,7 +262,8 @@ declare
   nova_versao integer;
 begin
   -- coalesce: sem papel, "p in (...)" dá null, e "not null" não bloquearia
-  if not (public.e_admin_plataforma() or coalesce(p in ('admin', 'gerente', 'vendedor'), false)) then
+  -- só o dono da loja (admin) ou o administrador da plataforma gravam (cada loja tem um único usuário)
+  if not (public.e_admin_plataforma() or coalesce(p = 'admin', false)) then
     if exists (select 1 from public.organizacoes where id = o and suspensa) then raise exception 'loja-suspensa'; end if;
     raise exception 'sem-permissao';
   end if;
@@ -1025,7 +1026,7 @@ end $$;
 create or replace function public.srv_conferir(segredo text) returns void
 language plpgsql stable security definer set search_path = '' as $$
 begin
-  if segredo is null or segredo <> (select segredo_servidor from public.cobranca_config) then raise exception 'segredo-invalido'; end if;
+  if segredo is null or segredo is distinct from (select segredo_servidor from public.cobranca_config where id) then raise exception 'segredo-invalido'; end if;
 end $$;
 
 create or replace function public.srv_config(segredo text) returns jsonb
