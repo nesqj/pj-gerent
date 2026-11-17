@@ -63,16 +63,17 @@ async function buscar() {
   const { data, error } = resposta || await consultar(org.id)
   if (error) throw new Error(t('Não foi possível carregar os dados do banco. Verifique a internet e tente de novo.'))
   db = { ...vazio(), ...(data?.conteudo || {}) }
-  converterRegrasAntigas(db)
+  regrasPendentes = converterRegrasAntigas(db)
   versao = data?.versao ?? 0
   carregadoDe = org.id
 }
 
 // Regras de preço antigas (a tela que criava regras não existe mais): os produtos que ainda dependiam
 // de uma regra viram preço fixo no mesmo valor de antes, e as regras saem dos dados.
-// A conversão fica gravada no próximo salvamento da loja (até lá, é refeita a cada carga).
+// Ao abrir a loja, a conversão já é gravada no banco (quem pode salvar), e as regras somem de vez.
+let regrasPendentes = false
 function converterRegrasAntigas(d) {
-  if (!('regras' in d) && !('regra' in d) && !('regraPadraoId' in d)) return
+  if (!('regras' in d) && !('regra' in d) && !('regraPadraoId' in d)) return false
   const antiga = d.regra && (+d.regra.multiplicador || +d.regra.acrescimo) ? [{ id: 'padrao', ...d.regra }] : []
   const regras = Array.isArray(d.regras) ? d.regras : antiga
   // regra antiga: multiplicador (×2 = +100%) ou porcentagem
@@ -91,6 +92,7 @@ function converterRegrasAntigas(d) {
   delete d.regras
   delete d.regraPadraoId
   delete d.regra
+  return true
 }
 
 // Carrega os dados da loja ativa: { fornecedores, precosForn, vendas, entradas, precoProduto, config, perfil, ... }
@@ -99,6 +101,10 @@ export async function carregar() {
   const usuario = await idUsuario()
   if (!org) throw new Error(t('Nenhuma loja selecionada.'))
   if (carregadoDe !== org.id) await buscar()
+  if (regrasPendentes && podeFazer('preco-venda.salvo')) {
+    regrasPendentes = false
+    try { await mudar('preco-venda.salvo', () => {}, t('Regras de preço antigas viraram preço fixo')) } catch { /* fica para o próximo salvamento */ }
+  }
   if (!perfil) {
     // perfil da conta; quem veio da versão antiga ainda tem o perfil guardado dentro dos dados da loja
     perfil = usuario.user_metadata?.perfil || (org.criada_por_mim && db.perfil) || {}
