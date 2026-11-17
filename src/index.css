@@ -1183,3 +1183,9 @@ label.calc-linha { flex-direction: row; align-items: center; text-align: left; c
 /* celular: voltar para a Minha conta nas telas que abrem por ela */
 .voltar-conta { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; color: var(--txt); padding: 6px 0; margin: 0 0 6px; font-size: 15px; font-weight: 500; min-height: 0 !important; cursor: pointer }
 .voltar-conta svg { width: 20px; height: 20px }
+
+/* tela de abertura: a logo no meio, pulsando de leve enquanto carrega */
+.tela-carregando { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 100 }
+.tela-carregando img { width: min(180px, 50vw); max-height: 120px; object-fit: contain; animation: logo-pulsa 1.6s ease-in-out infinite }
+@keyframes logo-pulsa { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: .55; transform: scale(.97) } }
+@media (prefers-reduced-motion: reduce) { .tela-carregando img { animation: none } }

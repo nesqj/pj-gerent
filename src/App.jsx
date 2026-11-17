@@ -328,6 +328,12 @@ export default function App() {
   // logo: no tema escuro usa o logo próprio dele; se não tiver, usa o do tema claro
   const logoDe = (m) => (temaAtivo === 'light' ? m.logo : m.logoEscuro || m.logo)
   const logo = logoDe(daLoja) || logoDe(marcaPlat)
+  // tela de abertura enquanto carrega: só a logo no meio da tela
+  const telaCarregando = (
+    <div className="tela-carregando" role="status" aria-label={t('Carregando...')}>
+      <img src={logo || (temaAtivo === 'light' ? LOGO_PADRAO_CLARO : LOGO_PADRAO_ESCURO)} alt="" />
+    </div>
+  )
   const nomeSistema = marcaPlat.nome?.trim() || NOME_APP
   const nomeProprio = daLoja.nomeLoja?.trim() || (logo ? '' : marcaPlat.nome?.trim())
   const nomeLoja = daLoja.nomeLoja?.trim() || nomeSistema
@@ -406,7 +412,7 @@ export default function App() {
   if (recuperando) {
     return <Login tema={temaAtivo} logo={logo} modoInicial="novaSenha" onSenhaTrocada={() => { setRecuperando(false); aviso.ok(t('Senha alterada!')) }} />
   }
-  if (sessao === undefined) return <p className="vazio">{t('Carregando...')}</p>
+  if (sessao === undefined) return telaCarregando
   if (!sessao) return <Login tema={temaAtivo} logo={logo} onEntrou={entrou} />
 
   // Telas de aviso (sem o menu): erro, sem loja, loja suspensa
@@ -468,7 +474,7 @@ export default function App() {
       </div></div>
     )
   }
-  if (modo === 'carregando' || (modo === 'loja' && !db)) return <p className="vazio">{t('Carregando...')}</p>
+  if (modo === 'carregando' || (modo === 'loja' && !db)) return telaCarregando
 
   return (
     <div className={'layout' + (recolhida ? ' recolhida' : '') + (menuAberto ? ' menu-aberto' : '') + (noAdmin ? '' : ' modo-loja') + (!noAdmin ? ' sem-topo-celular' : '')}>
